@@ -19,7 +19,8 @@
     "build:turbopack": "next build",
     "seed-users": "tsx --conditions=react-server --env-file=.env.local scripts/seed-users.ts",
     "set-setting": "tsx --conditions=react-server --env-file=.env.local scripts/set-setting.ts",
-    "verify:import": "tsx scripts/verify-import-validation.ts"
+    "verify:import": "tsx scripts/verify-import-validation.ts",
+    "verify:fraud": "tsx scripts/verify-fraud-rules.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

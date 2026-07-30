@@ -56,3 +56,6 @@ serviceAccount.json
 
 # generated test credentials — never commit
 test-accounts.csv
+
+# test credentials — never commit
+TEST-LOGINS.md
