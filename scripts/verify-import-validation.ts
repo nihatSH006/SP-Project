@@ -39,13 +39,15 @@ function expectCode(
     `  ${ok ? "✓" : "✗"} ${label}` +
       (ok ? ` — ${severity} (${found!.count})` : `  [expected ${severity} ${code}]`)
   )
-  ok ? (pass += 1) : (fail += 1)
+  if (ok) pass += 1
+  else fail += 1
 }
 
 function expectOk(label: string, result: ReturnType<typeof validateImport>, want: boolean) {
   const ok = result.ok === want
   console.log(`  ${ok ? "✓" : "✗"} ${label} — ok=${result.ok}`)
-  ok ? (pass += 1) : (fail += 1)
+  if (ok) pass += 1
+  else fail += 1
 }
 
 console.log("\nClean import")
