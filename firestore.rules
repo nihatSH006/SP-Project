@@ -1,0 +1,146 @@
+rules_version = '2';
+
+// SOCAR SASIS — Firestore security rules.
+//
+// Posture: deny by default, then open the narrowest possible read paths.
+//
+// The dashboard never touches Firestore from the browser — every page is
+// server-rendered and reads through the Admin SDK, which bypasses these rules.
+// These rules therefore govern direct client-SDK access only, and exist so that
+// a leaked web API key is worthless on its own: an attacker still needs a valid
+// session AND a role claim AND, for station-pinned roles, the matching station.
+//
+// Data is nested under /stations/{stationId}/... on purpose. Rules cannot
+// inspect a query's `where` filters, so per-station authorisation has to come
+// from the document path — that is the only way to make `list` safe for
+// station-scoped users without leaking other stations' rows.
+//
+// Writes are refused from clients everywhere. Ingestion is server-only
+// (`npm run seed`), so there is no client write path to audit.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------- helpers
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Roles are custom claims minted by the server, never client-writable.
+    function role() {
+      return signedIn() && 'role' in request.auth.token
+        ? request.auth.token.role
+        : '';
+    }
+
+    function isAdmin() {
+      return role() == 'admin';
+    }
+
+    // Regional users see every station; managers (station heads) and staff are
+    // pinned to exactly the one in their claims.
+    function isRegional() {
+      return role() == 'admin' || role() == 'supervisor';
+    }
+
+    function isStationPinned() {
+      return role() == 'manager' || role() == 'staff';
+    }
+
+    // The claim holds the slugified station *id* ("baku-station-1"), not the
+    // display name — it is compared against a document path segment, and rules
+    // cannot slugify. `station` also exists as a claim for the UI; do not use it
+    // here, or every comparison silently fails closed.
+    function stationIdClaim() {
+      return signedIn() && 'stationId' in request.auth.token
+        ? request.auth.token.stationId
+        : '';
+    }
+
+    // Also the "has a usable role at all" check: a signed-in user whose claims
+    // have not been set yet matches neither branch and is refused.
+    function canReadStation(stationId) {
+      return isRegional()
+             || (isStationPinned() && stationIdClaim() == stationId);
+    }
+
+    // ------------------------------------------------------------------ users
+
+    // A user may read their own profile. Nothing is client-writable: role and
+    // station live in custom claims, and allowing writes here would let a user
+    // widen their own visibility.
+    match /users/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow write: if false;
+    }
+
+    // --------------------------------------------------------------- stations
+
+    match /stations/{stationId} {
+      allow get: if canReadStation(stationId);
+      allow list: if isRegional();
+      allow write: if false;
+
+      // Station-scoped collections inherit authorisation from the path, so a
+      // `list` here can never span stations the caller is not entitled to.
+      match /roster/{employeeId} {
+        allow read: if canReadStation(stationId);
+        allow write: if false;
+      }
+
+      match /reports/{reportId} {
+        allow read: if canReadStation(stationId);
+        allow write: if false;
+      }
+
+      match /sales/{saleId} {
+        allow read: if canReadStation(stationId);
+        allow write: if false;
+      }
+    }
+
+    // Cross-station collection-group reads are regional-only. Without these,
+    // a collectionGroup('reports') query would bypass the per-station paths.
+    match /{path=**}/roster/{employeeId} {
+      allow read: if isRegional();
+      allow write: if false;
+    }
+
+    match /{path=**}/reports/{reportId} {
+      allow read: if isRegional();
+      allow write: if false;
+    }
+
+    match /{path=**}/sales/{saleId} {
+      allow read: if isRegional();
+      allow write: if false;
+    }
+
+    // --------------------------------------------------------------- settings
+
+    // Business rules (targets, thresholds, grace periods). Admin-only even for
+    // reads from clients; the app itself reads them server-side. Writes will be
+    // opened to admin once the settings UI ships — until then, server-only.
+    match /settings/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ------------------------------------------------------------------- meta
+
+    // Import bookkeeping: row counts, source files, imported-at, date list.
+    match /meta/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------- catch-all
+
+    // Anything not matched above is denied, including collections added later
+    // without a corresponding rule.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

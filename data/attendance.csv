@@ -1,0 +1,21 @@
+Employee,Department,Station,Entry,Exit
+Ali,Fuel Sales,Baku Station 1,2026-07-27 06:00:00,2026-07-27 14:00:00
+Leyla,Cashier Operations,Baku Station 1,2026-07-27 14:00:00,2026-07-27 22:00:00
+Murad,Customer Service,Sumqayit Station,2026-07-27 22:00:00,2026-07-28 06:00:00
+Kamran,Fuel Sales,Ganja Station,2026-07-27 06:00:00,2026-07-27 14:00:00
+Nigar,Convenience Store,Mingachevir Station,2026-07-27 14:00:00,2026-07-27 22:00:00
+Farid,Fuel Sales,Baku Station 2,2026-07-27 22:00:00,2026-07-28 06:00:00
+Orxan,Cashier Operations,Baku Station 2,2026-07-27 06:00:00,2026-07-27 14:00:00
+Aysel,Customer Service,Sumqayit Station,2026-07-27 14:00:00,2026-07-27 22:00:00
+Rashad,Convenience Store,Ganja Station,2026-07-27 22:00:00,2026-07-28 06:00:00
+Emin,Fuel Sales,Mingachevir Station,2026-07-27 06:00:00,2026-07-27 14:00:00
+Elnur,Customer Service,Baku Station 1,2026-07-27 14:00:00,2026-07-27 22:00:00
+Sabina,Convenience Store,Baku Station 2,2026-07-27 22:00:00,2026-07-28 06:00:00
+Tural,Fuel Sales,Sumqayit Station,2026-07-27 06:00:00,2026-07-27 14:00:00
+Gunel,Cashier Operations,Ganja Station,2026-07-27 14:00:00,2026-07-27 22:00:00
+Elvin,Customer Service,Mingachevir Station,2026-07-27 22:00:00,2026-07-28 06:00:00
+Nurlan,Convenience Store,Baku Station 1,2026-07-27 06:00:00,2026-07-27 14:00:00
+Laman,Fuel Sales,Baku Station 2,2026-07-27 14:00:00,2026-07-27 22:00:00
+Ramin,Cashier Operations,Sumqayit Station,2026-07-27 22:00:00,2026-07-28 06:00:00
+Amina,Customer Service,Ganja Station,2026-07-27 06:00:00,2026-07-27 14:00:00
+Kanan,Convenience Store,Mingachevir Station,2026-07-27 14:00:00,2026-07-27 22:00:00
