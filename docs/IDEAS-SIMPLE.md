@@ -30,10 +30,10 @@ So we win in two ways — and both are things SASIS can measure:
 
 ## First, one thing to fix
 
-- **1. Keep every day's data** ✅
-  Right now each import replaces the last day. Keep them all, and suddenly we
-  can show trends, "vs last week", fair targets, and real fraud patterns.
-  Almost every idea below needs this. It is cheap to do.
+- **1. Keep every day's data** ✅ **DONE**
+  Delivered: the database now stores every operational day (28 days of test
+  data), and every page has a day picker with prev/next arrows. Trends, fair
+  targets and the statistical fraud rules are now possible.
 
 ---
 

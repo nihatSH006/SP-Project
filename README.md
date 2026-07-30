@@ -37,9 +37,16 @@ Project: **`socar-petrolium`**. Firestore rules and indexes are already deployed
 
 ```bash
 npx firebase login                     # once, interactive
-npm run seed                           # CSV -> Firestore (safe to re-run)
+npm run seed -- --reset                # generated test data -> Firestore
+npm run seed-users                     # 8 station managers + 64 workers
 npm run create-user -- --email you@socar.az --password '<12+ chars>' --role admin
 ```
+
+The seed writes **8 stations, 64 workers, 28 operational days** (~1,700 daily
+reports, ~45,000 transactions) of deterministic synthetic data, including
+planted fraud cases (see `PLANTED_FRAUD` in `lib/testdata.ts` for the answer
+key). `seed-users` provisions a real Auth account for every station manager and
+worker; credentials land in `test-accounts.csv` (gitignored).
 
 `.env.local` holds the web SDK config plus `GOOGLE_APPLICATION_CREDENTIALS`
 pointing at a service-account JSON. Both that key and `.env.local` are
@@ -52,11 +59,12 @@ client could write, so a user cannot widen their own visibility.
 
 | Role | Sees |
 |---|---|
-| `admin` | Everything, including import metadata |
-| `supervisor` | Every station |
+| `admin` | Everything, including import metadata and settings |
+| `supervisor` | Every station (regional) |
+| `manager` | One station — its head (`--station "Baku Station 1"`) |
 | `staff` | One station only (`--station "Baku Station 1"`) |
 
-A `staff` account carries two claims: `station` (display name, for the UI) and
+Station-pinned accounts (`manager`, `staff`) carry two claims: `station` (display name, for the UI) and
 `stationId` (slug, which the rules compare against the document path).
 
 ## Security model
