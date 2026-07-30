@@ -178,7 +178,6 @@ console.log("\nInnocent operators are not accused")
 const innocentNames = workers.filter((w) => w.fraud === "none").map((w) => w.name)
 const innocentFlaggedHigh = innocentNames.filter((n) => proposedHigh.has(n))
 const plantedNames = Object.keys(plants)
-const plantedFlaggedHigh = plantedNames.filter((n) => proposedHigh.has(n))
 
 // A single day is the wrong unit to accuse anyone on: one flagged sale is
 // usually a forgotten clock-out. What matters is whether the engine surfaces
