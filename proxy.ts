@@ -30,11 +30,11 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   /**
-   * Everything except the login page, the session endpoint, Next internals and
-   * static assets. Written as a negative lookahead so a new page is protected by
+   * Everything except the login page, the session endpoint, the deployment
+   * health check, Next internals and static assets. Written as a negative lookahead so a new page is protected by
    * default — forgetting to add a route here cannot accidentally expose it.
    */
   matcher: [
-    "/((?!login|api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!login|api/auth|api/health|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 }
