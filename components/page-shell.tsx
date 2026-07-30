@@ -42,7 +42,7 @@ export async function PageShell({
 
   return (
     <SidebarProvider>
-      <AppSidebar alertCount={alertCount} />
+      <AppSidebar alertCount={alertCount} isAdmin={user?.role === "admin"} />
       <SidebarInset className="overflow-hidden ring-1 ring-border/60">
         {/* Account lives in the header, not as a sidebar banner. */}
         <SiteHeader

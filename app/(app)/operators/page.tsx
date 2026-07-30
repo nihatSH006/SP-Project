@@ -14,8 +14,8 @@ export const metadata = { title: "Operators" }
 export default async function OperatorsPage(props: {
   searchParams: Promise<SearchParams>
 }) {
-  const { reports, options } = await getSlice(await props.searchParams)
-  const summary = summarise(reports)
+  const { reports, options, target } = await getSlice(await props.searchParams)
+  const summary = summarise(reports, target)
 
   // Ship only what the table renders — reports carry every raw sale.
   const rows: OperatorRow[] = rankOperators(reports).map((r) => ({

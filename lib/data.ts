@@ -4,15 +4,18 @@ import { cache } from "react"
 
 import {
   applyFilters,
+  deriveScores,
+  targetForSlice,
   type Filters,
   type HourlyPoint,
   type OperatorMetrics,
-  type RiskLevel,
   type Shift,
   SHIFTS,
 } from "@/lib/analytics"
 import { getSessionUser, stationScopeFor } from "@/lib/auth"
 import { adminDb } from "@/lib/firebase/admin"
+import { getSettings } from "@/lib/settings-server"
+import type { Settings } from "@/lib/settings"
 import { COLLECTIONS, stationId } from "@/lib/firebase/schema"
 import type { ReportDoc } from "@/lib/firebase/schema"
 
@@ -69,7 +72,23 @@ function isQuotaError(error: unknown): boolean {
   )
 }
 
-function docToReport(data: ReportDoc): StoredReport {
+/**
+ * Rehydrate a stored report, re-deriving every policy-dependent value from the
+ * admin's current settings. The stored `attendanceScore` / `risk` / `score` /
+ * `grade` are snapshots from import time and are deliberately ignored — that is
+ * what makes a settings change take effect instantly across all 28 days without
+ * recomputing a single document.
+ */
+function docToReport(data: ReportDoc, settings: Settings): StoredReport {
+  const derived = deriveScores(
+    {
+      workingHours: data.workingHours,
+      productivity: data.productivity,
+      suspicious: data.suspicious,
+    },
+    settings
+  )
+
   return {
     id: data.employeeId,
     date: data.date,
@@ -84,11 +103,11 @@ function docToReport(data: ReportDoc): StoredReport {
     revenue: data.revenue,
     productivity: data.productivity,
     salesPerHour: data.salesPerHour,
-    attendanceScore: data.attendanceScore,
     suspicious: data.suspicious,
-    risk: data.risk as RiskLevel,
-    score: data.score,
-    grade: data.grade,
+    attendanceScore: derived.attendanceScore,
+    risk: derived.risk,
+    score: derived.score,
+    grade: derived.grade,
     alerts: (data.alerts ?? []).map((alert) => ({
       operatorId: data.employeeId,
       operator: data.name,
@@ -133,10 +152,23 @@ export const getOperatorReports = cache(
     const day = date ?? (await getLatestDate())
     if (!day) return []
 
+    const settings = await getSettings()
     const scope = stationScopeFor(user)
     const key = `${scope ?? "__all__"}:${day}`
 
-    const hit = reportsCache.get(key)
+    // Settings are part of the cache key: changing a threshold must not serve
+    // scores computed under the old policy.
+    const policyKey = JSON.stringify([
+      settings.scheduledHours,
+      settings.productivityTarget,
+      settings.riskHighSuspicious,
+      settings.riskMediumAttendance,
+      settings.riskHighAttendance,
+      settings.gradeBounds,
+    ])
+    const cacheKey = `${key}|${policyKey}`
+
+    const hit = reportsCache.get(cacheKey)
     if (hit && Date.now() - hit.at < TTL_MS) return hit.reports
 
     const db = adminDb()
@@ -155,10 +187,10 @@ export const getOperatorReports = cache(
             .get()
 
       const reports = snapshot.docs
-        .map((doc) => docToReport(doc.data() as ReportDoc))
+        .map((doc) => docToReport(doc.data() as ReportDoc, settings))
         .sort((a, b) => a.name.localeCompare(b.name))
 
-      reportsCache.set(key, { at: Date.now(), reports })
+      reportsCache.set(cacheKey, { at: Date.now(), reports })
       return reports
     } catch (error) {
       // Stale-if-error: an expired copy beats an error page.
@@ -185,6 +217,67 @@ export const getOperatorReports = cache(
     }
   }
 )
+
+/** Station x day revenue totals, written by the seeder for baseline targets. */
+type Rollups = Record<string, Record<string, number>>
+
+const gr = globalThis as typeof globalThis & {
+  __sasisRollups?: { at: number; rollups: Rollups } | null
+}
+
+const getRollups = cache(async (): Promise<Rollups> => {
+  if (gr.__sasisRollups && Date.now() - gr.__sasisRollups.at < TTL_MS) {
+    return gr.__sasisRollups.rollups
+  }
+  try {
+    const doc = await adminDb().collection(COLLECTIONS.meta).doc("rollups").get()
+    const rollups = (doc.data()?.stationDaily as Rollups | undefined) ?? {}
+    gr.__sasisRollups = { at: Date.now(), rollups }
+    return rollups
+  } catch {
+    return gr.__sasisRollups?.rollups ?? {}
+  }
+})
+
+/**
+ * The revenue target for this slice.
+ *
+ * Manual: the admin's per-station numbers, summed over the stations present.
+ * Baseline: each station's own trailing average (from the rollup document)
+ * times the configured uplift — so a quiet station is measured against itself.
+ * Returns null when nothing is configured, so the UI can say so honestly
+ * rather than inventing the old self-referential 87%.
+ */
+async function targetFor(
+  reports: StoredReport[],
+  settings: Settings,
+  date: string | null
+): Promise<number | null> {
+  if (reports.length === 0) return null
+
+  if (settings.targetMode === "manual") {
+    return targetForSlice(reports, settings, stationId)
+  }
+
+  const rollups = await getRollups()
+  const stations = [...new Set(reports.map((r) => r.station))]
+  const BASELINE_DAYS = 14
+
+  let total = 0
+  for (const name of stations) {
+    const byDate = rollups[stationId(name)] ?? {}
+    const past = Object.entries(byDate)
+      .filter(([d]) => (date ? d < date : true))
+      .sort(([a], [b]) => (a < b ? 1 : -1))
+      .slice(0, BASELINE_DAYS)
+      .map(([, revenue]) => revenue)
+    if (past.length === 0) continue
+    const average = past.reduce((sum, v) => sum + v, 0) / past.length
+    total += average * settings.baselineUplift
+  }
+
+  return total > 0 ? total : null
+}
 
 export type FilterOptions = {
   stations: string[]
@@ -251,5 +344,9 @@ export async function getSlice(searchParams: SearchParams) {
     selectedDate: date,
   }
 
-  return { filters, options, reports: applyFilters(reports, filters) }
+  const filtered = applyFilters(reports, filters)
+  const settings = await getSettings()
+  const target = await targetFor(filtered, settings, date)
+
+  return { filters, options, reports: filtered, target, settings }
 }

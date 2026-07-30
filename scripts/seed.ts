@@ -219,6 +219,26 @@ async function main() {
   await commitInBatches(db, saleWrites, "sales")
   console.log(`  sales:     ${saleCount}`)
 
+  // ---------------------------------------------------- per-station rollups
+  // Station x day revenue totals in one small document, so "target from this
+  // station's own average" is a single read instead of re-scanning history.
+  const rollups: Record<string, Record<string, number>> = {}
+  for (const day of days) {
+    const byStation = new Map<string, number>()
+    const attByWorker = new Set(day.attendance.map((a) => a.employeeId))
+    for (const sale of day.sales) {
+      if (!attByWorker.has(sale.employeeId)) continue
+      const worker = workerById.get(sale.employeeId)!
+      const id = stationId(worker.station)
+      byStation.set(id, (byStation.get(id) ?? 0) + sale.amount)
+    }
+    for (const [id, revenue] of byStation) {
+      ;(rollups[id] ??= {})[day.date] = Math.round(revenue * 100) / 100
+    }
+  }
+  await db.collection(COLLECTIONS.meta).doc("rollups").set({ stationDaily: rollups })
+  console.log(`  rollups:   ${Object.keys(rollups).length} stations x ${days.length} days`)
+
   // ------------------------------------------------------------- settings
   // Defaults mirror the historical constants; the admin settings UI (#16)
   // will edit this document instead of code.

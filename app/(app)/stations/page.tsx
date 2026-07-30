@@ -40,9 +40,9 @@ export const metadata = { title: "Stations" }
 export default async function StationsPage(props: {
   searchParams: Promise<SearchParams>
 }) {
-  const { reports, options } = await getSlice(await props.searchParams)
+  const { reports, options, target } = await getSlice(await props.searchParams)
   const stations = stationReports(reports)
-  const summary = summarise(reports)
+  const summary = summarise(reports, target)
 
   const avgHealth =
     stations.length > 0

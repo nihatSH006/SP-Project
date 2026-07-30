@@ -10,10 +10,15 @@
  *          attendance <70 -> HIGH; otherwise LOW
  * - Performance score = (attendance + min(productivity / 15, 100)) / 2
  * - Operational health = 100 - (10 x suspicious sales), floor 0
- * - Daily revenue target = max(revenue x 1.15, 60000 AZN)
+ * - Daily revenue target: set by the admin per station (see lib/settings.ts).
+ *   The old formula was max(revenue x 1.15, 60000), which derived the target
+ *   from the revenue it measured and so always reported exactly 87%.
  */
 
-export const SCHEDULED_HOURS = 8
+import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings"
+
+/** @deprecated Use `settings.scheduledHours` — kept for display fallbacks. */
+export const SCHEDULED_HOURS = DEFAULT_SETTINGS.scheduledHours
 export const RISK_LEVELS = ["LOW", "MEDIUM", "HIGH"] as const
 export const SHIFTS = ["Morning", "Evening", "Night"] as const
 
@@ -93,8 +98,10 @@ export type Summary = {
   avgAttendance: number
   alerts: number
   health: number
+  /** 0 when no target is configured — check `hasTarget` before showing it. */
   target: number
   targetPct: number
+  hasTarget: boolean
   topOperator: OperatorMetrics | null
   bestStation: string | null
   bestDepartment: string | null
@@ -119,16 +126,66 @@ function shiftFor(entry: Date): Shift {
   return "Night"
 }
 
-function gradeFor(score: number): string {
-  if (score >= 90) return "A+"
-  if (score >= 80) return "A"
-  if (score >= 70) return "B"
-  if (score >= 60) return "C"
+function gradeFor(score: number, settings: Settings): string {
+  const g = settings.gradeBounds
+  if (score >= g.aPlus) return "A+"
+  if (score >= g.a) return "A"
+  if (score >= g.b) return "B"
+  if (score >= g.c) return "C"
   return "D"
 }
 
+/** The measured facts a report stores; everything else is policy. */
+export type MeasuredMetrics = {
+  workingHours: number
+  productivity: number
+  suspicious: number
+}
+
+/** Policy-dependent values, derived from measurements + admin settings. */
+export type DerivedScores = {
+  attendanceScore: number
+  risk: RiskLevel
+  score: number
+  grade: string
+}
+
+/**
+ * Apply the admin's business rules to one operator's measurements.
+ *
+ * Called both when importing (to store a snapshot) and on every read (so a
+ * settings change is reflected instantly, without recomputing stored docs).
+ */
+export function deriveScores(
+  { workingHours, productivity, suspicious }: MeasuredMetrics,
+  settings: Settings = DEFAULT_SETTINGS
+): DerivedScores {
+  const attendanceScore = Math.min(
+    100,
+    Math.round((workingHours / settings.scheduledHours) * 100)
+  )
+
+  let risk: RiskLevel = "LOW"
+  if (suspicious >= settings.riskHighSuspicious) risk = "HIGH"
+  else if (suspicious >= 1 || attendanceScore < settings.riskMediumAttendance) {
+    risk = "MEDIUM"
+  }
+  if (attendanceScore < settings.riskHighAttendance) risk = "HIGH"
+
+  const score = Math.round(
+    (attendanceScore +
+      Math.min((productivity / settings.productivityTarget), 100)) /
+      2
+  )
+
+  return { attendanceScore, risk, score, grade: gradeFor(score, settings) }
+}
+
 /** One report row per operator, computed from attendance + sales. */
-export function buildOperatorReports(employees: Employee[]): OperatorReport[] {
+export function buildOperatorReports(
+  employees: Employee[],
+  settings: Settings = DEFAULT_SETTINGS
+): OperatorReport[] {
   const reports: OperatorReport[] = []
 
   for (const emp of employees) {
@@ -153,18 +210,10 @@ export function buildOperatorReports(employees: Employee[]): OperatorReport[] {
 
     const productivity = round(revenue / workingHours, 2)
     const salesPerHour = round(salesCount / workingHours, 2)
-    const attendanceScore = Math.min(
-      100,
-      Math.round((workingHours / SCHEDULED_HOURS) * 100)
-    )
 
-    let risk: RiskLevel = "LOW"
-    if (suspicious >= 2) risk = "HIGH"
-    else if (suspicious === 1 || attendanceScore < 90) risk = "MEDIUM"
-    if (attendanceScore < 70) risk = "HIGH"
-
-    const score = Math.round(
-      (attendanceScore + Math.min(productivity / 15, 100)) / 2
+    const { attendanceScore, risk, score, grade } = deriveScores(
+      { workingHours, productivity, suspicious },
+      settings
     )
 
     reports.push({
@@ -184,7 +233,7 @@ export function buildOperatorReports(employees: Employee[]): OperatorReport[] {
       suspicious,
       risk,
       score,
-      grade: gradeFor(score),
+      grade,
       alerts,
       sales: emp.sales,
     })
@@ -265,7 +314,34 @@ const emptyRiskCounts = (): Record<RiskLevel, number> => ({
 })
 
 /** Fleet-level KPIs for whatever slice of operators is passed in. */
-export function summarise(reports: OperatorMetrics[]): Summary {
+/**
+ * Sum the per-station daily targets for the stations present in this slice.
+ *
+ * Returns null when no target basis is available, so the caller can say "no
+ * target set" instead of inventing one — the failure mode of the old formula.
+ */
+export function targetForSlice(
+  reports: OperatorMetrics[],
+  settings: Settings,
+  stationIdOf: (stationName: string) => string
+): number | null {
+  const stations = [...new Set(reports.map((r) => r.station))]
+  if (stations.length === 0) return null
+  if (settings.targetMode !== "manual") return null // baseline handled by caller
+
+  return stations.reduce((sum, name) => {
+    const id = stationIdOf(name)
+    const target =
+      settings.stationDailyTargets[id] ?? settings.defaultStationDailyTarget
+    return sum + target
+  }, 0)
+}
+
+export function summarise(
+  reports: OperatorMetrics[],
+  /** Total revenue target for this slice; null when none is configured. */
+  target: number | null = null
+): Summary {
   if (reports.length === 0) {
     return {
       operators: 0,
@@ -275,8 +351,9 @@ export function summarise(reports: OperatorMetrics[]): Summary {
       avgAttendance: 0,
       alerts: 0,
       health: 100,
-      target: 60000,
+      target: target ?? 0,
       targetPct: 0,
+      hasTarget: target !== null && target > 0,
       topOperator: null,
       bestStation: null,
       bestDepartment: null,
@@ -286,7 +363,6 @@ export function summarise(reports: OperatorMetrics[]): Summary {
 
   const revenue = reports.reduce((sum, r) => sum + r.revenue, 0)
   const alerts = reports.reduce((sum, r) => sum + r.suspicious, 0)
-  const target = Math.max(revenue * 1.15, 60000)
 
   const stationRev = new Map<string, number>()
   const deptRev = new Map<string, number>()
@@ -314,8 +390,9 @@ export function summarise(reports: OperatorMetrics[]): Summary {
     ),
     alerts,
     health: Math.max(0, 100 - alerts * 10),
-    target: Math.round(target),
-    targetPct: round((revenue / target) * 100, 1),
+    target: target === null ? 0 : Math.round(target),
+    targetPct: target && target > 0 ? round((revenue / target) * 100, 1) : 0,
+    hasTarget: target !== null && target > 0,
     topOperator: [...reports].sort((a, b) => b.revenue - a.revenue)[0],
     bestStation: argmax(stationRev),
     bestDepartment: argmax(deptRev),

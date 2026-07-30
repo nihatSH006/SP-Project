@@ -65,8 +65,8 @@ export const metadata = { title: "Dashboard" }
 export default async function DashboardPage(props: {
   searchParams: Promise<SearchParams>
 }) {
-  const { reports, options } = await getSlice(await props.searchParams)
-  const summary = summarise(reports)
+  const { reports, options, target } = await getSlice(await props.searchParams)
+  const summary = summarise(reports, target)
   const top5 = rankOperators(reports).slice(0, 5)
   const alerts = collectAlerts(reports)
 
@@ -104,7 +104,11 @@ export default async function DashboardPage(props: {
               value={money(summary.revenue)}
               unit="AZN"
               icon={IconCoin}
-              caption={`${summary.targetPct}% of the ${money(summary.target)} AZN daily target`}
+              caption={
+                summary.hasTarget
+                  ? `${summary.targetPct}% of the ${money(summary.target)} AZN daily target`
+                  : "No revenue target configured"
+              }
             />
             <StatTile
               label="Transactions"
@@ -160,27 +164,46 @@ export default async function DashboardPage(props: {
               <CardHeader>
                 <CardTitle>Daily revenue target</CardTitle>
                 <CardDescription>
-                  Progress toward {money(summary.target)} AZN
+                  {summary.hasTarget
+                    ? `Progress toward ${money(summary.target)} AZN`
+                    : "Set targets in Settings to track progress"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-5">
                 <div className="flex flex-col gap-2">
-                  <Meter
-                    label={
-                      <span className="font-medium text-foreground">
-                        {money(summary.revenue)} AZN
-                      </span>
-                    }
-                    value={summary.targetPct}
-                    display={`${summary.targetPct}%`}
-                  />
-                  <p className="text-muted-foreground">
-                    {summary.targetPct >= 100 ? (
-                      <StatusLine band="good">Target exceeded.</StatusLine>
-                    ) : (
-                      `${money(summary.target - summary.revenue)} AZN remaining to reach today's target.`
-                    )}
-                  </p>
+                  {summary.hasTarget ? (
+                    <>
+                      <Meter
+                        label={
+                          <span className="font-medium text-foreground">
+                            {money(summary.revenue)} AZN
+                          </span>
+                        }
+                        value={summary.targetPct}
+                        display={`${summary.targetPct}%`}
+                      />
+                      <p className="text-muted-foreground">
+                        {summary.targetPct >= 100 ? (
+                          <StatusLine band="good">Target exceeded.</StatusLine>
+                        ) : (
+                          `${money(summary.target - summary.revenue)} AZN remaining to reach today's target.`
+                        )}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-2xl font-semibold tabular-nums">
+                        {money(summary.revenue)}{" "}
+                        <span className="text-sm font-normal text-muted-foreground">
+                          AZN
+                        </span>
+                      </p>
+                      <p className="text-muted-foreground">
+                        No target configured — an administrator can set one per
+                        station in Settings.
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -401,8 +424,14 @@ export default async function DashboardPage(props: {
                   Today the fleet generated{" "}
                   <Strong>{money(summary.revenue)} AZN</Strong> across{" "}
                   <Strong>{summary.transactions}</Strong> transactions —{" "}
-                  <Strong>{summary.targetPct}%</Strong> of the daily revenue
-                  target.
+                  {summary.hasTarget ? (
+                    <>
+                      <Strong>{summary.targetPct}%</Strong> of the daily revenue
+                      target.
+                    </>
+                  ) : (
+                    <>with no revenue target configured.</>
+                  )}
                 </p>
                 <p>
                   <Strong>{summary.topOperator!.name}</Strong> leads with{" "}
@@ -419,15 +448,17 @@ export default async function DashboardPage(props: {
                     ? "No suspicious activity was detected."
                     : `${summary.alerts} suspicious transaction${summary.alerts === 1 ? "" : "s"} require review before shift close.`}
                 </p>
-                <p>
-                  <StatusLine band={bandFor(summary.targetPct, 100, 80)}>
-                    {summary.targetPct >= 100
-                      ? "Revenue target exceeded"
-                      : summary.targetPct >= 80
-                        ? "Revenue target nearly achieved"
-                        : "Revenue target missed"}
-                  </StatusLine>
-                </p>
+                {summary.hasTarget ? (
+                  <p>
+                    <StatusLine band={bandFor(summary.targetPct, 100, 80)}>
+                      {summary.targetPct >= 100
+                        ? "Revenue target exceeded"
+                        : summary.targetPct >= 80
+                          ? "Revenue target nearly achieved"
+                          : "Revenue target missed"}
+                    </StatusLine>
+                  </p>
+                ) : null}
               </CardContent>
             </Card>
 

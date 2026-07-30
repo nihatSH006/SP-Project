@@ -8,6 +8,7 @@ import {
   IconBuildingStore,
   IconGasStation,
   IconLayoutDashboard,
+  IconSettings,
   IconTrophy,
   IconUsers,
 } from "@tabler/icons-react"
@@ -37,8 +38,12 @@ const nav = [
 
 export function AppSidebar({
   alertCount,
+  isAdmin = false,
   ...props
-}: React.ComponentProps<typeof Sidebar> & { alertCount: number }) {
+}: React.ComponentProps<typeof Sidebar> & {
+  alertCount: number
+  isAdmin?: boolean
+}) {
   const pathname = usePathname()
 
   return (
@@ -99,6 +104,26 @@ export function AppSidebar({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isAdmin ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Administration</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    tooltip="Settings"
+                    isActive={pathname.startsWith("/settings")}
+                    render={<Link href="/settings" />}
+                  >
+                    <IconSettings />
+                    <span>Settings</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
 
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
