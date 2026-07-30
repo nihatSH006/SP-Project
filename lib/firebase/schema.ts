@@ -82,6 +82,68 @@ export type ReportDoc = {
   }[]
   /** Hourly revenue buckets: epoch-ms hour -> revenue. */
   hourly: { hour: number; revenue: number }[]
+
+  /**
+   * Named fraud-rule output for this operator-day, computed at import time
+   * (ideas #6/#7/#13). Stored rather than recomputed so the alerts pages never
+   * touch raw sales, and so a case always shows the evidence as it stood when
+   * it was raised.
+   */
+  fraud?: {
+    score: number
+    proposed: "LOW" | "MEDIUM" | "HIGH"
+    hits: {
+      rule: string
+      severity: "low" | "medium" | "high"
+      category: "integrity" | "operational" | "corroborating"
+      count: number
+      score: number
+      overnight: boolean
+      /** CCTV pointers — the evidence pack (idea #9). */
+      windows: { from: number; to: number }[]
+      values?: number[]
+      baseline?: number
+      observed?: number
+    }[]
+  }
+}
+
+/**
+ * A fraud case (idea #8). Path: /stations/{stationId}/cases/{employeeId}
+ *
+ * The case is opened against a PERSON over a window, not against a single day.
+ * One odd day is a forgotten clock-out or a late customer; the same rule firing
+ * across many days is a pattern. Keying cases per day would have produced a
+ * queue of one-off noise and buried the real repeat offenders in it.
+ */
+export type CaseDoc = {
+  employeeId: number
+  employeeName: string
+  station: string
+  /** Window the evidence was drawn from. */
+  fromDate: string
+  toDate: string
+  /** What the ENGINE proposed. A human still decides — see `status`. */
+  proposedRisk: "LOW" | "MEDIUM" | "HIGH"
+  /** Score after the persistence multiplier. */
+  score: number
+  /** Days on which at least one rule fired. */
+  flaggedDays: number
+  /** Rule id -> number of separate days it fired on. */
+  repeatsByRule: Record<string, number>
+  /** The days to look at, newest first — each links to its evidence. */
+  dates: string[]
+  /**
+   * `open` until someone picks it up. Nothing here is a finding of guilt:
+   * `confirmed` and `explained` are both human conclusions, and the engine can
+   * write neither.
+   */
+  status: "open" | "investigating" | "confirmed" | "explained" | "dismissed"
+  assignedTo: string | null
+  note: string
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  updatedBy: string | null
 }
 
 export type SaleDoc = {
@@ -126,6 +188,7 @@ export const COLLECTIONS = {
   stations: "stations",
   roster: "roster",
   reports: "reports",
+  cases: "cases",
   sales: "sales",
   users: "users",
   settings: "settings",

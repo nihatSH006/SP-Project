@@ -17,6 +17,8 @@
  */
 import { buildOperatorReports, hourlyBuckets, type Employee } from "@/lib/analytics"
 import { validateImport } from "@/lib/import-validation"
+import { runFraudRules, scoreFraud, summariseOperator, type FraudVerdict } from "@/lib/fraud-rules"
+import { buildFraudInputs } from "@/lib/fraud-context"
 import { adminDb, usingEmulators } from "@/lib/firebase/admin"
 import { COLLECTIONS, stationId } from "@/lib/firebase/schema"
 import {
@@ -59,7 +61,11 @@ async function deleteCollection(db: Firestore, ref: FirebaseFirestore.Query) {
 async function reset(db: Firestore) {
   console.log("  clearing existing data…")
   // New layout + the legacy single-day `employees` collection.
-  for (const group of ["sales", "reports", "roster", "employees"]) {
+  //
+  // `cases` is cleared here because a seed is a full rebuild of a synthetic
+  // dataset. A real incremental import MUST NOT do this: a case carries human
+  // triage — who owns it, what they concluded — which no importer may discard.
+  for (const group of ["sales", "reports", "roster", "employees", "cases"]) {
     await deleteCollection(db, db.collectionGroup(group))
     console.log(`    cleared collection group: ${group}`)
   }
@@ -170,6 +176,16 @@ async function main() {
   console.log(`  roster:    ${workers.length} workers`)
 
   // ------------------------------------------------- daily reports + sales
+  // Fraud rules run HERE, at import time, not when a page is opened. Two
+  // reasons: the rules need peer/hourly context spanning every day (far too
+  // much to read per request), and a case must show the evidence as it stood
+  // when it was raised rather than silently re-scoring itself later.
+  const fraudInputs = buildFraudInputs(days, workerById)
+  let caseCount = 0
+  const caseWrites: Write[] = []
+  // Daily verdicts accumulate per operator; cases are opened after every day
+  // has been scored, because persistence across days is the actual signal.
+  const verdictsByWorker = new Map<number, { date: string; verdict: FraudVerdict }[]>()
   let reportCount = 0
   let saleCount = 0
   const reportWrites: Write[] = []
@@ -200,6 +216,39 @@ async function main() {
 
     for (const report of buildOperatorReports(employees)) {
       reportCount += 1
+      const input = fraudInputs.get(`${day.date}|${report.id}`)
+      const verdict = input ? scoreFraud(runFraudRules(input)) : null
+      const fraud = verdict
+        ? {
+            score: verdict.score,
+            proposed: verdict.proposed,
+            hits: verdict.hits.map((hit) => ({
+              rule: hit.rule,
+              severity: hit.severity,
+              category: hit.category,
+              count: hit.count,
+              score: hit.score,
+              overnight: hit.overnight,
+              // CCTV pointers travel with the hit so an investigator never
+              // has to reconstruct which minutes to pull (idea #9).
+              windows: hit.detail.windows ?? [],
+              ...(hit.detail.values ? { values: hit.detail.values } : {}),
+              ...(hit.detail.baseline !== undefined
+                ? { baseline: hit.detail.baseline }
+                : {}),
+              ...(hit.detail.observed !== undefined
+                ? { observed: hit.detail.observed }
+                : {}),
+            })),
+          }
+        : null
+
+      if (verdict) {
+        const list = verdictsByWorker.get(report.id) ?? []
+        list.push({ date: day.date, verdict })
+        verdictsByWorker.set(report.id, list)
+      }
+
       reportWrites.push((batch) => {
         batch.set(
           db
@@ -232,6 +281,7 @@ async function main() {
               reason: alert.reason,
             })),
             hourly: hourlyBuckets(report.sales),
+            ...(fraud ? { fraud } : {}),
           }
         )
       })
@@ -265,6 +315,52 @@ async function main() {
 
   await commitInBatches(db, saleWrites, "sales")
   console.log(`  sales:     ${saleCount}`)
+
+  // ------------------------------------------------------------ fraud cases
+  // Opened only after the whole window is scored. `summariseOperator` applies
+  // the persistence multiplier — one bad day never opens a case.
+  const allDates = days.map((d) => d.date).sort()
+  for (const [employeeId, entries] of verdictsByWorker) {
+    const summary = summariseOperator(entries.map((e) => e.verdict))
+    if (summary.proposed === "LOW") continue
+    const worker = workerById.get(employeeId)!
+    const flagged = entries
+      .filter((e) => e.verdict.hits.some((h) => h.category === "integrity"))
+      .map((e) => e.date)
+      .sort()
+      .reverse()
+    caseCount += 1
+    caseWrites.push((batch) => {
+      batch.set(
+        db
+          .collection(COLLECTIONS.stations)
+          .doc(stationId(worker.station))
+          .collection(COLLECTIONS.cases)
+          .doc(String(employeeId)),
+        {
+          employeeId,
+          employeeName: worker.name,
+          station: worker.station,
+          fromDate: allDates[0],
+          toDate: allDates[allDates.length - 1],
+          proposedRisk: summary.proposed,
+          score: summary.weightedScore,
+          flaggedDays: summary.flaggedDays,
+          repeatsByRule: summary.repeatsByRule,
+          dates: flagged,
+          status: "open",
+          assignedTo: null,
+          note: "",
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          updatedBy: null,
+        }
+      )
+    })
+  }
+
+  await commitInBatches(db, caseWrites, "cases")
+  console.log(`  cases:     ${caseCount} opened for review`)
 
   // ---------------------------------------------------- per-station rollups
   // Station x day revenue totals in one small document, so "target from this

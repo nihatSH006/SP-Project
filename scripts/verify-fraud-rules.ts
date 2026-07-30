@@ -20,6 +20,7 @@ import {
   type FraudVerdict,
   type RuleInput,
 } from "@/lib/fraud-rules"
+import { buildFraudInputs } from "@/lib/fraud-context"
 import { generateDays, generateWorkers, fraudPlantNames } from "@/lib/testdata"
 
 const END = new Date(2026, 6, 30)
@@ -54,38 +55,9 @@ const days = generateDays(workers, END)
 const byId = new Map(workers.map((w) => [w.employeeId, w]))
 const plants = fraudPlantNames()
 
-/**
- * Per-OPERATOR hourly revenue norm for each station: what one person typically
- * takes in that hour. Comparing an individual against the whole station's
- * takings is what made this rule fire on 76% of operator-days.
- */
-const perOperatorHour = new Map<string, Map<number, number[]>>()
-for (const day of days) {
-  // revenue per operator per hour for this day
-  const byOpHour = new Map<string, number>()
-  for (const sale of day.sales) {
-    const key = `${sale.employeeId}|${sale.soldAt.getHours()}`
-    byOpHour.set(key, (byOpHour.get(key) ?? 0) + sale.amount)
-  }
-  for (const [key, revenue] of byOpHour) {
-    const [empId, hour] = key.split("|").map(Number)
-    const station = byId.get(empId)!.station
-    const hours = perOperatorHour.get(station) ?? new Map<number, number[]>()
-    const list = hours.get(hour) ?? []
-    list.push(revenue)
-    hours.set(hour, list)
-    perOperatorHour.set(station, hours)
-  }
-}
-const normFor = (station: string) => {
-  const out = new Map<number, number>()
-  const hours = perOperatorHour.get(station)
-  if (!hours) return out
-  for (const [hour, values] of hours) {
-    out.set(hour, median(values))
-  }
-  return out
-}
+// Peer groups and hourly norms, built by the same code the importer uses so
+// the behaviour proven here is the behaviour that ships.
+const inputs = buildFraudInputs(days, byId)
 
 const hitsByWorker = new Map<string, Map<FraudRuleId, number>>()
 const scoreByWorker = new Map<string, number>()
@@ -94,51 +66,10 @@ const proposedHigh = new Set<string>()
 let operatorDays = 0
 
 for (const day of days) {
-  const salesBy = new Map<number, { soldAt: Date; amount: number }[]>()
-  for (const s of day.sales) {
-    const list = salesBy.get(s.employeeId)
-    if (list) list.push(s)
-    else salesBy.set(s.employeeId, [s])
-  }
-
-  // Peer group: everyone at the same station that day.
-  const peersByStation = new Map<
-    string,
-    { employeeId: number; salesPerHour: number; roundShare: number }[]
-  >()
-  for (const att of day.attendance) {
-    const w = byId.get(att.employeeId)!
-    const sales = salesBy.get(att.employeeId) ?? []
-    const hours = (att.exit.getTime() - att.entry.getTime()) / 3_600_000
-    const entry = {
-      employeeId: att.employeeId,
-      salesPerHour: hours > 0 ? sales.length / hours : 0,
-      roundShare: sales.length
-        ? (sales.filter((s) => s.amount % 10 === 0).length / sales.length) * 100
-        : 0,
-    }
-    const list = peersByStation.get(w.station) ?? []
-    list.push(entry)
-    peersByStation.set(w.station, list)
-  }
-
   for (const att of day.attendance) {
     operatorDays += 1
     const w = byId.get(att.employeeId)!
-    const sales = salesBy.get(att.employeeId) ?? []
-    const hours = (att.exit.getTime() - att.entry.getTime()) / 3_600_000
-
-    const input: RuleInput = {
-      employeeId: w.employeeId,
-      name: w.name,
-      station: w.station,
-      entry: att.entry,
-      exit: att.exit,
-      sales,
-      peers: peersByStation.get(w.station) ?? [],
-      salesPerHour: hours > 0 ? sales.length / hours : 0,
-      stationHourlyNorm: normFor(w.station),
-    }
+    const input = inputs.get(`${day.date}|${att.employeeId}`)!
 
     const verdict = scoreFraud(runFraudRules(input))
     scoreByWorker.set(w.name, (scoreByWorker.get(w.name) ?? 0) + verdict.score)

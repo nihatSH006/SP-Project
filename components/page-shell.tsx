@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { collectAlerts } from "@/lib/analytics"
 import { getSessionUser } from "@/lib/auth"
+import { canTriageCase } from "@/lib/cases"
 import { getOperatorReports, type FilterOptions } from "@/lib/data"
 
 /**
@@ -42,7 +43,11 @@ export async function PageShell({
 
   return (
     <SidebarProvider>
-      <AppSidebar alertCount={alertCount} isAdmin={user?.role === "admin"} />
+      <AppSidebar
+        alertCount={alertCount}
+        isAdmin={user?.role === "admin"}
+        canSeeCases={Boolean(user && canTriageCase(user))}
+      />
       <SidebarInset className="overflow-hidden ring-1 ring-border/60">
         {/* Account lives in the header, not as a sidebar banner. */}
         <SiteHeader

@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   IconAlertTriangle,
+  IconFolders,
   IconBuildingStore,
   IconGasStation,
   IconLayoutDashboard,
@@ -35,15 +36,19 @@ const NAV = [
   { key: "leaderboard", href: "/leaderboard", icon: IconTrophy },
   { key: "stations", href: "/stations", icon: IconBuildingStore },
   { key: "alerts", href: "/alerts", icon: IconAlertTriangle },
+  { key: "cases", href: "/cases", icon: IconFolders },
 ] as const
 
 export function AppSidebar({
   alertCount,
   isAdmin = false,
+  canSeeCases = false,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   alertCount: number
   isAdmin?: boolean
+  /** Operators never see the case queue — it names their colleagues. */
+  canSeeCases?: boolean
 }) {
   const pathname = usePathname()
   const t = useT()
@@ -84,6 +89,11 @@ export function AppSidebar({
                   item.href === "/"
                     ? pathname === "/"
                     : pathname.startsWith(item.href)
+
+                // Hidden rather than merely disabled: an operator has no
+                // business knowing a case queue exists, let alone that it is
+                // one click away.
+                if (item.href === "/cases" && !canSeeCases) return null
 
                 return (
                   <SidebarMenuItem key={item.href}>

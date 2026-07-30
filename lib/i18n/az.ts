@@ -17,6 +17,7 @@ export const az: Dictionary = {
     stations: "Stansiyalar",
     alerts: "Xəbərdarlıqlar",
     settings: "Parametrlər",
+    cases: "Hallar",
   },
 
   common: {
@@ -294,6 +295,93 @@ export const az: Dictionary = {
     reviewShort: "Baxış tövsiyə olunur",
     comparison: "Stansiya müqayisəsi",
     comparisonDesc: "Stansiya üzrə tam göstəricilər",
+  },
+
+  cases: {
+    title: "Fırıldaq halları",
+    description:
+      "Aşkarlama qaydalarının baxış üçün təklif etdiyi hallar. Qaydanın işə düşməsi baxmaq üçün səbəbdir, nəticə deyil.",
+    queue: "Baxış növbəsi",
+    queueDesc: "Əvvəlcə açıq işlər, sonra çəkiyə görə.",
+    openCases: "Açıq",
+    investigating: "Araşdırılır",
+    closed: "Bağlanmış",
+    noCases: "Açıq hal yoxdur",
+    noCasesDesc:
+      "Heç bir operator kifayət qədər ayrı gündə kifayət qədər qaydanı pozmayıb.",
+    proposed: "Sistem təklifi",
+    proposedNote: "Qaydalar tərəfindən təklif olunub — nəticə deyil.",
+    score: "Çəki",
+    flaggedDays: "İşarələnmiş günlər",
+    window: "Dövr",
+    rulesTripped: "Pozulan qaydalar",
+    daysCount: (n: number) => `${n} gün`,
+    openCase: "Halı aç",
+    backToCases: "Hallara qayıt",
+    assignedTo: "Məsul şəxs",
+    unassigned: "Təyin edilməyib",
+    assignToMe: "Mənə təyin et",
+    statusLabel: "Status",
+    noteLabel: "Baxış qeydləri",
+    notePlaceholder: "Nəyi yoxladınız və hansı nəticəyə gəldiniz?",
+    save: "Yadda saxla",
+    saved: "Yadda saxlanıldı",
+    timeline: "Hal tarixçəsi",
+    timelineDesc: "Yalnız əlavə olunur. Hər dəyişiklik saxlanılır.",
+    noTimeline: "Hələ dəyişiklik qeydə alınmayıb.",
+    evidence: "Sübutlar",
+    evidenceDesc:
+      "Kameradan baxılacaq dəqiq vaxt aralıqları — hal ilə birlikdə yaradılır ki, heç kim onları yenidən hesablamasın.",
+    cctvWindow: "Kamera aralığı",
+    noEvidence: "Bu qayda üçün vaxt aralığı qeydə alınmayıb.",
+    observed: "Müşahidə olunan",
+    baseline: "Normal",
+    amounts: "Məbləğlər",
+    viewDay: "Bu günə bax",
+    fairnessTitle: "Addım atmazdan əvvəl",
+    fairnessBody:
+      "Bu qaydalar kassa məlumatlarındakı təkrarlanan davranışı ölçür, niyyəti yox. Təkrarın günahsız izahı ola bilər — sınmış nasos, sürüşmüş saat, daimi müştəri. Nəticə yazmadan əvvəl görüntülərə baxın və şəxslə danışın.",
+    needsSupervisorHint:
+      "Halı yalnız nəzarətçi və ya admin bağlaya bilər. Öz komandasını qiymətləndirən stansiya rəhbərinin maraqlar toqquşması var.",
+    noteRequiredHint:
+      "Fırıldağı təsdiqləmək üçün ən azı 10 simvoldan ibarət yazılı əsaslandırma tələb olunur.",
+    statusOpen: "Açıq",
+    statusInvestigating: "Araşdırılır",
+    statusConfirmed: "Təsdiqlənib",
+    statusExplained: "İzah olunub",
+    statusDismissed: "Rədd edilib",
+    errors: {
+      notSignedIn: "Sessiyanızın vaxtı bitdi. Yenidən daxil olun.",
+      notAllowed: "Bu halı dəyişməyə icazəniz yoxdur.",
+      badRequest: "Sorğuda nəyinsə çatışmır.",
+      badStatus: "Bu, düzgün status deyil.",
+      needsSupervisor: "Halı yalnız nəzarətçi və ya admin bağlaya bilər.",
+      noteRequired: "Fırıldağı təsdiqləməzdən əvvəl nə tapdığınızı yazın.",
+      notFound: "Bu hal artıq mövcud deyil.",
+    },
+    rules: {
+      afterHours: "Növbədən kənar satışlar",
+      lateClose: "Çıxışdan sonrakı satışlar",
+      shiftEndBurst: "Növbə sonunda sıxlıq",
+      duplicateAmounts: "Təkrarlanan eyni məbləğlər",
+      roundAmount: "Həddindən artıq yuvarlaq məbləğ",
+      velocityOutlier: "Həmkarlardan çox fərqli sürət",
+      deadHours: "Demək olar ki, satışsız saatlar",
+    },
+    ruleHelp: {
+      afterHours: "Bu şəxs növbədə olmadığı vaxt qeydə alınmış əməliyyatlar.",
+      lateClose: "Çıxış etdikdən sonra qeydə alınmış əməliyyatlar.",
+      shiftEndBurst:
+        "Növbənin son dəqiqələrində qeyri-adi satış sıxlığı.",
+      duplicateAmounts:
+        "Qısa aralıqda təkrarlanan eyni məbləğ — təkrar istifadə olunmuş qəbzin mümkün əlaməti.",
+      roundAmount:
+        "Eyni stansiyadakı həmkarlardan xeyli çox yuvarlaq məbləğli satış.",
+      velocityOutlier:
+        "Satış sürəti həmkarların medianından çox uzaqdır. Tək başına bu, sübut deyil — sürətli operator sadəcə sürətlidir.",
+      deadHours:
+        "Demək olar ki, gəlir gətirməyən uzun aralıqlar. Adətən sınmış nasos və ya sakit stansiya, oğurluq yox.",
+    },
   },
 
   alerts: {

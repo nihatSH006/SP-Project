@@ -23,6 +23,7 @@ export const en = {
     stations: "Stations",
     alerts: "Alerts",
     settings: "Settings",
+    cases: "Cases",
   },
 
   common: {
@@ -296,6 +297,93 @@ export const en = {
     reviewShort: "Review recommended",
     comparison: "Station comparison",
     comparisonDesc: "Full metrics per station",
+  },
+
+  cases: {
+    title: "Fraud cases",
+    description:
+      "Cases the detection rules proposed for review. A rule firing is a reason to look, not a finding.",
+    queue: "Review queue",
+    queueDesc: "Open work first, then by weight.",
+    openCases: "Open",
+    investigating: "Being investigated",
+    closed: "Closed",
+    noCases: "No cases open",
+    noCasesDesc:
+      "No operator tripped enough rules across enough separate days to warrant review.",
+    proposed: "Engine proposed",
+    proposedNote: "Proposed by the rules \u2014 not a conclusion.",
+    score: "Weight",
+    flaggedDays: "Flagged days",
+    window: "Window",
+    rulesTripped: "Rules tripped",
+    daysCount: (n: number) => `${n} day${n === 1 ? "" : "s"}`,
+    openCase: "Open case",
+    backToCases: "Back to cases",
+    assignedTo: "Owner",
+    unassigned: "Unassigned",
+    assignToMe: "Assign to me",
+    statusLabel: "Status",
+    noteLabel: "Reviewer notes",
+    notePlaceholder: "What did you check, and what did you conclude?",
+    save: "Save",
+    saved: "Saved",
+    timeline: "Case history",
+    timelineDesc: "Append-only. Every change is kept.",
+    noTimeline: "No changes recorded yet.",
+    evidence: "Evidence",
+    evidenceDesc:
+      "The exact windows to pull on CCTV, generated with the case so nobody has to reconstruct them.",
+    cctvWindow: "CCTV window",
+    noEvidence: "No time windows recorded for this rule.",
+    observed: "Observed",
+    baseline: "Normal",
+    amounts: "Amounts",
+    viewDay: "View this day",
+    fairnessTitle: "Before you act",
+    fairnessBody:
+      "These rules measure patterns in till data, not intent. A pattern has innocent explanations \u2014 a broken pump, a clock that drifted, a regular customer. Check the footage and talk to the person before recording a conclusion.",
+    needsSupervisorHint:
+      "Only a supervisor or admin can close a case. A station manager assessing their own team has a conflict of interest.",
+    noteRequiredHint:
+      "Confirming fraud requires written reasoning of at least 10 characters.",
+    statusOpen: "Open",
+    statusInvestigating: "Investigating",
+    statusConfirmed: "Confirmed",
+    statusExplained: "Explained",
+    statusDismissed: "Dismissed",
+    errors: {
+      notSignedIn: "Your session expired. Sign in again.",
+      notAllowed: "You do not have permission to change this case.",
+      badRequest: "Something was missing from that request.",
+      badStatus: "That is not a valid status.",
+      needsSupervisor: "Only a supervisor or admin can close a case.",
+      noteRequired: "Write down what you found before confirming fraud.",
+      notFound: "That case no longer exists.",
+    },
+    rules: {
+      afterHours: "Sales outside the shift",
+      lateClose: "Sales after clock-out",
+      shiftEndBurst: "Burst at shift end",
+      duplicateAmounts: "Repeated identical amounts",
+      roundAmount: "Unusually many round amounts",
+      velocityOutlier: "Pace far from peers",
+      deadHours: "Hours with almost no sales",
+    },
+    ruleHelp: {
+      afterHours: "Transactions recorded when this person was not on shift.",
+      lateClose: "Transactions recorded after they clocked out.",
+      shiftEndBurst:
+        "An unusual cluster of sales in the final minutes of a shift.",
+      duplicateAmounts:
+        "The same amount repeated close together \u2014 a possible sign of a reused receipt.",
+      roundAmount:
+        "Far more round-number sales than colleagues at the same station.",
+      velocityOutlier:
+        "Sales pace far from the peer median. On its own this is not evidence \u2014 a fast operator is just fast.",
+      deadHours:
+        "Long stretches taking almost nothing. Usually a broken pump or a quiet forecourt, not theft.",
+    },
   },
 
   alerts: {

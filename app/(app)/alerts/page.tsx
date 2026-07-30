@@ -36,6 +36,9 @@ import {
 } from "@/components/ui/item"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { getSessionUser } from "@/lib/auth"
+import { canTriageCase, getCases, CLOSED_STATUSES } from "@/lib/cases"
+import { CaseStatusBadge } from "@/components/case-badges"
 import { collectAlerts } from "@/lib/analytics"
 import type { StoredReport } from "@/lib/data"
 import { getSlice, type SearchParams } from "@/lib/data"
@@ -48,8 +51,20 @@ export default async function AlertsPage(props: {
   searchParams: Promise<SearchParams>
 }) {
   const t = await getT()
-  const { reports, options } = await getSlice(await props.searchParams)
+  const user = await getSessionUser()
+  const showCases = Boolean(user && canTriageCase(user))
+  const [{ reports, options }, cases] = await Promise.all([
+    getSlice(await props.searchParams),
+    // An operator gets the day's flagged transactions but never the case
+    // queue: those documents name colleagues as suspected of theft.
+    showCases ? getCases() : Promise.resolve([]),
+  ])
   const alerts = collectAlerts(reports)
+
+  // A day's flagged sale is a single event. A case is the multi-day pattern
+  // built from many of them, and it is the pattern that warrants acting on —
+  // so the open cases are surfaced above the raw incident log.
+  const liveCases = cases.filter((c) => !CLOSED_STATUSES.includes(c.status))
 
   // Priority per operator: >=2 flagged sales = high, 1 = medium.
   const high = reports.filter((r) => r.suspicious >= 2)
@@ -98,6 +113,43 @@ export default async function AlertsPage(props: {
           caption={<StatusLine band="good">{t.alerts.noFlagged}</StatusLine>}
         />
       </div>
+
+      {showCases && liveCases.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t.cases.queue}</CardTitle>
+            <CardDescription>{t.cases.description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ItemGroup>
+              {liveCases.map((record, index) => (
+                <div key={`${record.station}-${record.employeeId}`}>
+                  {index > 0 ? <ItemSeparator /> : null}
+                  <Item
+                    size="sm"
+                    className="px-0"
+                    render={<Link href={`/cases/${record.employeeId}`} />}
+                  >
+                    <ItemContent>
+                      <ItemTitle className="flex items-center gap-2">
+                        {record.employeeName}
+                        <CaseStatusBadge status={record.status} t={t} />
+                      </ItemTitle>
+                      <ItemDescription>
+                        {record.station} ·{" "}
+                        {t.cases.daysCount(record.flaggedDays)}
+                      </ItemDescription>
+                    </ItemContent>
+                    <ItemActions>
+                      <Badge variant="outline">{record.proposedRisk}</Badge>
+                    </ItemActions>
+                  </Item>
+                </div>
+              ))}
+            </ItemGroup>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* ------------------------------------------- incident log */}

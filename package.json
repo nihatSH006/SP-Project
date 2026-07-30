@@ -20,7 +20,8 @@
     "seed-users": "tsx --conditions=react-server --env-file=.env.local scripts/seed-users.ts",
     "set-setting": "tsx --conditions=react-server --env-file=.env.local scripts/set-setting.ts",
     "verify:import": "tsx scripts/verify-import-validation.ts",
-    "verify:fraud": "tsx scripts/verify-fraud-rules.ts"
+    "verify:fraud": "tsx scripts/verify-fraud-rules.ts",
+    "verify:cases": "tsx --conditions=react-server --env-file=.env.local scripts/verify-cases-live.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
