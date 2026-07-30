@@ -28,6 +28,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { rankOperators } from "@/lib/analytics"
+import { FairLeaderboard } from "@/components/fair-leaderboard"
+import { getScorecards } from "@/lib/scorecards-server"
 import type { StoredReport } from "@/lib/data"
 import { getSlice, type SearchParams } from "@/lib/data"
 import { getT } from "@/lib/i18n/server"
@@ -48,7 +50,10 @@ export default async function LeaderboardPage(props: {
   searchParams: Promise<SearchParams>
 }) {
   const t = await getT()
-  const { reports, options } = await getSlice(await props.searchParams)
+  const [{ reports, options }, scorecards] = await Promise.all([
+    getSlice(await props.searchParams),
+    getScorecards(),
+  ])
   const ranking = rankOperators(reports)
 
   const best = (pick: (r: StoredReport) => number) =>
@@ -68,6 +73,13 @@ export default async function LeaderboardPage(props: {
       title={t.leaderboard.title}
       description={t.leaderboard.description}
     >
+      {/* The fair, window-based ranking leads (idea #11). The single-day
+          podium below it is kept for the daily standings, but it is no longer
+          what the page is about. */}
+      {scorecards.length > 0 ? (
+        <FairLeaderboard cards={scorecards} t={t} />
+      ) : null}
+
       {ranking.length === 0 ? (
         <NoMatches
           title={t.errors.noMatch(t.common.operators.toLowerCase())}

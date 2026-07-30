@@ -270,6 +270,34 @@ export const az: Dictionary = {
     completeRanking: "Tam sıralama",
     allOperators: (n: number) => `Cari kəsimdə bütün ${n} operator`,
     shiftSuffix: (shift: string) => `${shift} növbəsi`,
+    fair: {
+      title: "\u018fdal\u0259tli reytinq",
+      subtitle:
+        "H\u0259r k\u0259s \u00f6z stansiyas\u0131n\u0131n v\u0259 n\u00f6vb\u0259sinin adi g\u00f6st\u0259ricisi il\u0259 m\u00fcqayis\u0259 olunur \u2014 b\u00fct\u00fcn \u015f\u0259b\u0259k\u0259 il\u0259 yox.",
+      why: "N\u0259 d\u0259yi\u015fdi",
+      whyBody:
+        "G\u0259lir\u0259 g\u00f6r\u0259 s\u0131ralama i\u015f\u0259 deyil, i\u015f yerin\u0259 g\u00f6r\u0259 qiym\u0259t verirdi. Magistral stansiya regional stansiyan\u0131 h\u0259r g\u00fcn \u00fcst\u0259l\u0259yir, gec\u0259 n\u00f6vb\u0259si is\u0259 he\u00e7 vaxt yer ala bilmirdi. \u0130ndi h\u0259r k\u0259s \u00f6z n\u00f6vb\u0259sinin median g\u00fcn\u00fc il\u0259 m\u00fcqayis\u0259 olunur.",
+      percentOfExpected: "G\u00f6zl\u0259nil\u0259n\u0259 nisb\u0259t\u0259n %",
+      expected: "G\u00f6zl\u0259nil\u0259n",
+      actual: "Faktiki",
+      overWindow: (n: number) => `${n} g\u00fcn \u0259rzind\u0259`,
+      mostImproved: "\u018fn \u00e7ox ir\u0259lil\u0259y\u0259nl\u0259r",
+      mostImprovedDesc:
+        "D\u00f6vr\u00fcn birinci v\u0259 ikinci yar\u0131s\u0131 aras\u0131nda \u0259n b\u00f6y\u00fck art\u0131m \u2014 nisb\u0259t bal\u0131 il\u0259 \u00f6l\u00e7\u00fcl\u00fcr, ona g\u00f6r\u0259 sakit stansiyada ir\u0259lil\u0259yi\u015f d\u0259 eyni d\u0259y\u0259r\u0259 malikdir.",
+      noImproved: "Bu d\u00f6vrd\u0259 aydın ir\u0259lil\u0259yi\u015f yoxdur.",
+      improvementPoints: (n: number) => `${n > 0 ? "+" : ""}${n} bal`,
+      tierLabel: "Kateqoriya",
+      tiers: {
+        exceptional: "F\u00f6vq\u0259lad\u0259",
+        strong: "G\u00fccl\u00fc",
+        expected: "G\u00f6zl\u0259nil\u0259n s\u0259viyy\u0259d\u0259",
+        below: "G\u00f6zl\u0259nil\u0259nd\u0259n a\u015fa\u011f\u0131",
+        "needs-support": "D\u0259st\u0259k laz\u0131md\u0131r",
+      },
+      tierNote:
+        "Kateqoriyalar n\u00f6vb\u0259nin normas\u0131na g\u00f6r\u0259 n\u0259tic\u0259ni g\u00f6st\u0259rir. \u201cG\u00f6zl\u0259nil\u0259nd\u0259n a\u015fa\u011f\u0131\u201d s\u0259y haqq\u0131nda h\u00f6km deyil \u2014 s\u0259b\u0259bini soru\u015fmaq \u00fc\u00e7\u00fcn i\u015far\u0259dir: s\u0131nm\u0131\u015f nasos, yeni i\u015f\u00e7i v\u0259 ya s\u0259hv g\u00f6zl\u0259nti.",
+      rawNote: "\u00dcmumi g\u0259lir yaln\u0131z kontekst \u00fc\u00e7\u00fcnd\u00fcr. S\u0131ralamaya t\u0259sir etmir.",
+    },
   },
 
   stations: {

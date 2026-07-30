@@ -146,6 +146,32 @@ export type CaseDoc = {
   updatedBy: string | null
 }
 
+/**
+ * Window performance for one operator (idea #11).
+ * Path: /stations/{stationId}/scorecards/{employeeId}
+ *
+ * Computed at import time because the peer expectations it is scored against
+ * span every day in the window — far too much to read per page view.
+ */
+export type ScorecardDoc = {
+  employeeId: number
+  name: string
+  station: string
+  shift: string
+  fromDate: string
+  toDate: string
+  days: number
+  totalRevenue: number
+  expectedRevenue: number
+  percentOfExpected: number
+  attendanceAvg: number
+  productivityAvg: number
+  improvement: number
+  hasImprovement: boolean
+  tier: string
+  updatedAt: Timestamp
+}
+
 export type SaleDoc = {
   date: string
   employeeId: number
@@ -189,6 +215,7 @@ export const COLLECTIONS = {
   roster: "roster",
   reports: "reports",
   cases: "cases",
+  scorecards: "scorecards",
   sales: "sales",
   users: "users",
   settings: "settings",

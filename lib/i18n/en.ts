@@ -272,6 +272,34 @@ export const en = {
     completeRanking: "Complete ranking",
     allOperators: (n: number) => `All ${n} operators in the current slice`,
     shiftSuffix: (shift: string) => `${shift} shift`,
+    fair: {
+      title: "Fair ranking",
+      subtitle:
+        "Everyone is measured against what their own station and shift normally takes \u2014 not against the network.",
+      why: "Why this changed",
+      whyBody:
+        "Ranking by revenue measured where someone was rostered, not how they worked. A highway forecourt outsells a regional one every day whatever anyone does, and a night operator could never place at all. Each person is now compared against the median day in their own slot.",
+      percentOfExpected: "% of expected",
+      expected: "Expected",
+      actual: "Actual",
+      overWindow: (n: number) => `over ${n} days`,
+      mostImproved: "Most improved",
+      mostImprovedDesc:
+        "Biggest gain between the first and second half of the window, measured in ratio points \u2014 so improving at a quiet station counts the same as at a busy one.",
+      noImproved: "No clear improvement yet in this window.",
+      improvementPoints: (n: number) => `${n > 0 ? "+" : ""}${n} pts`,
+      tierLabel: "Band",
+      tiers: {
+        exceptional: "Exceptional",
+        strong: "Strong",
+        expected: "As expected",
+        below: "Below expected",
+        "needs-support": "Needs support",
+      },
+      tierNote:
+        "Bands describe output against a slot's norm. Below expected is a prompt to ask why \u2014 a broken pump, a new starter, an expectation that is simply wrong \u2014 not a judgement about effort.",
+      rawNote: "Raw revenue is shown for context only. It does not affect rank.",
+    },
   },
 
   stations: {

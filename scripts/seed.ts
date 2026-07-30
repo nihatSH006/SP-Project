@@ -19,6 +19,7 @@ import { buildOperatorReports, hourlyBuckets, type Employee } from "@/lib/analyt
 import { validateImport } from "@/lib/import-validation"
 import { runFraudRules, scoreFraud, summariseOperator, type FraudVerdict } from "@/lib/fraud-rules"
 import { buildFraudInputs } from "@/lib/fraud-context"
+import { buildScorecards, type ScorecardDay } from "@/lib/scorecards"
 import { adminDb, usingEmulators } from "@/lib/firebase/admin"
 import { COLLECTIONS, stationId } from "@/lib/firebase/schema"
 import {
@@ -65,7 +66,7 @@ async function reset(db: Firestore) {
   // `cases` is cleared here because a seed is a full rebuild of a synthetic
   // dataset. A real incremental import MUST NOT do this: a case carries human
   // triage — who owns it, what they concluded — which no importer may discard.
-  for (const group of ["sales", "reports", "roster", "employees", "cases"]) {
+  for (const group of ["sales", "reports", "roster", "employees", "cases", "scorecards"]) {
     await deleteCollection(db, db.collectionGroup(group))
     console.log(`    cleared collection group: ${group}`)
   }
@@ -186,6 +187,8 @@ async function main() {
   // Daily verdicts accumulate per operator; cases are opened after every day
   // has been scored, because persistence across days is the actual signal.
   const verdictsByWorker = new Map<number, { date: string; verdict: FraudVerdict }[]>()
+  // Facts the fair leaderboard scores against peers (idea #11).
+  const scorecardRows: ScorecardDay[] = []
   let reportCount = 0
   let saleCount = 0
   const reportWrites: Write[] = []
@@ -242,6 +245,16 @@ async function main() {
             })),
           }
         : null
+
+      scorecardRows.push({
+        date: day.date,
+        employeeId: report.id,
+        station: report.station,
+        shift: report.shift,
+        revenue: report.revenue,
+        attendanceScore: report.attendanceScore,
+        productivity: report.productivity,
+      })
 
       if (verdict) {
         const list = verdictsByWorker.get(report.id) ?? []
@@ -359,8 +372,35 @@ async function main() {
     })
   }
 
+  // ------------------------------------------------------------ scorecards
+  // Everyone is scored against what their own station and shift normally
+  // takes, so the ranking measures how someone worked rather than where they
+  // were rostered.
+  const scorecards = buildScorecards(
+    scorecardRows,
+    new Map(workers.map((w) => [w.employeeId, w.name]))
+  )
+  const scorecardWrites: Write[] = scorecards.map((card) => (batch) => {
+    batch.set(
+      db
+        .collection(COLLECTIONS.stations)
+        .doc(stationId(card.station))
+        .collection(COLLECTIONS.scorecards)
+        .doc(String(card.employeeId)),
+      {
+        ...card,
+        fromDate: allDates[0],
+        toDate: allDates[allDates.length - 1],
+        updatedAt: Timestamp.now(),
+      }
+    )
+  })
+
   await commitInBatches(db, caseWrites, "cases")
   console.log(`  cases:     ${caseCount} opened for review`)
+
+  await commitInBatches(db, scorecardWrites, "scorecards")
+  console.log(`  scorecards: ${scorecards.length}`)
 
   // ---------------------------------------------------- per-station rollups
   // Station x day revenue totals in one small document, so "target from this

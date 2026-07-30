@@ -21,7 +21,9 @@
     "set-setting": "tsx --conditions=react-server --env-file=.env.local scripts/set-setting.ts",
     "verify:import": "tsx scripts/verify-import-validation.ts",
     "verify:fraud": "tsx scripts/verify-fraud-rules.ts",
-    "verify:cases": "tsx --conditions=react-server --env-file=.env.local scripts/verify-cases-live.ts"
+    "verify:cases": "tsx --conditions=react-server --env-file=.env.local scripts/verify-cases-live.ts",
+    "verify:fair": "tsx scripts/verify-scorecards.ts",
+    "verify:fair-live": "tsx --conditions=react-server --env-file=.env.local scripts/verify-fair-live.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
