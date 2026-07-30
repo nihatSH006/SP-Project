@@ -16,6 +16,7 @@
  *   /meta/import                        dates list + counts
  */
 import { buildOperatorReports, hourlyBuckets, type Employee } from "@/lib/analytics"
+import { validateImport } from "@/lib/import-validation"
 import { adminDb, usingEmulators } from "@/lib/firebase/admin"
 import { COLLECTIONS, stationId } from "@/lib/firebase/schema"
 import {
@@ -79,6 +80,52 @@ async function main() {
   const days = generateDays(workers, END_DATE)
   const workerById = new Map(workers.map((w) => [w.employeeId, w]))
   const now = Timestamp.now()
+  const startedAt = Date.now()
+
+  // ------------------------------------------------------------ validation
+  // Check before writing: a bad import does not fail loudly, it produces a
+  // plausible-looking day of wrong scores and fraud flags (idea #14).
+  const validation = validateImport({
+    attendance: days.flatMap((day) =>
+      day.attendance.map((a) => {
+        const w = workerById.get(a.employeeId)!
+        return {
+          name: `${w.name}#${day.date}`, // per-day identity: one shift per day
+          department: w.department,
+          station: w.station,
+          entry: a.entry,
+          exit: a.exit,
+        }
+      })
+    ),
+    sales: days.flatMap((day) =>
+      day.sales.map((sale) => ({
+        employee: `${workerById.get(sale.employeeId)!.name}#${day.date}`,
+        soldAt: sale.soldAt,
+        amount: sale.amount,
+      }))
+    ),
+    now: new Date(END_DATE.getFullYear(), END_DATE.getMonth(), END_DATE.getDate()),
+  })
+
+  const errors = validation.issues.filter((i) => i.severity === "error")
+  const warnings = validation.issues.filter((i) => i.severity === "warning")
+
+  console.log(
+    `  validation: ${validation.stats.attendanceRows} shifts, ` +
+      `${validation.stats.salesRows} sales, ${errors.length} error(s), ` +
+      `${warnings.length} warning(s)`
+  )
+  for (const i of validation.issues) {
+    console.log(`    [${i.severity}] ${i.code}: ${i.message} (${i.count})`)
+    if (i.samples.length) console.log(`        e.g. ${i.samples.slice(0, 2).join("; ")}`)
+  }
+
+  if (!validation.ok && !process.argv.includes("--force")) {
+    throw new Error(
+      "Import blocked by validation errors. Fix the data, or re-run with --force to write it anyway."
+    )
+  }
 
   // ------------------------------------------------------------- stations
   await commitInBatches(
@@ -258,21 +305,35 @@ async function main() {
   console.log("  settings:  defaults written")
 
   // ----------------------------------------------------------------- meta
+  const manifest = {
+    importedAt: now,
+    source: "generated test data (lib/testdata.ts)",
+    dates: days.map((d) => d.date),
+    counts: {
+      stations: STATIONS.length,
+      workers: workers.length,
+      reports: reportCount,
+      sales: saleCount,
+      days: days.length,
+    },
+    validation: {
+      ok: validation.ok,
+      errors: errors.length,
+      warnings: warnings.length,
+      issues: validation.issues,
+    },
+    durationMs: Date.now() - startedAt,
+  }
+
+  await db.collection(COLLECTIONS.meta).doc("import").set(manifest)
+
+  // Audit trail: one immutable record per run, so a bad day can be traced back
+  // to the import that produced it.
   await db
     .collection(COLLECTIONS.meta)
     .doc("import")
-    .set({
-      importedAt: now,
-      source: "generated test data (lib/testdata.ts)",
-      dates: days.map((d) => d.date),
-      counts: {
-        stations: STATIONS.length,
-        workers: workers.length,
-        reports: reportCount,
-        sales: saleCount,
-        days: days.length,
-      },
-    })
+    .collection("history")
+    .add({ ...manifest, by: "seed-script" })
 
   console.log("Done.")
 }
