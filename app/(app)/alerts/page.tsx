@@ -39,6 +39,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { collectAlerts } from "@/lib/analytics"
 import type { StoredReport } from "@/lib/data"
 import { getSlice, type SearchParams } from "@/lib/data"
+import { getT } from "@/lib/i18n/server"
 import { fullTimestamp, money2 } from "@/lib/format"
 
 export const metadata = { title: "Alerts" }
@@ -46,6 +47,7 @@ export const metadata = { title: "Alerts" }
 export default async function AlertsPage(props: {
   searchParams: Promise<SearchParams>
 }) {
+  const t = await getT()
   const { reports, options } = await getSlice(await props.searchParams)
   const alerts = collectAlerts(reports)
 
@@ -59,41 +61,41 @@ export default async function AlertsPage(props: {
   return (
     <PageShell
       options={options}
-      title="Alert center"
-      description="Suspicious transactions — sales recorded outside an operator's working hours."
+      title={t.alerts.title}
+      description={t.alerts.description}
     >
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatTile
-          label="Flagged transactions"
+          label={t.alerts.flaggedTransactions}
           value={alerts.length}
           icon={IconFlag}
-          caption="in the current slice"
+          caption={t.alerts.inSlice}
         />
         <StatTile
-          label="High priority"
+          label={t.alerts.highPriority}
           value={high.length}
           icon={IconExclamationCircle}
           caption={
             <StatusLine band={high.length > 0 ? "crit" : "good"}>
-              2+ flagged sales
+              {t.alerts.twoPlusFlagged}
             </StatusLine>
           }
         />
         <StatTile
-          label="Medium priority"
+          label={t.alerts.mediumPriority}
           value={medium.length}
           icon={IconAlertTriangle}
           caption={
             <StatusLine band={medium.length > 0 ? "warn" : "good"}>
-              1 flagged sale
+              {t.alerts.oneFlagged}
             </StatusLine>
           }
         />
         <StatTile
-          label="Clear operators"
+          label={t.alerts.clearOperators}
           value={clear.length}
           icon={IconShieldCheck}
-          caption={<StatusLine band="good">no flagged sales</StatusLine>}
+          caption={<StatusLine band="good">{t.alerts.noFlagged}</StatusLine>}
         />
       </div>
 
@@ -101,9 +103,9 @@ export default async function AlertsPage(props: {
         {/* ------------------------------------------- incident log */}
         <Card className="xl:col-span-2">
           <CardHeader>
-            <CardTitle>Incident log</CardTitle>
+            <CardTitle>{t.alerts.incidentLog}</CardTitle>
             <CardDescription>
-              Newest first · click an operator for their full profile
+              {t.alerts.incidentLogDesc}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -112,10 +114,9 @@ export default async function AlertsPage(props: {
                 <EmptyMedia variant="icon">
                   <IconCircleCheck className="text-emerald-400" />
                 </EmptyMedia>
-                <EmptyTitle>No suspicious transactions detected</EmptyTitle>
+                <EmptyTitle>{t.alerts.noneDetected}</EmptyTitle>
                 <EmptyDescription>
-                  Every sale in this slice falls inside its operator&apos;s
-                  registered working hours.
+                  {t.alerts.noneDetectedDesc}
                 </EmptyDescription>
               </Empty>
             ) : (
@@ -145,7 +146,7 @@ export default async function AlertsPage(props: {
                             </span>
                           </ItemTitle>
                           <ItemDescription>
-                            {alert.reason} · {fullTimestamp(alert.time)} ·{" "}
+                            {t.alerts.outsideHours} · {fullTimestamp(alert.time)} ·{" "}
                             {alert.station}
                           </ItemDescription>
                         </ItemContent>
@@ -157,7 +158,9 @@ export default async function AlertsPage(props: {
                                 : "outline"
                             }
                           >
-                            {highIds.has(alert.operatorId) ? "High" : "Medium"}
+                            {highIds.has(alert.operatorId)
+                              ? t.alerts.tabHigh
+                              : t.alerts.tabMedium}
                           </Badge>
                         </ItemActions>
                       </Item>
@@ -172,47 +175,29 @@ export default async function AlertsPage(props: {
         {/* ------------------------------------------- procedure */}
         <Card>
           <CardHeader>
-            <CardTitle>Recommended actions</CardTitle>
-            <CardDescription>Standard incident procedure</CardDescription>
+            <CardTitle>{t.alerts.recommendedActions}</CardTitle>
+            <CardDescription>{t.alerts.standardProcedure}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4 text-muted-foreground">
             {alerts.length === 0 ? (
               <>
-                <StatusLine band="good">No action required.</StatusLine>
-                <p>
-                  All sales in the current slice fall inside their
-                  operators&apos; registered working hours.
-                </p>
+                <StatusLine band="good">{t.alerts.noAction}</StatusLine>
+                <p>{t.alerts.noActionDesc}</p>
               </>
             ) : (
               <>
-                <p>
-                  Today&apos;s operations generated{" "}
-                  <strong className="font-medium text-foreground">
-                    {alerts.length}
-                  </strong>{" "}
-                  flagged transaction{alerts.length === 1 ? "" : "s"} across{" "}
-                  <strong className="font-medium text-foreground">
-                    {high.length + medium.length}
-                  </strong>{" "}
-                  operator{high.length + medium.length === 1 ? "" : "s"}.
+                <p className="text-foreground">
+                  {t.alerts.generated(alerts.length, high.length + medium.length)}
                 </p>
-                <p>Before the end of the operating day:</p>
+                <p>{t.alerts.beforeEndOfDay}</p>
                 <ol className="flex flex-col gap-2">
-                  <Step n={1}>
-                    Verify each flagged transaction against the till record.
-                  </Step>
-                  <Step n={2}>
-                    Review CCTV footage for the flagged time windows.
-                  </Step>
-                  <Step n={3}>
-                    Confirm the operator&apos;s shift schedule with the station
-                    manager.
-                  </Step>
+                  <Step n={1}>{t.alerts.step1}</Step>
+                  <Step n={2}>{t.alerts.step2}</Step>
+                  <Step n={3}>{t.alerts.step3}</Step>
                 </ol>
                 {high.length > 0 ? (
                   <div className="flex flex-col gap-2 rounded-xl border border-red-500/25 bg-red-500/[0.07] p-3">
-                    <StatusLine band="crit">Priority review</StatusLine>
+                    <StatusLine band="crit">{t.alerts.priorityReview}</StatusLine>
                     <div className="flex flex-wrap gap-1.5">
                       {high.map((operator) => (
                         <PriorityLink key={operator.id} operator={operator} />
@@ -229,29 +214,32 @@ export default async function AlertsPage(props: {
       {/* ------------------------------------------- priority breakdown */}
       <Card>
         <CardHeader>
-          <CardTitle>Operators by priority</CardTitle>
+          <CardTitle>{t.alerts.byPriority}</CardTitle>
           <CardDescription>
-            Grouped by how many flagged sales each operator carries
+            {t.alerts.byPriorityDesc}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="high" className="gap-4">
             <TabsList>
-              <TabsTrigger value="high">High · {high.length}</TabsTrigger>
-              <TabsTrigger value="medium">Medium · {medium.length}</TabsTrigger>
-              <TabsTrigger value="clear">Clear · {clear.length}</TabsTrigger>
+              <TabsTrigger value="high">
+                {t.alerts.tabHigh} · {high.length}
+              </TabsTrigger>
+              <TabsTrigger value="medium">
+                {t.alerts.tabMedium} · {medium.length}
+              </TabsTrigger>
+              <TabsTrigger value="clear">
+                {t.alerts.tabClear} · {clear.length}
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="high">
-              <OperatorList operators={high} emptyLabel="No high-priority operators." />
+              <OperatorList operators={high} emptyLabel={t.alerts.noHigh} />
             </TabsContent>
             <TabsContent value="medium">
-              <OperatorList
-                operators={medium}
-                emptyLabel="No medium-priority operators."
-              />
+              <OperatorList operators={medium} emptyLabel={t.alerts.noMedium} />
             </TabsContent>
             <TabsContent value="clear">
-              <OperatorList operators={clear} emptyLabel="No clear operators." />
+              <OperatorList operators={clear} emptyLabel={t.alerts.noClear} />
             </TabsContent>
           </Tabs>
         </CardContent>

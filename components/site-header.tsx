@@ -14,6 +14,8 @@ import {
   IconUsers,
 } from "@tabler/icons-react"
 
+import { useT } from "@/components/i18n-provider"
+import { LanguageSwitcher } from "@/components/language-switcher"
 import {
   Command,
   CommandDialog,
@@ -46,13 +48,13 @@ import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
-const pages = [
-  { title: "Dashboard", href: "/", icon: IconLayoutDashboard },
-  { title: "Operators", href: "/operators", icon: IconUsers },
-  { title: "Leaderboard", href: "/leaderboard", icon: IconTrophy },
-  { title: "Stations", href: "/stations", icon: IconBuildingStore },
-  { title: "Alerts", href: "/alerts", icon: IconAlertTriangle },
-]
+const PAGES = [
+  { key: "dashboard", href: "/", icon: IconLayoutDashboard },
+  { key: "operators", href: "/operators", icon: IconUsers },
+  { key: "leaderboard", href: "/leaderboard", icon: IconTrophy },
+  { key: "stations", href: "/stations", icon: IconBuildingStore },
+  { key: "alerts", href: "/alerts", icon: IconAlertTriangle },
+] as const
 
 export type PaletteOperator = { id: number; name: string; station: string }
 
@@ -71,6 +73,7 @@ export function SiteHeader({
   user: HeaderUser | null
 }) {
   const router = useRouter()
+  const t = useT()
   const [open, setOpen] = React.useState(false)
   const [signingOut, setSigningOut] = React.useState(false)
 
@@ -112,7 +115,7 @@ export function SiteHeader({
           </InputGroupAddon>
           <InputGroupInput
             readOnly
-            placeholder="Search operators, pages…"
+            placeholder={t.search.placeholder}
             className="cursor-pointer"
           />
           <InputGroupAddon align="inline-end">
@@ -125,6 +128,8 @@ export function SiteHeader({
           </InputGroupAddon>
         </InputGroup>
 
+        <LanguageSwitcher />
+
         {user ? (
           <>
             <Separator orientation="vertical" className="mx-1 h-5" />
@@ -135,7 +140,7 @@ export function SiteHeader({
                     variant="ghost"
                     size="sm"
                     className="gap-2 px-1.5"
-                    aria-label="Account"
+                    aria-label={t.auth.account}
                   />
                 }
               >
@@ -166,7 +171,7 @@ export function SiteHeader({
                       {user.station ? (
                         <Badge variant="outline">{user.station}</Badge>
                       ) : (
-                        <Badge variant="outline">All stations</Badge>
+                        <Badge variant="outline">{t.auth.allStations}</Badge>
                       )}
                     </span>
                   </DropdownMenuLabel>
@@ -187,7 +192,7 @@ export function SiteHeader({
                   }}
                 >
                   {signingOut ? <Spinner /> : <IconLogout />}
-                  {signingOut ? "Signing out…" : "Sign out"}
+                  {signingOut ? t.auth.signingOut : t.auth.signOut}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -197,23 +202,23 @@ export function SiteHeader({
 
       <CommandDialog open={open} onOpenChange={setOpen}>
         <Command>
-          <CommandInput placeholder="Search operators or jump to a page…" />
+          <CommandInput placeholder={t.search.dialogPlaceholder} />
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
-            <CommandGroup heading="Pages">
-              {pages.map((page) => (
+            <CommandEmpty>{t.search.noResults}</CommandEmpty>
+            <CommandGroup heading={t.search.pages}>
+              {PAGES.map((page) => (
                 <CommandItem
                   key={page.href}
-                  value={page.title}
+                  value={t.nav[page.key]}
                   onSelect={() => go(page.href)}
                 >
                   <page.icon />
-                  {page.title}
+                  {t.nav[page.key]}
                 </CommandItem>
               ))}
             </CommandGroup>
             <CommandSeparator />
-            <CommandGroup heading="Operators">
+            <CommandGroup heading={t.search.operators}>
               {operators.map((operator) => (
                 <CommandItem
                   key={operator.id}

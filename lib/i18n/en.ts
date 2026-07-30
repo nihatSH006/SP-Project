@@ -1,0 +1,439 @@
+/**
+ * English dictionary — the source of truth.
+ *
+ * `az.ts` and `ru.ts` are typed as `typeof en`, so TypeScript fails the build
+ * if a translation is missing or a key is misspelled. Add strings here first.
+ *
+ * Functions are used where a string interpolates values, so translators can
+ * reorder words freely rather than being forced into English grammar.
+ */
+export const en = {
+  brand: {
+    name: "SOCAR SASIS",
+    tagline: "Sales & Staff Intelligence",
+    systemOnline: "System online",
+  },
+
+  nav: {
+    sectionAnalysis: "Analysis",
+    sectionAdmin: "Administration",
+    dashboard: "Dashboard",
+    operators: "Operators",
+    leaderboard: "Leaderboard",
+    stations: "Stations",
+    alerts: "Alerts",
+    settings: "Settings",
+  },
+
+  common: {
+    revenue: "Revenue",
+    transactions: "Transactions",
+    operators: "Operators",
+    station: "Station",
+    stations: "Stations",
+    department: "Department",
+    departments: "Departments",
+    shift: "Shift",
+    shifts: "Shifts",
+    hours: "Hours",
+    sales: "Sales",
+    attendance: "Attendance",
+    productivity: "Productivity",
+    score: "Score",
+    grade: "Grade",
+    risk: "Risk",
+    health: "Health",
+    rank: "Rank",
+    operator: "Operator",
+    controller: "Controller",
+    all: "All",
+    none: "none",
+    perHour: "AZN/h",
+    azn: "AZN",
+    of: "of",
+    loading: "Loading…",
+    tryAgain: "Try again",
+    search: "Search",
+    reset: "Reset",
+    scope: "Scope",
+    operationalDay: "Operational day",
+    previousDay: "Previous day",
+    nextDay: "Next day",
+    allStations: "All stations",
+    allDepartments: "All departments",
+    allShifts: "All shifts",
+  },
+
+  shifts: {
+    Morning: "Morning",
+    Evening: "Evening",
+    Night: "Night",
+  },
+
+  risk: {
+    LOW: "Low",
+    MEDIUM: "Medium",
+    HIGH: "High",
+  },
+
+  roles: {
+    admin: "Administrator",
+    supervisor: "Regional supervisor",
+    manager: "Station manager",
+    staff: "Operator",
+  },
+
+  auth: {
+    signIn: "Sign in",
+    signingIn: "Signing in…",
+    signOut: "Sign out",
+    signingOut: "Signing out…",
+    workEmail: "Work email",
+    password: "Password",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
+    internalOnly: "Internal system — authorised personnel only.",
+    sessionNote: "Sessions end after 8 hours — one shift.",
+    account: "Account",
+    profile: "Profile",
+    signedInAs: (email: string) => `Signed in as ${email}`,
+    allStations: "All stations",
+    errors: {
+      badCredentials: "Incorrect email or password.",
+      disabled: "This account has been disabled. Contact an administrator.",
+      tooMany: "Too many attempts. Wait a few minutes and try again.",
+      network: "Network error. Check your connection and try again.",
+      generic: "Could not sign you in. Try again.",
+      noSession: "Could not start a session.",
+    },
+  },
+
+  dashboard: {
+    title: "Operations dashboard",
+    description:
+      "Fleet-wide sales, workforce and risk overview for the operational day.",
+    reviewAlerts: "Review alerts",
+    totalRevenue: "Total revenue",
+    targetProgress: (pct: number, target: string) =>
+      `${pct}% of the ${target} AZN daily target`,
+    noTarget: "No revenue target configured",
+    completedSales: "completed fuel sales",
+    operatorsOnDuty: "Operators on duty",
+    acrossStations: (n: number) => `across ${n} stations`,
+    avgProductivity: "Avg productivity",
+    revenuePerHour: "revenue per working hour",
+    aboveTarget: "above target",
+    nearTarget: "near target",
+    belowTarget: "below target",
+    openAlerts: "Open alerts",
+    allClear: "all clear",
+    needsReview: "needs review",
+
+    dailyTarget: "Daily revenue target",
+    progressToward: (target: string) => `Progress toward ${target} AZN`,
+    setTargetsPrompt: "Set targets in Settings to track progress",
+    targetExceeded: "Target exceeded.",
+    remainingToTarget: (amount: string) =>
+      `${amount} AZN remaining to reach today's target.`,
+    noTargetLong:
+      "No target configured — an administrator can set one per station in Settings.",
+    operationalHealth: "Operational health",
+    healthStable: "Stable — no significant incident load",
+    healthMonitor: "Monitor — incident load rising",
+    healthDegraded: "Degraded — management review recommended",
+
+    workforceRisk: "Workforce risk",
+    workforceRiskDesc: "Operators by risk classification",
+    operatorCount: (n: number) => `${n} operator${n === 1 ? "" : "s"}`,
+
+    highlights: "Today's highlights",
+    highlightsDesc: "Best performers in the current slice",
+    topOperator: "Top operator",
+    bestStation: "Best station",
+    bestDepartment: "Best department",
+    avgRevenuePerOperator: "Avg revenue / operator",
+    highRiskOperators: "High-risk operators",
+
+    revenueThroughDay: "Revenue through the day",
+    hourlyRevenue: "Hourly fuel-sale revenue, AZN",
+    revenueByStation: "Revenue by station",
+    totalPerStation: "Total AZN per station",
+    revenueByDepartment: "Revenue by department",
+    totalPerDepartment: "Total AZN per department",
+    shiftCoverage: "Shift coverage",
+    operatorsPerShift: "Operators per shift",
+    onDuty: "on duty",
+
+    top5: "Top 5 operators",
+    top5Desc: "Ranked by revenue, then productivity",
+    fullRanking: "Full ranking",
+
+    executiveBrief: "Executive brief",
+    executiveBriefDesc: "Auto-generated from today's data",
+    briefLine1: (revenue: string, transactions: number) =>
+      `Today the fleet generated ${revenue} AZN across ${transactions} transactions`,
+    briefTargetPart: (pct: number) => ` — ${pct}% of the daily revenue target.`,
+    briefNoTargetPart: " with no revenue target configured.",
+    briefLine2: (
+      leader: string,
+      amount: string,
+      station: string,
+      department: string
+    ) =>
+      `${leader} leads with ${amount} AZN; ${station} is the strongest station and ${department} the strongest department.`,
+    briefLine3: (productivity: string, attendance: number) =>
+      `Average productivity is ${productivity} AZN/hour with attendance at ${attendance}%.`,
+    briefNoAlerts: "No suspicious activity was detected.",
+    briefAlerts: (n: number) =>
+      `${n} suspicious transaction${n === 1 ? "" : "s"} require review before shift close.`,
+    targetExceededShort: "Revenue target exceeded",
+    targetNearlyShort: "Revenue target nearly achieved",
+    targetMissedShort: "Revenue target missed",
+
+    recentAlerts: "Recent alerts",
+    recentAlertsDesc: "Sales recorded outside working hours",
+    alertCenter: "Alert center",
+    noAlerts: "No operational alerts",
+    noAlertsDesc:
+      "Every sale in this slice falls inside its operator's registered working hours.",
+  },
+
+  operators: {
+    title: "Operators",
+    description: "Every operator on duty, with performance and risk at a glance.",
+    inCurrentSlice: "in the current slice",
+    transactionsCount: (n: number) => `${n} transactions`,
+    perWorkingHour: "per working hour",
+    againstShift: "against an 8-hour shift",
+    avgAttendance: "Avg attendance",
+    countLabel: (visible: number, total: number) =>
+      visible === total
+        ? `${total} operator${total === 1 ? "" : "s"}`
+        : `${visible} of ${total} operators`,
+    clickForProfile: "click a name for the full profile",
+    searchPlaceholder: "Search name, station, department…",
+    clearSearch: "Clear search",
+    noMatch: (query: string) => `No operators match "${query}"`,
+    noMatchDesc: "Try a different name, station or department.",
+    revenueAzn: "Revenue (AZN)",
+  },
+
+  operatorDetail: {
+    title: "Operator profile",
+    description: (shift: string) =>
+      `Full performance and risk assessment for the ${shift} shift.`,
+    allOperators: "All operators",
+    grade: "grade",
+    fleetAvg: (value: string) => `fleet avg ${value}`,
+    above: "above",
+    below: "below",
+    perHourCount: (n: number) => `${n} per hour`,
+    performanceScore: "Performance score",
+    scoreBlend: "attendance + productivity blend",
+    workingHours: "Working hours",
+    ofScheduled: (n: number) => `of ${n} scheduled`,
+    revenueThroughShift: "Revenue through the shift",
+    hourlyBy: (name: string) => `Hourly revenue recorded by ${name}, AZN`,
+    assessment: "Assessment",
+    assessmentDesc: "Auto-generated recommendation",
+    topTier: "Top-tier performance",
+    topTierBody: (name: string) =>
+      `${name} is one of the strongest operators today — excellent attendance and high revenue generation.`,
+    topTierAction:
+      "Recommendation: recognise this operator and consider leadership responsibilities.",
+    performingWell: "Performing well",
+    performingWellBody: (name: string) =>
+      `${name} is performing well; some indicators can still improve.`,
+    performingWellAction:
+      "Recommendation: continue monitoring and provide coaching where useful.",
+    needsAttention: "Needs management attention",
+    needsAttentionBody: "Performance is below expectations for the day.",
+    needsAttentionAction:
+      "Recommendation: review attendance and productivity, and monitor upcoming transactions.",
+    riskHigh: (n: number) =>
+      `${n} suspicious transaction${n === 1 ? "" : "s"} — immediate investigation recommended.`,
+    riskMedium: "Keep this operator under observation.",
+    riskLow: "No operational concerns detected.",
+    flagged: "Flagged transactions",
+    flaggedDesc: (window: string) =>
+      `Sales recorded outside this operator's ${window} working window`,
+  },
+
+  leaderboard: {
+    title: "Performance leaderboard",
+    description: "Operators ranked by revenue, then productivity.",
+    revenueChampion: "Revenue champion",
+    revenueChampionDesc: "Highest revenue in the slice",
+    productivityChampion: "Productivity champion",
+    productivityChampionDesc: "Most AZN per working hour",
+    attendanceChampion: "Attendance champion",
+    attendanceChampionDesc: "Best shift-hours compliance",
+    completeRanking: "Complete ranking",
+    allOperators: (n: number) => `All ${n} operators in the current slice`,
+    shiftSuffix: (shift: string) => `${shift} shift`,
+  },
+
+  stations: {
+    title: "Station performance",
+    description:
+      "Regional view — revenue, workforce and operational health per station.",
+    inSlice: "in the current slice",
+    regionalRevenue: "Regional revenue",
+    perOperatorHour: "per operator working hour",
+    avgHealth: "Avg station health",
+    stable: "stable",
+    monitor: "monitor",
+    intervention: "intervention advised",
+    bestStation: "Best performing station",
+    bestStationDesc: "Highest revenue in the current slice",
+    viewOperators: "View operators",
+    onDutyCount: (n: number) => `${n} operator${n === 1 ? "" : "s"} on duty`,
+    operatorsTransactions: (ops: number, tx: number) =>
+      `${ops} operator${ops === 1 ? "" : "s"} · ${tx} transactions`,
+    alertsCount: (n: number) => `${n} alert${n === 1 ? "" : "s"}`,
+    stableShort: "Stable",
+    monitorShort: "Monitor",
+    reviewShort: "Review recommended",
+    comparison: "Station comparison",
+    comparisonDesc: "Full metrics per station",
+  },
+
+  alerts: {
+    title: "Alert center",
+    description:
+      "Suspicious transactions — sales recorded outside an operator's working hours.",
+    flaggedTransactions: "Flagged transactions",
+    inSlice: "in the current slice",
+    highPriority: "High priority",
+    twoPlusFlagged: "2+ flagged sales",
+    mediumPriority: "Medium priority",
+    oneFlagged: "1 flagged sale",
+    clearOperators: "Clear operators",
+    noFlagged: "no flagged sales",
+    incidentLog: "Incident log",
+    incidentLogDesc: "Newest first · click an operator for their full profile",
+    noneDetected: "No suspicious transactions detected",
+    noneDetectedDesc:
+      "Every sale in this slice falls inside its operator's registered working hours.",
+    recommendedActions: "Recommended actions",
+    standardProcedure: "Standard incident procedure",
+    noAction: "No action required.",
+    noActionDesc:
+      "All sales in the current slice fall inside their operators' registered working hours.",
+    generated: (alerts: number, ops: number) =>
+      `Today's operations generated ${alerts} flagged transaction${alerts === 1 ? "" : "s"} across ${ops} operator${ops === 1 ? "" : "s"}.`,
+    beforeEndOfDay: "Before the end of the operating day:",
+    step1: "Verify each flagged transaction against the till record.",
+    step2: "Review CCTV footage for the flagged time windows.",
+    step3: "Confirm the operator's shift schedule with the station manager.",
+    priorityReview: "Priority review",
+    byPriority: "Operators by priority",
+    byPriorityDesc: "Grouped by how many flagged sales each operator carries",
+    tabHigh: "High",
+    tabMedium: "Medium",
+    tabClear: "Clear",
+    flaggedSuffix: (n: number) => `${n} flagged`,
+    noHigh: "No high-priority operators.",
+    noMedium: "No medium-priority operators.",
+    noClear: "No clear operators.",
+    outsideHours: "Sale recorded outside working hours",
+  },
+
+  settings: {
+    title: "Settings",
+    description:
+      "The business rules behind every score, grade and risk flag. Changing them here takes effect immediately — no developer needed.",
+
+    scoring: "Scoring",
+    scoringDesc:
+      "How working hours and sales pace turn into a 0–100 score. Changes apply immediately to every operational day.",
+    scheduledHours: "Scheduled shift length",
+    scheduledHoursDesc:
+      "The denominator of the attendance score. Everyone currently works exactly this, which is why attendance sits near 100%.",
+    productivityTarget: "Productivity target",
+    productivityTargetDesc:
+      "AZN per hour that earns full marks. The old hardcoded 15 was tuned for busy Baku stations — raising it is unfair to quiet stations, lowering it is unfair to busy ones.",
+    graceMinutes: "Late-arrival grace",
+    graceMinutesDesc:
+      "Lateness forgiven before it dents the attendance score.",
+
+    riskThresholds: "Risk thresholds",
+    riskThresholdsDesc: "When an operator is flagged MEDIUM or HIGH risk.",
+    riskHighSuspicious: "Flagged sales for HIGH risk",
+    riskHighSuspiciousDesc: "Suspicious sales in one shift that force HIGH.",
+    riskMediumAttendance: "Attendance below this is MEDIUM",
+    riskHighAttendance: "Attendance below this is HIGH",
+    riskHighAttendanceDesc: "Must be lower than the medium threshold.",
+
+    gradeBoundaries: "Grade boundaries",
+    gradeBoundariesDesc:
+      "Minimum score for each grade. Must descend: A+ > A > B > C.",
+    gradeFrom: (grade: string) => `Grade ${grade} from`,
+    belowC: "Anything below the C boundary grades D.",
+
+    revenueTargets: "Revenue targets",
+    revenueTargetsDesc:
+      "Replaces the old formula, which derived the target from the revenue it was measuring and so always reported 87%.",
+    targetMode: "How targets are set",
+    targetModeDesc:
+      "Manual uses the numbers below. Baseline derives each station's target from its own recent days.",
+    manualMode: "Manual per station",
+    baselineMode: "From each station's own average",
+    baselineUplift: "Uplift over recent average",
+    baselineUpliftDesc:
+      "1.05 asks each station for 5% more than its own trailing average.",
+    defaultTarget: "Default daily target",
+    defaultTargetDesc:
+      "Used for any station without its own number below.",
+
+    language: "Language",
+    languageDesc:
+      "Default interface language for everyone who has not chosen one.",
+    defaultLanguage: "Default language",
+    defaultLanguageDesc: "Individual users can still switch.",
+
+    unsaved: "Unsaved changes",
+    saved: "Saved",
+    appliesImmediately: "Applies to all operational days immediately.",
+    restoreDefaults: "Restore defaults",
+    save: "Save settings",
+    saving: "Saving…",
+    savedToast: "Settings saved — scores updated across every day.",
+    restoredToast: "Restored the default rules.",
+    auditNote:
+      "Every change is recorded with who made it, so grade and risk decisions stay auditable.",
+
+    units: { hours: "hours", aznPerHour: "AZN/h", min: "min", sales: "sales", pts: "pts", azn: "AZN", times: "×" },
+  },
+
+  errors: {
+    dataTitle: "Couldn't load operational data",
+    dataDesc:
+      "The dashboard could not read from Firestore. If this is a free-tier project, the daily read quota may be exhausted — it resets at midnight Pacific. Otherwise, check the server logs.",
+    noMatch: (subject: string) => `No ${subject} match the current filters`,
+    noMatchDesc: (subject: string) =>
+      `Widen the scope above to bring ${subject} back into view.`,
+  },
+
+  search: {
+    placeholder: "Search operators, pages…",
+    dialogPlaceholder: "Search operators or jump to a page…",
+    noResults: "No results found.",
+    pages: "Pages",
+    operators: "Operators",
+  },
+
+  languages: {
+    az: "Azərbaycanca",
+    ru: "Русский",
+    en: "English",
+    switch: "Change language",
+  },
+}
+
+/**
+ * No `as const`: literal types would make every translation a type error,
+ * since "Dashboard" is not assignable to the literal type `"Dashboard"`.
+ * Widened strings still catch missing and misspelled keys, which is the point.
+ */
+export type Dictionary = typeof en

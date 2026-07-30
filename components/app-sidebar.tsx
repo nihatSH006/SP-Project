@@ -13,6 +13,7 @@ import {
   IconUsers,
 } from "@tabler/icons-react"
 
+import { useT } from "@/components/i18n-provider"
 import { Badge } from "@/components/ui/badge"
 import {
   Sidebar,
@@ -28,13 +29,13 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-const nav = [
-  { title: "Dashboard", href: "/", icon: IconLayoutDashboard },
-  { title: "Operators", href: "/operators", icon: IconUsers },
-  { title: "Leaderboard", href: "/leaderboard", icon: IconTrophy },
-  { title: "Stations", href: "/stations", icon: IconBuildingStore },
-  { title: "Alerts", href: "/alerts", icon: IconAlertTriangle },
-]
+const NAV = [
+  { key: "dashboard", href: "/", icon: IconLayoutDashboard },
+  { key: "operators", href: "/operators", icon: IconUsers },
+  { key: "leaderboard", href: "/leaderboard", icon: IconTrophy },
+  { key: "stations", href: "/stations", icon: IconBuildingStore },
+  { key: "alerts", href: "/alerts", icon: IconAlertTriangle },
+] as const
 
 export function AppSidebar({
   alertCount,
@@ -45,6 +46,7 @@ export function AppSidebar({
   isAdmin?: boolean
 }) {
   const pathname = usePathname()
+  const t = useT()
 
   return (
     <Sidebar collapsible="icon" variant="inset" {...props}>
@@ -53,7 +55,7 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              tooltip="SOCAR SASIS"
+              tooltip={t.brand.name}
               render={<Link href="/" />}
             >
               <span className="btn-3d flex aspect-square size-8 items-center justify-center rounded-xl border">
@@ -61,10 +63,10 @@ export function AppSidebar({
               </span>
               <div className="grid flex-1 text-left leading-tight">
                 <span className="truncate font-semibold tracking-tight">
-                  SOCAR SASIS
+                  {t.brand.name}
                 </span>
                 <span className="truncate text-xs text-muted-foreground">
-                  Sales &amp; Staff Intelligence
+                  {t.brand.tagline}
                 </span>
               </div>
             </SidebarMenuButton>
@@ -74,10 +76,10 @@ export function AppSidebar({
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Analysis</SidebarGroupLabel>
+          <SidebarGroupLabel>{t.nav.sectionAnalysis}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {nav.map((item) => {
+              {NAV.map((item) => {
                 const isActive =
                   item.href === "/"
                     ? pathname === "/"
@@ -86,12 +88,12 @@ export function AppSidebar({
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
-                      tooltip={item.title}
+                      tooltip={t.nav[item.key]}
                       isActive={isActive}
                       render={<Link href={item.href} />}
                     >
                       <item.icon />
-                      <span>{item.title}</span>
+                      <span>{t.nav[item.key]}</span>
                     </SidebarMenuButton>
                     {item.href === "/alerts" && alertCount > 0 ? (
                       <SidebarMenuBadge>
@@ -107,17 +109,17 @@ export function AppSidebar({
 
         {isAdmin ? (
           <SidebarGroup>
-            <SidebarGroupLabel>Administration</SidebarGroupLabel>
+            <SidebarGroupLabel>{t.nav.sectionAdmin}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    tooltip="Settings"
+                    tooltip={t.nav.settings}
                     isActive={pathname.startsWith("/settings")}
                     render={<Link href="/settings" />}
                   >
                     <IconSettings />
-                    <span>Settings</span>
+                    <span>{t.nav.settings}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -132,7 +134,7 @@ export function AppSidebar({
                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500/70" />
                 <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
               </span>
-              System online · v1.0
+              {t.brand.systemOnline} · v1.0
             </div>
           </SidebarGroupContent>
         </SidebarGroup>

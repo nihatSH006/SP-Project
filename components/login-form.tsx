@@ -12,6 +12,8 @@ import {
 } from "@tabler/icons-react"
 import { signInWithEmailAndPassword, signOut } from "firebase/auth"
 
+import { useT } from "@/components/i18n-provider"
+import { LanguageSwitcher } from "@/components/language-switcher"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -40,26 +42,30 @@ import { getFirebaseAuth } from "@/lib/firebase/client"
  * credential failures into one message so the form cannot be used to enumerate
  * staff accounts.
  */
-function messageFor(code: string): string {
+function messageFor(
+  code: string,
+  errors: ReturnType<typeof useT>["auth"]["errors"]
+): string {
   switch (code) {
     case "auth/invalid-email":
     case "auth/user-not-found":
     case "auth/wrong-password":
     case "auth/invalid-credential":
-      return "Incorrect email or password."
+      return errors.badCredentials
     case "auth/user-disabled":
-      return "This account has been disabled. Contact an administrator."
+      return errors.disabled
     case "auth/too-many-requests":
-      return "Too many attempts. Wait a few minutes and try again."
+      return errors.tooMany
     case "auth/network-request-failed":
-      return "Network error. Check your connection and try again."
+      return errors.network
     default:
-      return "Could not sign you in. Try again."
+      return errors.generic
   }
 }
 
 export function LoginForm({ redirectTo }: { redirectTo: string }) {
   const router = useRouter()
+  const t = useT()
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [showPassword, setShowPassword] = React.useState(false)
@@ -96,7 +102,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
         const body = (await response.json().catch(() => null)) as {
           error?: string
         } | null
-        setError(body?.error ?? "Could not start a session.")
+        setError(body?.error ?? t.auth.errors.noSession)
         setPending(false)
         return
       }
@@ -108,7 +114,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
         typeof cause === "object" && cause && "code" in cause
           ? String((cause as { code: unknown }).code)
           : ""
-      setError(messageFor(code))
+      setError(messageFor(code, t.auth.errors))
       setPending(false)
     }
   }
@@ -121,23 +127,24 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
             <IconGasStation className="size-5" />
           </span>
           <div className="flex flex-col">
-            <span className="font-semibold tracking-tight">SOCAR SASIS</span>
+            <span className="font-semibold tracking-tight">{t.brand.name}</span>
             <span className="text-xs text-muted-foreground">
-              Sales &amp; Staff Intelligence
+              {t.brand.tagline}
             </span>
           </div>
+          <div className="ml-auto">
+            <LanguageSwitcher />
+          </div>
         </div>
-        <CardTitle>Sign in</CardTitle>
-        <CardDescription>
-          Internal system — authorised personnel only.
-        </CardDescription>
+        <CardTitle>{t.auth.signIn}</CardTitle>
+        <CardDescription>{t.auth.internalOnly}</CardDescription>
       </CardHeader>
 
       <CardContent>
         <form onSubmit={onSubmit} noValidate>
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="email">Work email</FieldLabel>
+              <FieldLabel htmlFor="email">{t.auth.workEmail}</FieldLabel>
               <InputGroup>
                 <InputGroupAddon>
                   <IconMail />
@@ -158,7 +165,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <FieldLabel htmlFor="password">{t.auth.password}</FieldLabel>
               <InputGroup>
                 <InputGroupAddon>
                   <IconLock />
@@ -179,7 +186,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
                     size="icon-xs"
                     variant="ghost"
                     aria-label={
-                      showPassword ? "Hide password" : "Show password"
+                      showPassword ? t.auth.hidePassword : t.auth.showPassword
                     }
                     onClick={() => setShowPassword((value) => !value)}
                   >
@@ -187,9 +194,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
                   </InputGroupButton>
                 </InputGroupAddon>
               </InputGroup>
-              <FieldDescription>
-                Sessions end after 8 hours — one shift.
-              </FieldDescription>
+              <FieldDescription>{t.auth.sessionNote}</FieldDescription>
             </Field>
 
             {error ? (
@@ -209,7 +214,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
               disabled={pending || !email || !password}
             >
               {pending ? <Spinner /> : null}
-              {pending ? "Signing in…" : "Sign in"}
+              {pending ? t.auth.signingIn : t.auth.signIn}
             </Button>
           </FieldGroup>
         </form>

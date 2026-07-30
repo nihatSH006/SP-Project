@@ -48,9 +48,11 @@ export function StatusLine({
 
 /** Shown when the active filters exclude every operator. */
 export function NoMatches({
-  subject = "operators",
+  title,
+  description,
 }: {
-  subject?: string
+  title: string
+  description: string
 }) {
   return (
     <Card>
@@ -59,10 +61,8 @@ export function NoMatches({
           <EmptyMedia variant="icon">
             <IconUsers />
           </EmptyMedia>
-          <EmptyTitle>No {subject} match the current filters</EmptyTitle>
-          <EmptyDescription>
-            Widen the scope above to bring {subject} back into view.
-          </EmptyDescription>
+          <EmptyTitle>{title}</EmptyTitle>
+          <EmptyDescription>{description}</EmptyDescription>
         </Empty>
       </CardContent>
     </Card>

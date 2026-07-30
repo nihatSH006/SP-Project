@@ -10,6 +10,7 @@ import {
   IconX,
 } from "@tabler/icons-react"
 
+import { useI18n } from "@/components/i18n-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -21,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { formatDayLabel } from "@/lib/i18n"
 import type { FilterOptions } from "@/lib/data"
 
 const ALL = "__all__"
@@ -35,6 +37,7 @@ export function FilterBar({ options }: { options: FilterOptions }) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { locale, t } = useI18n()
   const [pending, startTransition] = React.useTransition()
 
   const current: Record<FilterKey, string> = {
@@ -78,19 +81,35 @@ export function FilterBar({ options }: { options: FilterOptions }) {
     startTransition(() => router.push(query ? `${pathname}?${query}` : pathname))
   }
 
-  const fmtDay = (iso: string) => {
-    const [y, m, d] = iso.split("-").map(Number)
-    return new Date(y, m - 1, d).toLocaleDateString("en-GB", {
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
-    })
-  }
+  const fmtDay = (iso: string) => formatDayLabel(iso, locale)
 
-  const groups: { key: FilterKey; label: string; values: string[] }[] = [
-    { key: "station", label: "Station", values: options.stations },
-    { key: "department", label: "Department", values: options.departments },
-    { key: "shift", label: "Shift", values: [...options.shifts] },
+  const groups: {
+    key: FilterKey
+    label: string
+    allLabel: string
+    values: string[]
+    /** Shift names are enum-like and get translated; others are proper nouns. */
+    translate?: boolean
+  }[] = [
+    {
+      key: "station",
+      label: t.common.station,
+      allLabel: t.common.allStations,
+      values: options.stations,
+    },
+    {
+      key: "department",
+      label: t.common.department,
+      allLabel: t.common.allDepartments,
+      values: options.departments,
+    },
+    {
+      key: "shift",
+      label: t.common.shift,
+      allLabel: t.common.allShifts,
+      values: [...options.shifts],
+      translate: true,
+    },
   ]
 
   return (
@@ -100,13 +119,18 @@ export function FilterBar({ options }: { options: FilterOptions }) {
     >
       <div className="flex items-center gap-2 self-center pr-1 text-sm text-muted-foreground">
         <IconFilter className="size-4" />
-        <span className="hidden sm:inline">Scope</span>
+        <span className="hidden sm:inline">{t.common.scope}</span>
       </div>
 
-      {groups.map(({ key, label, values }) => {
+      {groups.map(({ key, label, allLabel, values, translate }) => {
         const items = [
-          { value: ALL, label: `All ${label.toLowerCase()}s` },
-          ...values.map((value) => ({ value, label: value })),
+          { value: ALL, label: allLabel },
+          ...values.map((value) => ({
+            value,
+            label: translate
+              ? (t.shifts[value as keyof typeof t.shifts] ?? value)
+              : value,
+          })),
         ]
 
         return (
@@ -142,7 +166,7 @@ export function FilterBar({ options }: { options: FilterOptions }) {
           <Separator orientation="vertical" className="mb-1.5 h-7" />
           <Button variant="ghost" size="sm" className="mb-0.5" onClick={reset}>
             <IconX data-icon="inline-start" />
-            Reset
+            {t.common.reset}
             <Badge variant="secondary">{activeCount}</Badge>
           </Button>
         </>
@@ -151,13 +175,13 @@ export function FilterBar({ options }: { options: FilterOptions }) {
       {dates.length > 0 ? (
         <div className="ml-auto flex flex-col gap-1.5">
           <Label htmlFor="filter-date" className="text-xs text-muted-foreground">
-            Operational day
+            {t.common.operationalDay}
           </Label>
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Previous day"
+              aria-label={t.common.previousDay}
               disabled={dateIndex <= 0}
               onClick={() => setDate(dates[dateIndex - 1])}
             >
@@ -183,7 +207,7 @@ export function FilterBar({ options }: { options: FilterOptions }) {
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Next day"
+              aria-label={t.common.nextDay}
               disabled={dateIndex < 0 || dateIndex >= dates.length - 1}
               onClick={() => setDate(dates[dateIndex + 1])}
             >

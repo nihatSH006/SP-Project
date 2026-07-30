@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/item"
 import { SCHEDULED_HOURS, toChartSeries } from "@/lib/analytics"
 import { getOperatorReports, resolveDate } from "@/lib/data"
+import { getT } from "@/lib/i18n/server"
 import { bandFor, dayAndTime, money, money2, timeOfDay } from "@/lib/format"
 
 export async function generateMetadata(props: PageProps<"/operators/[id]">) {
@@ -54,6 +55,7 @@ export async function generateMetadata(props: PageProps<"/operators/[id]">) {
 export default async function OperatorDetailPage(
   props: PageProps<"/operators/[id]">
 ) {
+  const t = await getT()
   const { id } = await props.params
   // Honor ?date= so drilling in from a historical day stays on that day.
   const date = await resolveDate(await props.searchParams)
@@ -75,33 +77,30 @@ export default async function OperatorDetailPage(
     report.score >= 90
       ? {
           band: "good" as const,
-          verdict: "Top-tier performance",
-          body: `${report.name} is one of the strongest operators today — excellent attendance and high revenue generation.`,
-          action:
-            "Recommendation: recognise this operator and consider leadership responsibilities.",
+          verdict: t.operatorDetail.topTier,
+          body: t.operatorDetail.topTierBody(report.name),
+          action: t.operatorDetail.topTierAction,
         }
       : report.score >= 75
         ? {
             band: "good" as const,
-            verdict: "Performing well",
-            body: `${report.name} is performing well; some indicators can still improve.`,
-            action:
-              "Recommendation: continue monitoring and provide coaching where useful.",
+            verdict: t.operatorDetail.performingWell,
+            body: t.operatorDetail.performingWellBody(report.name),
+            action: t.operatorDetail.performingWellAction,
           }
         : {
             band: "warn" as const,
-            verdict: "Needs management attention",
-            body: "Performance is below expectations for the day.",
-            action:
-              "Recommendation: review attendance and productivity, and monitor upcoming transactions.",
+            verdict: t.operatorDetail.needsAttention,
+            body: t.operatorDetail.needsAttentionBody,
+            action: t.operatorDetail.needsAttentionAction,
           }
 
   const window = `${timeOfDay(report.entry)}–${timeOfDay(report.exit)}`
 
   return (
     <PageShell
-      title="Operator profile"
-      description={`Full performance and risk assessment for the ${report.shift.toLowerCase()} shift.`}
+      title={t.operatorDetail.title}
+      description={t.operatorDetail.description(t.shifts[report.shift])}
       actions={
         <Button
           variant="outline"
@@ -109,7 +108,7 @@ export default async function OperatorDetailPage(
           render={<Link href="/operators" />}
         >
           <IconArrowLeft data-icon="inline-start" />
-          All operators
+          {t.operatorDetail.allOperators}
         </Button>
       }
     >
@@ -129,16 +128,18 @@ export default async function OperatorDetailPage(
               <Badge variant="secondary">{report.department}</Badge>
               <Badge variant="secondary">{report.station}</Badge>
               <Badge variant="outline">
-                {report.shift} shift · {window}
+                {t.shifts[report.shift]} · {window}
               </Badge>
-              <RiskBadge risk={report.risk} />
+              <RiskBadge risk={report.risk} label={t.risk[report.risk]} />
             </div>
           </div>
           <div className="flex flex-col items-center gap-1">
             <span className="btn-3d flex size-14 items-center justify-center rounded-2xl border text-xl font-semibold tabular-nums">
               {report.grade}
             </span>
-            <span className="text-xs text-muted-foreground">grade</span>
+            <span className="text-xs text-muted-foreground">
+              {t.operatorDetail.grade}
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -146,7 +147,7 @@ export default async function OperatorDetailPage(
       {/* ---------------------------------------- KPI row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <StatTile
-          label="Revenue"
+          label={t.common.revenue}
           value={money(report.revenue)}
           unit="AZN"
           icon={IconCoin}
@@ -155,20 +156,20 @@ export default async function OperatorDetailPage(
           }
         />
         <StatTile
-          label="Transactions"
+          label={t.common.transactions}
           value={report.salesCount}
           icon={IconReceipt}
-          caption={`${report.salesPerHour} per hour`}
+          caption={t.operatorDetail.perHourCount(report.salesPerHour)}
         />
         <StatTile
-          label="Performance score"
+          label={t.operatorDetail.performanceScore}
           value={report.score}
           unit="/100"
           icon={IconTargetArrow}
-          caption="attendance + productivity blend"
+          caption={t.operatorDetail.scoreBlend}
         />
         <StatTile
-          label="Productivity"
+          label={t.common.productivity}
           value={money(report.productivity)}
           unit="AZN/h"
           icon={IconGauge}
@@ -180,18 +181,18 @@ export default async function OperatorDetailPage(
           }
         />
         <StatTile
-          label="Working hours"
+          label={t.operatorDetail.workingHours}
           value={report.workingHours}
           unit="h"
           icon={IconClockHour4}
-          caption={`of ${SCHEDULED_HOURS} scheduled`}
+          caption={t.operatorDetail.ofScheduled(SCHEDULED_HOURS)}
         />
         <StatTile
-          label="Attendance"
+          label={t.common.attendance}
           value={report.attendanceScore}
           unit="%"
           icon={IconClockHour4}
-          caption={`fleet avg ${fleetAvg.attendance.toFixed(1)}%`}
+          caption={t.operatorDetail.fleetAvg(`${fleetAvg.attendance.toFixed(1)}%`)}
         />
       </div>
 
@@ -199,10 +200,8 @@ export default async function OperatorDetailPage(
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Revenue through the shift</CardTitle>
-            <CardDescription>
-              Hourly revenue recorded by {report.name}, AZN
-            </CardDescription>
+            <CardTitle>{t.operatorDetail.revenueThroughShift}</CardTitle>
+            <CardDescription>{t.operatorDetail.hourlyBy(report.name)}</CardDescription>
           </CardHeader>
           <CardContent>
             <HourlyRevenueChart data={toChartSeries(report.hourly)} />
@@ -211,8 +210,8 @@ export default async function OperatorDetailPage(
 
         <Card>
           <CardHeader>
-            <CardTitle>Assessment</CardTitle>
-            <CardDescription>Auto-generated recommendation</CardDescription>
+            <CardTitle>{t.operatorDetail.assessment}</CardTitle>
+            <CardDescription>{t.operatorDetail.assessmentDesc}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4 text-muted-foreground">
             <StatusLine band={assessment.band}>{assessment.verdict}</StatusLine>
@@ -222,7 +221,7 @@ export default async function OperatorDetailPage(
             <Meter
               label={
                 <span className="font-medium text-foreground">
-                  Performance score
+                  {t.operatorDetail.performanceScore}
                 </span>
               }
               value={report.score}
@@ -231,7 +230,9 @@ export default async function OperatorDetailPage(
             />
             <Meter
               label={
-                <span className="font-medium text-foreground">Attendance</span>
+                <span className="font-medium text-foreground">
+                  {t.common.attendance}
+                </span>
               }
               value={report.attendanceScore}
               display={`${report.attendanceScore}%`}
@@ -241,18 +242,12 @@ export default async function OperatorDetailPage(
             <p>
               {report.risk === "HIGH" ? (
                 <StatusLine band="crit">
-                  {report.suspicious} suspicious transaction
-                  {report.suspicious === 1 ? "" : "s"} — immediate investigation
-                  recommended.
+                  {t.operatorDetail.riskHigh(report.suspicious)}
                 </StatusLine>
               ) : report.risk === "MEDIUM" ? (
-                <StatusLine band="warn">
-                  Keep this operator under observation.
-                </StatusLine>
+                <StatusLine band="warn">{t.operatorDetail.riskMedium}</StatusLine>
               ) : (
-                <StatusLine band="good">
-                  No operational concerns detected.
-                </StatusLine>
+                <StatusLine band="good">{t.operatorDetail.riskLow}</StatusLine>
               )}
             </p>
           </CardContent>
@@ -263,11 +258,8 @@ export default async function OperatorDetailPage(
       {report.alerts.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>Flagged transactions</CardTitle>
-            <CardDescription>
-              Sales recorded outside this operator&apos;s {window} working
-              window
-            </CardDescription>
+            <CardTitle>{t.operatorDetail.flagged}</CardTitle>
+            <CardDescription>{t.operatorDetail.flaggedDesc(window)}</CardDescription>
           </CardHeader>
           <CardContent>
             <ItemGroup>
@@ -284,7 +276,7 @@ export default async function OperatorDetailPage(
                     <ItemContent>
                       <ItemTitle>{money2(alert.amount)} AZN</ItemTitle>
                       <ItemDescription>
-                        {alert.reason} · {dayAndTime(alert.time)}
+                        {t.alerts.outsideHours} · {dayAndTime(alert.time)}
                       </ItemDescription>
                     </ItemContent>
                   </Item>

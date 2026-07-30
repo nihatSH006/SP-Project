@@ -30,6 +30,7 @@ import {
 import { rankOperators } from "@/lib/analytics"
 import type { StoredReport } from "@/lib/data"
 import { getSlice, type SearchParams } from "@/lib/data"
+import { getT } from "@/lib/i18n/server"
 import { money } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
@@ -46,6 +47,7 @@ const medalTint = ["text-amber-400", "text-zinc-300", "text-orange-600"]
 export default async function LeaderboardPage(props: {
   searchParams: Promise<SearchParams>
 }) {
+  const t = await getT()
   const { reports, options } = await getSlice(await props.searchParams)
   const ranking = rankOperators(reports)
 
@@ -63,11 +65,14 @@ export default async function LeaderboardPage(props: {
   return (
     <PageShell
       options={options}
-      title="Performance leaderboard"
-      description="Operators ranked by revenue, then productivity."
+      title={t.leaderboard.title}
+      description={t.leaderboard.description}
     >
       {ranking.length === 0 ? (
-        <NoMatches />
+        <NoMatches
+          title={t.errors.noMatch(t.common.operators.toLowerCase())}
+          description={t.errors.noMatchDesc(t.common.operators.toLowerCase())}
+        />
       ) : (
         <>
           {/* ------------------------------------------- podium */}
@@ -92,7 +97,7 @@ export default async function LeaderboardPage(props: {
                         {r.name}
                       </Link>
                       <span className="text-xs text-muted-foreground">
-                        {r.station} · {r.shift} shift
+                        {r.station} · {t.leaderboard.shiftSuffix(t.shifts[r.shift])}
                       </span>
                     </div>
                   </div>
@@ -105,12 +110,12 @@ export default async function LeaderboardPage(props: {
                 </CardHeader>
                 <CardContent>
                   <dl className="flex flex-col gap-2.5 text-sm">
-                    <Row label="Revenue">{money(r.revenue)} AZN</Row>
-                    <Row label="Productivity">
+                    <Row label={t.common.revenue}>{money(r.revenue)} AZN</Row>
+                    <Row label={t.common.productivity}>
                       {money(r.productivity)} AZN/h
                     </Row>
-                    <Row label="Attendance">{r.attendanceScore}%</Row>
-                    <Row label="Grade">
+                    <Row label={t.common.attendance}>{r.attendanceScore}%</Row>
+                    <Row label={t.common.grade}>
                       <GradeBadge grade={r.grade} />
                     </Row>
                   </dl>
@@ -123,22 +128,22 @@ export default async function LeaderboardPage(props: {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <AwardCard
               icon={IconCoin}
-              title="Revenue champion"
-              description="Highest revenue in the slice"
+              title={t.leaderboard.revenueChampion}
+              description={t.leaderboard.revenueChampionDesc}
               operator={awards.revenue!}
               value={`${money(awards.revenue!.revenue)} AZN`}
             />
             <AwardCard
               icon={IconBolt}
-              title="Productivity champion"
-              description="Most AZN per working hour"
+              title={t.leaderboard.productivityChampion}
+              description={t.leaderboard.productivityChampionDesc}
               operator={awards.productivity!}
               value={`${money(awards.productivity!.productivity)} AZN/h`}
             />
             <AwardCard
               icon={IconClockHour4}
-              title="Attendance champion"
-              description="Best shift-hours compliance"
+              title={t.leaderboard.attendanceChampion}
+              description={t.leaderboard.attendanceChampionDesc}
               operator={awards.attendance!}
               value={`${awards.attendance!.attendanceScore}%`}
             />
@@ -147,9 +152,9 @@ export default async function LeaderboardPage(props: {
           {/* ------------------------------------------- full ranking */}
           <Card>
             <CardHeader>
-              <CardTitle>Complete ranking</CardTitle>
+              <CardTitle>{t.leaderboard.completeRanking}</CardTitle>
               <CardDescription>
-                All {ranking.length} operators in the current slice
+                {t.leaderboard.allOperators(ranking.length)}
               </CardDescription>
             </CardHeader>
             <CardContent className="px-0">
@@ -157,18 +162,18 @@ export default async function LeaderboardPage(props: {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-14 pl-5">Rank</TableHead>
-                      <TableHead>Operator</TableHead>
-                      <TableHead>Station</TableHead>
-                      <TableHead>Shift</TableHead>
+                      <TableHead className="w-14 pl-5">{t.common.rank}</TableHead>
+                      <TableHead>{t.common.operator}</TableHead>
+                      <TableHead>{t.common.station}</TableHead>
+                      <TableHead>{t.common.shift}</TableHead>
                       <TableHead className="text-right">
-                        Revenue (AZN)
+                        {t.operators.revenueAzn}
                       </TableHead>
-                      <TableHead className="text-right">Sales</TableHead>
+                      <TableHead className="text-right">{t.common.sales}</TableHead>
                       <TableHead className="text-right">AZN/h</TableHead>
-                      <TableHead className="text-right">Attendance</TableHead>
-                      <TableHead className="text-right">Score</TableHead>
-                      <TableHead className="pr-5">Risk</TableHead>
+                      <TableHead className="text-right">{t.common.attendance}</TableHead>
+                      <TableHead className="text-right">{t.common.score}</TableHead>
+                      <TableHead className="pr-5">{t.common.risk}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -200,7 +205,7 @@ export default async function LeaderboardPage(props: {
                           {r.station}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {r.shift}
+                          {t.shifts[r.shift]}
                         </TableCell>
                         <TableCell className="text-right font-medium tabular-nums">
                           {money(r.revenue)}
@@ -218,7 +223,7 @@ export default async function LeaderboardPage(props: {
                           {r.score}
                         </TableCell>
                         <TableCell className="pr-5">
-                          <RiskBadge risk={r.risk} />
+                          <RiskBadge risk={r.risk} label={t.risk[r.risk]} />
                         </TableCell>
                       </TableRow>
                     ))}

@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/table"
 import { groupRevenue, stationReports, summarise } from "@/lib/analytics"
 import { getSlice, type SearchParams } from "@/lib/data"
+import { getT } from "@/lib/i18n/server"
 import { bandFor, money } from "@/lib/format"
 
 export const metadata = { title: "Stations" }
@@ -40,6 +41,7 @@ export const metadata = { title: "Stations" }
 export default async function StationsPage(props: {
   searchParams: Promise<SearchParams>
 }) {
+  const t = await getT()
   const { reports, options, target } = await getSlice(await props.searchParams)
   const stations = stationReports(reports)
   const summary = summarise(reports, target)
@@ -55,46 +57,49 @@ export default async function StationsPage(props: {
   return (
     <PageShell
       options={options}
-      title="Station performance"
-      description="Regional view — revenue, workforce and operational health per station."
+      title={t.stations.title}
+      description={t.stations.description}
     >
       {stations.length === 0 ? (
-        <NoMatches subject="stations" />
+        <NoMatches
+          title={t.errors.noMatch(t.common.stations.toLowerCase())}
+          description={t.errors.noMatchDesc(t.common.stations.toLowerCase())}
+        />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
             <StatTile
-              label="Stations"
+              label={t.common.stations}
               value={stations.length}
               icon={IconBuildingStore}
-              caption="in the current slice"
+              caption={t.stations.inSlice}
             />
             <StatTile
-              label="Regional revenue"
+              label={t.stations.regionalRevenue}
               value={money(summary.revenue)}
               unit="AZN"
               icon={IconCoin}
-              caption={`${summary.transactions} transactions`}
+              caption={t.operators.transactionsCount(summary.transactions)}
             />
             <StatTile
-              label="Avg productivity"
+              label={t.dashboard.avgProductivity}
               value={money(summary.avgProductivity)}
               unit="AZN/h"
               icon={IconGauge}
-              caption="per operator working hour"
+              caption={t.stations.perOperatorHour}
             />
             <StatTile
-              label="Avg station health"
+              label={t.stations.avgHealth}
               value={avgHealth}
               unit="%"
               icon={IconHeartbeat}
               caption={
                 <StatusLine band={bandFor(avgHealth)}>
                   {avgHealth >= 90
-                    ? "stable"
+                    ? t.stations.stable
                     : avgHealth >= 75
-                      ? "monitor"
-                      : "intervention advised"}
+                      ? t.stations.monitor
+                      : t.stations.intervention}
                 </StatusLine>
               }
             />
@@ -103,8 +108,8 @@ export default async function StationsPage(props: {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Revenue by station</CardTitle>
-                <CardDescription>Total AZN per station</CardDescription>
+                <CardTitle>{t.dashboard.revenueByStation}</CardTitle>
+                <CardDescription>{t.dashboard.totalPerStation}</CardDescription>
               </CardHeader>
               <CardContent>
                 <RevenueRankChart
@@ -116,9 +121,9 @@ export default async function StationsPage(props: {
 
             <Card>
               <CardHeader>
-                <CardTitle>Best performing station</CardTitle>
+                <CardTitle>{t.stations.bestStation}</CardTitle>
                 <CardDescription>
-                  Highest revenue in the current slice
+                  {t.stations.bestStationDesc}
                 </CardDescription>
                 <CardAction>
                   <Button
@@ -131,7 +136,7 @@ export default async function StationsPage(props: {
                       />
                     }
                   >
-                    View operators
+                    {t.stations.viewOperators}
                   </Button>
                 </CardAction>
               </CardHeader>
@@ -145,22 +150,21 @@ export default async function StationsPage(props: {
                       {stations[0].name}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {stations[0].employees} operator
-                      {stations[0].employees === 1 ? "" : "s"} on duty
+                      {t.stations.onDutyCount(stations[0].employees)}
                     </span>
                   </div>
                 </div>
                 <dl className="flex flex-col gap-2.5">
-                  <Row label="Revenue">{money(stations[0].revenue)} AZN</Row>
-                  <Row label="Transactions">{stations[0].transactions}</Row>
-                  <Row label="Avg productivity">
+                  <Row label={t.common.revenue}>{money(stations[0].revenue)} AZN</Row>
+                  <Row label={t.common.transactions}>{stations[0].transactions}</Row>
+                  <Row label={t.dashboard.avgProductivity}>
                     {money(stations[0].productivity)} AZN/h
                   </Row>
-                  <Row label="Avg attendance">{stations[0].attendance}%</Row>
+                  <Row label={t.operators.avgAttendance}>{stations[0].attendance}%</Row>
                 </dl>
                 <Meter
                   label={
-                    <span className="font-medium text-foreground">Health</span>
+                    <span className="font-medium text-foreground">{t.common.health}</span>
                   }
                   value={stations[0].health}
                   display={`${stations[0].health}%`}
@@ -177,9 +181,7 @@ export default async function StationsPage(props: {
                 <CardHeader>
                   <CardTitle className="text-base">{station.name}</CardTitle>
                   <CardDescription>
-                    {station.employees} operator
-                    {station.employees === 1 ? "" : "s"} ·{" "}
-                    {station.transactions} transactions
+                    {t.stations.operatorsTransactions(station.employees, station.transactions)}
                   </CardDescription>
                   <CardAction>
                     {station.alerts === 0 ? (
@@ -187,23 +189,22 @@ export default async function StationsPage(props: {
                         variant="outline"
                         className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
                       >
-                        0 alerts
+                        {t.stations.alertsCount(0)}
                       </Badge>
                     ) : (
                       <Badge variant="destructive">
-                        {station.alerts} alert
-                        {station.alerts === 1 ? "" : "s"}
+                        {t.stations.alertsCount(station.alerts)}
                       </Badge>
                     )}
                   </CardAction>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-3">
                   <dl className="flex flex-col gap-2">
-                    <Row label="Revenue">{money(station.revenue)} AZN</Row>
-                    <Row label="Productivity">
+                    <Row label={t.common.revenue}>{money(station.revenue)} AZN</Row>
+                    <Row label={t.common.productivity}>
                       {money(station.productivity)} AZN/h
                     </Row>
-                    <Row label="Attendance">{station.attendance}%</Row>
+                    <Row label={t.common.attendance}>{station.attendance}%</Row>
                   </dl>
                   <Meter
                     label={
@@ -217,10 +218,10 @@ export default async function StationsPage(props: {
                   />
                   <StatusLine band={bandFor(station.health)}>
                     {station.health >= 90
-                      ? "Stable"
+                      ? t.stations.stableShort
                       : station.health >= 75
-                        ? "Monitor"
-                        : "Review recommended"}
+                        ? t.stations.monitorShort
+                        : t.stations.reviewShort}
                   </StatusLine>
                 </CardContent>
               </Card>
@@ -230,24 +231,24 @@ export default async function StationsPage(props: {
           {/* ------------------------------------ comparison table */}
           <Card>
             <CardHeader>
-              <CardTitle>Station comparison</CardTitle>
-              <CardDescription>Full metrics per station</CardDescription>
+              <CardTitle>{t.stations.comparison}</CardTitle>
+              <CardDescription>{t.stations.comparisonDesc}</CardDescription>
             </CardHeader>
             <CardContent className="px-0">
               <ScrollArea className="w-full">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="pl-5">Station</TableHead>
-                      <TableHead className="text-right">Operators</TableHead>
+                      <TableHead className="pl-5">{t.common.station}</TableHead>
+                      <TableHead className="text-right">{t.common.operators}</TableHead>
                       <TableHead className="text-right">
-                        Revenue (AZN)
+                        {t.operators.revenueAzn}
                       </TableHead>
-                      <TableHead className="text-right">Transactions</TableHead>
+                      <TableHead className="text-right">{t.common.transactions}</TableHead>
                       <TableHead className="text-right">AZN/h</TableHead>
-                      <TableHead className="text-right">Attendance</TableHead>
-                      <TableHead className="text-right">Alerts</TableHead>
-                      <TableHead className="w-44 pr-5">Health</TableHead>
+                      <TableHead className="text-right">{t.common.attendance}</TableHead>
+                      <TableHead className="text-right">{t.nav.alerts}</TableHead>
+                      <TableHead className="w-44 pr-5">{t.common.health}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

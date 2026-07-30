@@ -2,6 +2,7 @@
 
 import { IconDatabaseOff, IconRefresh } from "@tabler/icons-react"
 
+import { useT } from "@/components/i18n-provider"
 import { Button } from "@/components/ui/button"
 import {
   Empty,
@@ -24,22 +25,20 @@ export default function AppError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const t = useT()
+
   return (
     <main className="flex min-h-svh flex-1 items-center justify-center bg-background p-6">
       <Empty className="max-w-md">
         <EmptyMedia variant="icon">
           <IconDatabaseOff className="text-amber-400" />
         </EmptyMedia>
-        <EmptyTitle>Couldn&apos;t load operational data</EmptyTitle>
-        <EmptyDescription>
-          The dashboard could not read from Firestore. If this is a free-tier
-          project, the daily read quota may be exhausted — it resets at midnight
-          Pacific. Otherwise, check the server logs.
-        </EmptyDescription>
+        <EmptyTitle>{t.errors.dataTitle}</EmptyTitle>
+        <EmptyDescription>{t.errors.dataDesc}</EmptyDescription>
         <div className="flex items-center gap-2">
           <Button className="btn-3d" onClick={reset}>
             <IconRefresh data-icon="inline-start" />
-            Try again
+            {t.common.tryAgain}
           </Button>
         </div>
         {error.digest ? (

@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner"
 
 import { resetSettings, updateSettings } from "@/app/(app)/settings/actions"
+import { useT } from "@/components/i18n-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -104,6 +105,7 @@ export function SettingsForm({
   initial: Settings
   stations: Station[]
 }) {
+  const t = useT()
   const [settings, setSettings] = React.useState<Settings>(initial)
   const [saved, setSaved] = React.useState<Settings>(initial)
   const [pending, startTransition] = React.useTransition()
@@ -123,7 +125,7 @@ export function SettingsForm({
       // The server may have corrected out-of-range or contradictory values.
       for (const warning of result.warnings) toast.warning(warning)
       setSaved(settings)
-      toast.success("Settings saved — scores updated across every day.")
+      toast.success(t.settings.savedToast)
     })
   }
 
@@ -136,7 +138,7 @@ export function SettingsForm({
       }
       setSettings(DEFAULT_SETTINGS)
       setSaved(DEFAULT_SETTINGS)
-      toast.success("Restored the default rules.")
+      toast.success(t.settings.restoredToast)
     })
   }
 
@@ -147,44 +149,43 @@ export function SettingsForm({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <IconGauge className="size-4 text-primary" />
-            Scoring
+            {t.settings.scoring}
           </CardTitle>
           <CardDescription>
-            How working hours and sales pace turn into a 0–100 score. Changes
-            apply immediately to every operational day.
+            {t.settings.scoringDesc}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <FieldGroup>
             <NumberField
-              label="Scheduled shift length"
-              description="The denominator of the attendance score. Everyone currently works exactly this, which is why attendance sits near 100%."
+              label={t.settings.scheduledHours}
+              description={t.settings.scheduledHoursDesc}
               value={settings.scheduledHours}
               onChange={(v) => set("scheduledHours", v)}
               min={LIMITS.scheduledHours.min}
               max={LIMITS.scheduledHours.max}
               step={0.5}
-              suffix="hours"
+              suffix={t.settings.units.hours}
             />
             <FieldSeparator />
             <NumberField
-              label="Productivity target"
-              description="AZN per hour that earns full marks. The old hardcoded 15 was tuned for busy Baku stations — raising it is unfair to quiet stations, lowering it is unfair to busy ones."
+              label={t.settings.productivityTarget}
+              description={t.settings.productivityTargetDesc}
               value={settings.productivityTarget}
               onChange={(v) => set("productivityTarget", v)}
               min={LIMITS.productivityTarget.min}
               max={LIMITS.productivityTarget.max}
-              suffix="AZN/h"
+              suffix={t.settings.units.aznPerHour}
             />
             <FieldSeparator />
             <NumberField
-              label="Late-arrival grace"
-              description="Lateness forgiven before it dents the attendance score."
+              label={t.settings.graceMinutes}
+              description={t.settings.graceMinutesDesc}
               value={settings.graceMinutes}
               onChange={(v) => set("graceMinutes", v)}
               min={LIMITS.graceMinutes.min}
               max={LIMITS.graceMinutes.max}
-              suffix="min"
+              suffix={t.settings.units.min}
             />
           </FieldGroup>
         </CardContent>
@@ -195,26 +196,26 @@ export function SettingsForm({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <IconShieldExclamation className="size-4 text-primary" />
-            Risk thresholds
+            {t.settings.riskThresholds}
           </CardTitle>
           <CardDescription>
-            When an operator is flagged MEDIUM or HIGH risk.
+            {t.settings.riskThresholdsDesc}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <FieldGroup>
             <NumberField
-              label="Flagged sales for HIGH risk"
-              description="Suspicious sales in one shift that force HIGH."
+              label={t.settings.riskHighSuspicious}
+              description={t.settings.riskHighSuspiciousDesc}
               value={settings.riskHighSuspicious}
               onChange={(v) => set("riskHighSuspicious", v)}
               min={LIMITS.riskHighSuspicious.min}
               max={LIMITS.riskHighSuspicious.max}
-              suffix="sales"
+              suffix={t.settings.units.sales}
             />
             <FieldSeparator />
             <NumberField
-              label="Attendance below this is MEDIUM"
+              label={t.settings.riskMediumAttendance}
               value={settings.riskMediumAttendance}
               onChange={(v) => set("riskMediumAttendance", v)}
               min={LIMITS.attendance.min}
@@ -222,8 +223,8 @@ export function SettingsForm({
               suffix="%"
             />
             <NumberField
-              label="Attendance below this is HIGH"
-              description="Must be lower than the medium threshold."
+              label={t.settings.riskHighAttendance}
+              description={t.settings.riskHighAttendanceDesc}
               value={settings.riskHighAttendance}
               onChange={(v) => set("riskHighAttendance", v)}
               min={LIMITS.attendance.min}
@@ -239,10 +240,10 @@ export function SettingsForm({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <IconTrophy className="size-4 text-primary" />
-            Grade boundaries
+            {t.settings.gradeBoundaries}
           </CardTitle>
           <CardDescription>
-            Minimum score for each grade. Must descend: A+ &gt; A &gt; B &gt; C.
+            {t.settings.gradeBoundariesDesc}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -257,18 +258,18 @@ export function SettingsForm({
             ).map(([key, label]) => (
               <NumberField
                 key={key}
-                label={`Grade ${label} from`}
+                label={t.settings.gradeFrom(label)}
                 value={settings.gradeBounds[key]}
                 onChange={(v) =>
                   set("gradeBounds", { ...settings.gradeBounds, [key]: v })
                 }
                 min={LIMITS.grade.min}
                 max={LIMITS.grade.max}
-                suffix="pts"
+                suffix={t.settings.units.pts}
               />
             ))}
             <FieldDescription>
-              Anything below the C boundary grades D.
+              {t.settings.belowC}
             </FieldDescription>
           </FieldGroup>
         </CardContent>
@@ -279,21 +280,19 @@ export function SettingsForm({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <IconCoin className="size-4 text-primary" />
-            Revenue targets
+            {t.settings.revenueTargets}
           </CardTitle>
           <CardDescription>
-            Replaces the old formula, which derived the target from the revenue
-            it was measuring and so always reported 87%.
+            {t.settings.revenueTargetsDesc}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <FieldGroup>
             <Field orientation="responsive">
               <FieldContent>
-                <FieldLabel htmlFor="target-mode">How targets are set</FieldLabel>
+                <FieldLabel htmlFor="target-mode">{t.settings.targetMode}</FieldLabel>
                 <FieldDescription>
-                  Manual uses the numbers below. Baseline derives each station&apos;s
-                  target from its own recent days.
+                  {t.settings.targetModeDesc}
                 </FieldDescription>
               </FieldContent>
               <Select
@@ -302,18 +301,16 @@ export function SettingsForm({
                   set("targetMode", v as Settings["targetMode"])
                 }
                 items={[
-                  { value: "manual", label: "Manual per station" },
-                  { value: "baseline", label: "From each station's own average" },
+                  { value: "manual", label: t.settings.manualMode },
+                  { value: "baseline", label: t.settings.baselineMode },
                 ]}
               >
                 <SelectTrigger id="target-mode" className="w-64">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="manual">Manual per station</SelectItem>
-                  <SelectItem value="baseline">
-                    From each station&apos;s own average
-                  </SelectItem>
+                  <SelectItem value="manual">{t.settings.manualMode}</SelectItem>
+                  <SelectItem value="baseline">{t.settings.baselineMode}</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
@@ -322,20 +319,20 @@ export function SettingsForm({
 
             {settings.targetMode === "baseline" ? (
               <NumberField
-                label="Uplift over recent average"
-                description="1.05 asks each station for 5% more than its own trailing average."
+                label={t.settings.baselineUplift}
+                description={t.settings.baselineUpliftDesc}
                 value={settings.baselineUplift}
                 onChange={(v) => set("baselineUplift", v)}
                 min={LIMITS.baselineUplift.min}
                 max={LIMITS.baselineUplift.max}
                 step={0.01}
-                suffix="×"
+                suffix={t.settings.units.times}
               />
             ) : (
               <>
                 <NumberField
-                  label="Default daily target"
-                  description="Used for any station without its own number below."
+                  label={t.settings.defaultTarget}
+                  description={t.settings.defaultTargetDesc}
                   value={settings.defaultStationDailyTarget}
                   onChange={(v) => set("defaultStationDailyTarget", v)}
                   min={LIMITS.target.min}
@@ -375,18 +372,18 @@ export function SettingsForm({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <IconLanguage className="size-4 text-primary" />
-            Language
+            {t.settings.language}
           </CardTitle>
           <CardDescription>
-            Default interface language for everyone who has not chosen one.
+            {t.settings.languageDesc}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Field orientation="responsive">
             <FieldContent>
-              <FieldLabel htmlFor="lang">Default language</FieldLabel>
+              <FieldLabel htmlFor="lang">{t.settings.defaultLanguage}</FieldLabel>
               <FieldDescription>
-                Individual users can still switch.
+                {t.settings.defaultLanguageDesc}
               </FieldDescription>
             </FieldContent>
             <Select
@@ -418,17 +415,17 @@ export function SettingsForm({
         {dirty ? (
           <Badge variant="outline" className="gap-1.5 border-amber-500/30 bg-amber-500/10 text-amber-400">
             <IconAlertTriangle className="size-3.5" />
-            Unsaved changes
+            {t.settings.unsaved}
           </Badge>
         ) : (
           <Badge variant="outline" className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
             <IconCheck className="size-3.5" />
-            Saved
+            {t.settings.saved}
           </Badge>
         )}
 
         <span className="hidden text-sm text-muted-foreground sm:inline">
-          Applies to all {}operational days immediately.
+          {t.settings.appliesImmediately}
         </span>
 
         <div className="ml-auto flex items-center gap-2">
@@ -439,7 +436,7 @@ export function SettingsForm({
             onClick={reset}
           >
             <IconRestore data-icon="inline-start" />
-            Restore defaults
+            {t.settings.restoreDefaults}
           </Button>
           <Button
             className="btn-3d"
@@ -447,15 +444,14 @@ export function SettingsForm({
             onClick={save}
           >
             {pending ? <Spinner /> : <IconDeviceFloppy data-icon="inline-start" />}
-            {pending ? "Saving…" : "Save settings"}
+            {pending ? t.settings.saving : t.settings.save}
           </Button>
         </div>
       </div>
 
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <IconClockHour4 className="size-3.5" />
-        Every change is recorded with who made it, so grade and risk decisions
-        stay auditable.
+        {t.settings.auditNote}
       </p>
     </div>
   )

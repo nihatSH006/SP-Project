@@ -10,6 +10,7 @@ import {
   IconX,
 } from "@tabler/icons-react"
 
+import { useT } from "@/components/i18n-provider"
 import { GradeBadge, RiskBadge } from "@/components/risk-badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -63,26 +64,28 @@ type SortKey =
   | "attendanceScore"
   | "score"
 
-const columns: {
-  key: SortKey | null
-  label: string
-  numeric?: boolean
-}[] = [
-  { key: "name", label: "Operator" },
-  { key: null, label: "Department" },
-  { key: null, label: "Station" },
-  { key: null, label: "Shift" },
-  { key: "workingHours", label: "Hours", numeric: true },
-  { key: "salesCount", label: "Sales", numeric: true },
-  { key: "revenue", label: "Revenue (AZN)", numeric: true },
-  { key: "productivity", label: "AZN/h", numeric: true },
-  { key: "attendanceScore", label: "Attendance", numeric: true },
-  { key: "score", label: "Score", numeric: true },
-  { key: null, label: "Grade" },
-  { key: null, label: "Risk" },
-]
+type Column = { key: SortKey | null; label: string; numeric?: boolean }
+
+function columnsFor(t: ReturnType<typeof useT>): Column[] {
+  return [
+    { key: "name", label: t.common.operator },
+    { key: null, label: t.common.department },
+    { key: null, label: t.common.station },
+    { key: null, label: t.common.shift },
+    { key: "workingHours", label: t.common.hours, numeric: true },
+    { key: "salesCount", label: t.common.sales, numeric: true },
+    { key: "revenue", label: t.operators.revenueAzn, numeric: true },
+    { key: "productivity", label: t.common.perHour, numeric: true },
+    { key: "attendanceScore", label: t.common.attendance, numeric: true },
+    { key: "score", label: t.common.score, numeric: true },
+    { key: null, label: t.common.grade },
+    { key: null, label: t.common.risk },
+  ]
+}
 
 export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
+  const t = useT()
+  const columns = columnsFor(t)
   const [query, setQuery] = React.useState("")
   const [sort, setSort] = React.useState<{ key: SortKey; desc: boolean }>({
     key: "revenue",
@@ -121,10 +124,8 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3 px-(--card-spacing)">
         <p className="text-muted-foreground">
-          {visible.length === rows.length
-            ? `${rows.length} operator${rows.length === 1 ? "" : "s"}`
-            : `${visible.length} of ${rows.length} operators`}{" "}
-          · click a name for the full profile
+          {t.operators.countLabel(visible.length, rows.length)} ·{" "}
+          {t.operators.clickForProfile}
         </p>
         <InputGroup className="w-full sm:w-72">
           <InputGroupAddon>
@@ -133,15 +134,15 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
           <InputGroupInput
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search name, station, department…"
-            aria-label="Search operators"
+            placeholder={t.operators.searchPlaceholder}
+            aria-label={t.common.search}
           />
           {query ? (
             <InputGroupAddon align="inline-end">
               <InputGroupButton
                 size="icon-xs"
                 variant="ghost"
-                aria-label="Clear search"
+                aria-label={t.operators.clearSearch}
                 onClick={() => setQuery("")}
               >
                 <IconX />
@@ -153,12 +154,12 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
 
       {visible.length === 0 ? (
         <Empty className="py-10">
-          <EmptyTitle>No operators match “{query}”</EmptyTitle>
+          <EmptyTitle>{t.operators.noMatch(query)}</EmptyTitle>
           <EmptyDescription>
-            Try a different name, station or department.
+            {t.operators.noMatchDesc}
           </EmptyDescription>
           <Button variant="outline" size="sm" onClick={() => setQuery("")}>
-            Clear search
+            {t.operators.clearSearch}
           </Button>
         </Empty>
       ) : (
@@ -167,12 +168,13 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10 pl-5">#</TableHead>
-                {columns.map((column) => (
+                {columns.map((column, i) => (
                   <TableHead
                     key={column.label}
                     className={cn(
                       column.numeric && "text-right",
-                      column.label === "Risk" && "pr-5"
+                      // Position, not label text — the label is translated.
+                      i === columns.length - 1 && "pr-5"
                     )}
                   >
                     {column.key ? (
@@ -212,7 +214,7 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
                     {row.station}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {row.shift}
+                    {t.shifts[row.shift]}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {row.workingHours}
@@ -236,7 +238,7 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
                     <GradeBadge grade={row.grade} />
                   </TableCell>
                   <TableCell className="pr-5">
-                    <RiskBadge risk={row.risk} />
+                    <RiskBadge risk={row.risk} label={t.risk[row.risk]} />
                   </TableCell>
                 </TableRow>
               ))}

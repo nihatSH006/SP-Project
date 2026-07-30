@@ -7,6 +7,7 @@ import { NoMatches } from "@/components/status"
 import { Card, CardContent } from "@/components/ui/card"
 import { rankOperators, summarise } from "@/lib/analytics"
 import { getSlice, type SearchParams } from "@/lib/data"
+import { getT } from "@/lib/i18n/server"
 import { money } from "@/lib/format"
 
 export const metadata = { title: "Operators" }
@@ -14,6 +15,7 @@ export const metadata = { title: "Operators" }
 export default async function OperatorsPage(props: {
   searchParams: Promise<SearchParams>
 }) {
+  const t = await getT()
   const { reports, options, target } = await getSlice(await props.searchParams)
   const summary = summarise(reports, target)
 
@@ -37,40 +39,43 @@ export default async function OperatorsPage(props: {
   return (
     <PageShell
       options={options}
-      title="Operators"
-      description="Every operator on duty, with performance and risk at a glance."
+      title={t.operators.title}
+      description={t.operators.description}
     >
       {rows.length === 0 ? (
-        <NoMatches />
+        <NoMatches
+          title={t.errors.noMatch(t.common.operators.toLowerCase())}
+          description={t.errors.noMatchDesc(t.common.operators.toLowerCase())}
+        />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
             <StatTile
-              label="Operators"
+              label={t.common.operators}
               value={summary.operators}
               icon={IconUsers}
-              caption="in the current slice"
+              caption={t.operators.inCurrentSlice}
             />
             <StatTile
-              label="Revenue"
+              label={t.common.revenue}
               value={money(summary.revenue)}
               unit="AZN"
               icon={IconCoin}
-              caption={`${summary.transactions} transactions`}
+              caption={t.operators.transactionsCount(summary.transactions)}
             />
             <StatTile
-              label="Avg productivity"
+              label={t.dashboard.avgProductivity}
               value={money(summary.avgProductivity)}
               unit="AZN/h"
               icon={IconGauge}
-              caption="per working hour"
+              caption={t.operators.perWorkingHour}
             />
             <StatTile
-              label="Avg attendance"
+              label={t.operators.avgAttendance}
               value={summary.avgAttendance}
               unit="%"
               icon={IconClockHour4}
-              caption="against an 8-hour shift"
+              caption={t.operators.againstShift}
             />
           </div>
 

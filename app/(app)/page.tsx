@@ -58,6 +58,7 @@ import {
   toChartSeries,
 } from "@/lib/analytics"
 import { getSlice, type SearchParams } from "@/lib/data"
+import { getT } from "@/lib/i18n/server"
 import { bandFor, dayAndTime, money, money2 } from "@/lib/format"
 
 export const metadata = { title: "Dashboard" }
@@ -65,6 +66,7 @@ export const metadata = { title: "Dashboard" }
 export default async function DashboardPage(props: {
   searchParams: Promise<SearchParams>
 }) {
+  const t = await getT()
   const { reports, options, target } = await getSlice(await props.searchParams)
   const summary = summarise(reports, target)
   const top5 = rankOperators(reports).slice(0, 5)
@@ -79,80 +81,83 @@ export default async function DashboardPage(props: {
   return (
     <PageShell
       options={options}
-      title="Operations dashboard"
-      description="Fleet-wide sales, workforce and risk overview for the operational day."
+      title={t.dashboard.title}
+      description={t.dashboard.description}
       actions={
         <Button
           className="btn-3d"
           nativeButton={false}
           render={<Link href="/alerts" />}
         >
-          Review alerts
+          {t.dashboard.reviewAlerts}
           <IconArrowRight data-icon="inline-end" />
         </Button>
       }
     >
       {summary.operators === 0 ? (
-        <NoMatches />
+        <NoMatches
+          title={t.errors.noMatch(t.common.operators.toLowerCase())}
+          description={t.errors.noMatchDesc(t.common.operators.toLowerCase())}
+        />
       ) : (
         <>
           {/* ------------------------------- KPI row */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
             <StatTile
               emphasis
-              label="Total revenue"
+              label={t.dashboard.totalRevenue}
               value={money(summary.revenue)}
               unit="AZN"
               icon={IconCoin}
               caption={
                 summary.hasTarget
-                  ? `${summary.targetPct}% of the ${money(summary.target)} AZN daily target`
-                  : "No revenue target configured"
+                  ? t.dashboard.targetProgress(summary.targetPct, money(summary.target))
+                  : t.dashboard.noTarget
               }
             />
             <StatTile
-              label="Transactions"
+              label={t.common.transactions}
               value={summary.transactions}
               icon={IconReceipt}
-              caption="completed fuel sales"
+              caption={t.dashboard.completedSales}
             />
             <StatTile
-              label="Operators on duty"
+              label={t.dashboard.operatorsOnDuty}
               value={summary.operators}
               icon={IconUsers}
-              caption={`across ${options.stations.length} stations`}
+              caption={t.dashboard.acrossStations(options.stations.length)}
             />
             <StatTile
-              label="Avg productivity"
+              label={t.dashboard.avgProductivity}
               value={money(summary.avgProductivity)}
               unit="AZN/h"
               icon={IconGauge}
-              caption="revenue per working hour"
+              caption={t.dashboard.revenuePerHour}
             />
             <StatTile
-              label="Attendance"
+              label={t.common.attendance}
               value={summary.avgAttendance}
               unit="%"
               icon={IconClockHour4}
               caption={
                 <StatusLine band={bandFor(summary.avgAttendance, 95, 85)}>
                   {summary.avgAttendance >= 95
-                    ? "above target"
+                    ? t.dashboard.aboveTarget
                     : summary.avgAttendance >= 85
-                      ? "near target"
-                      : "below target"}
+                      ? t.dashboard.nearTarget
+                      : t.dashboard.belowTarget}
                 </StatusLine>
               }
             />
             <StatTile
-              label="Open alerts"
+              label={t.dashboard.openAlerts}
               value={summary.alerts}
               icon={IconFlag}
               caption={
                 summary.alerts === 0 ? (
-                  <StatusLine band="good">all clear</StatusLine>
+                  <StatusLine band="good">{t.dashboard.allClear}</StatusLine>
                 ) : (
-                  <StatusLine band="crit">needs review</StatusLine>
+                  <StatusLine band="crit">{t.dashboard.needsReview}</StatusLine>
                 )
               }
             />
@@ -162,11 +167,11 @@ export default async function DashboardPage(props: {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <Card>
               <CardHeader>
-                <CardTitle>Daily revenue target</CardTitle>
+                <CardTitle>{t.dashboard.dailyTarget}</CardTitle>
                 <CardDescription>
                   {summary.hasTarget
-                    ? `Progress toward ${money(summary.target)} AZN`
-                    : "Set targets in Settings to track progress"}
+                    ? t.dashboard.progressToward(money(summary.target))
+                    : t.dashboard.setTargetsPrompt}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-5">
@@ -184,9 +189,11 @@ export default async function DashboardPage(props: {
                       />
                       <p className="text-muted-foreground">
                         {summary.targetPct >= 100 ? (
-                          <StatusLine band="good">Target exceeded.</StatusLine>
+                          <StatusLine band="good">{t.dashboard.targetExceeded}</StatusLine>
                         ) : (
-                          `${money(summary.target - summary.revenue)} AZN remaining to reach today's target.`
+                          t.dashboard.remainingToTarget(
+                            money(summary.target - summary.revenue)
+                          )
                         )}
                       </p>
                     </>
@@ -210,7 +217,7 @@ export default async function DashboardPage(props: {
                   <Meter
                     label={
                       <span className="font-medium text-foreground">
-                        Operational health
+                        {t.dashboard.operationalHealth}
                       </span>
                     }
                     value={summary.health}
@@ -220,10 +227,10 @@ export default async function DashboardPage(props: {
                   <p className="text-muted-foreground">
                     <StatusLine band={bandFor(summary.health)}>
                       {summary.health >= 90
-                        ? "Stable — no significant incident load"
+                        ? t.dashboard.healthStable
                         : summary.health >= 75
-                          ? "Monitor — incident load rising"
-                          : "Degraded — management review recommended"}
+                          ? t.dashboard.healthMonitor
+                          : t.dashboard.healthDegraded}
                     </StatusLine>
                   </p>
                 </div>
@@ -232,9 +239,9 @@ export default async function DashboardPage(props: {
 
             <Card>
               <CardHeader>
-                <CardTitle>Workforce risk</CardTitle>
+                <CardTitle>{t.dashboard.workforceRisk}</CardTitle>
                 <CardDescription>
-                  Operators by risk classification
+                  {t.dashboard.workforceRiskDesc}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
@@ -245,9 +252,9 @@ export default async function DashboardPage(props: {
                   return (
                     <Meter
                       key={level}
-                      label={<RiskBadge risk={level} />}
+                      label={<RiskBadge risk={level} label={t.risk[level]} />}
                       value={(count / summary.operators) * 100}
-                      display={`${count} operator${count === 1 ? "" : "s"}`}
+                      display={t.dashboard.operatorCount(count)}
                       band={band}
                     />
                   )
@@ -257,14 +264,14 @@ export default async function DashboardPage(props: {
 
             <Card>
               <CardHeader>
-                <CardTitle>Today&apos;s highlights</CardTitle>
+                <CardTitle>{t.dashboard.highlights}</CardTitle>
                 <CardDescription>
-                  Best performers in the current slice
+                  {t.dashboard.highlightsDesc}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <dl className="flex flex-col gap-3">
-                  <KeyValue label="Top operator">
+                  <KeyValue label={t.dashboard.topOperator}>
                     <Link
                       href={`/operators/${summary.topOperator!.id}`}
                       className="font-medium underline-offset-4 hover:underline"
@@ -276,18 +283,18 @@ export default async function DashboardPage(props: {
                       {money(summary.topOperator!.revenue)} AZN
                     </span>
                   </KeyValue>
-                  <KeyValue label="Best station">
+                  <KeyValue label={t.dashboard.bestStation}>
                     {summary.bestStation}
                   </KeyValue>
-                  <KeyValue label="Best department">
+                  <KeyValue label={t.dashboard.bestDepartment}>
                     {summary.bestDepartment}
                   </KeyValue>
-                  <KeyValue label="Avg revenue / operator">
+                  <KeyValue label={t.dashboard.avgRevenuePerOperator}>
                     {money(summary.revenue / summary.operators)} AZN
                   </KeyValue>
-                  <KeyValue label="High-risk operators">
+                  <KeyValue label={t.dashboard.highRiskOperators}>
                     {summary.riskCounts.HIGH === 0 ? (
-                      <StatusLine band="good">none</StatusLine>
+                      <StatusLine band="good">{t.common.none}</StatusLine>
                     ) : (
                       <StatusLine band="crit">
                         {summary.riskCounts.HIGH}
@@ -302,8 +309,8 @@ export default async function DashboardPage(props: {
           {/* ------------------------------- charts */}
           <Card>
             <CardHeader>
-              <CardTitle>Revenue through the day</CardTitle>
-              <CardDescription>Hourly fuel-sale revenue, AZN</CardDescription>
+              <CardTitle>{t.dashboard.revenueThroughDay}</CardTitle>
+              <CardDescription>{t.dashboard.hourlyRevenue}</CardDescription>
             </CardHeader>
             <CardContent>
               <HourlyRevenueChart data={hourlySeries} />
@@ -313,8 +320,8 @@ export default async function DashboardPage(props: {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Revenue by station</CardTitle>
-                <CardDescription>Total AZN per station</CardDescription>
+                <CardTitle>{t.dashboard.revenueByStation}</CardTitle>
+                <CardDescription>{t.dashboard.totalPerStation}</CardDescription>
               </CardHeader>
               <CardContent>
                 <RevenueRankChart data={stationRevenue} />
@@ -322,8 +329,8 @@ export default async function DashboardPage(props: {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Revenue by department</CardTitle>
-                <CardDescription>Total AZN per department</CardDescription>
+                <CardTitle>{t.dashboard.revenueByDepartment}</CardTitle>
+                <CardDescription>{t.dashboard.totalPerDepartment}</CardDescription>
               </CardHeader>
               <CardContent>
                 <RevenueRankChart data={departmentRevenue} />
@@ -334,8 +341,8 @@ export default async function DashboardPage(props: {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <Card>
               <CardHeader>
-                <CardTitle>Shift coverage</CardTitle>
-                <CardDescription>Operators per shift</CardDescription>
+                <CardTitle>{t.dashboard.shiftCoverage}</CardTitle>
+                <CardDescription>{t.dashboard.operatorsPerShift}</CardDescription>
               </CardHeader>
               <CardContent>
                 <ShiftDonutChart data={shiftDistribution(reports)} />
@@ -344,9 +351,9 @@ export default async function DashboardPage(props: {
 
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>Top 5 operators</CardTitle>
+                <CardTitle>{t.dashboard.top5}</CardTitle>
                 <CardDescription>
-                  Ranked by revenue, then productivity
+                  {t.dashboard.top5Desc}
                 </CardDescription>
                 <CardAction>
                   <Button
@@ -355,7 +362,7 @@ export default async function DashboardPage(props: {
                     nativeButton={false}
                     render={<Link href="/leaderboard" />}
                   >
-                    Full ranking
+                    {t.dashboard.fullRanking}
                     <IconArrowRight data-icon="inline-end" />
                   </Button>
                 </CardAction>
@@ -365,12 +372,12 @@ export default async function DashboardPage(props: {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-10 pl-5">#</TableHead>
-                      <TableHead>Operator</TableHead>
-                      <TableHead>Station</TableHead>
-                      <TableHead className="text-right">Revenue</TableHead>
-                      <TableHead className="text-right">Sales</TableHead>
+                      <TableHead>{t.common.operator}</TableHead>
+                      <TableHead>{t.common.station}</TableHead>
+                      <TableHead className="text-right">{t.common.revenue}</TableHead>
+                      <TableHead className="text-right">{t.common.sales}</TableHead>
                       <TableHead className="text-right">AZN/h</TableHead>
-                      <TableHead className="pr-5">Risk</TableHead>
+                      <TableHead className="pr-5">{t.common.risk}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -400,7 +407,7 @@ export default async function DashboardPage(props: {
                           {money(r.productivity)}
                         </TableCell>
                         <TableCell className="pr-5">
-                          <RiskBadge risk={r.risk} />
+                          <RiskBadge risk={r.risk} label={t.risk[r.risk]} />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -414,48 +421,48 @@ export default async function DashboardPage(props: {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Executive brief</CardTitle>
+                <CardTitle>{t.dashboard.executiveBrief}</CardTitle>
                 <CardDescription>
-                  Auto-generated from today&apos;s data
+                  {t.dashboard.executiveBriefDesc}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-3 leading-relaxed text-muted-foreground">
                 <p>
-                  Today the fleet generated{" "}
-                  <Strong>{money(summary.revenue)} AZN</Strong> across{" "}
-                  <Strong>{summary.transactions}</Strong> transactions —{" "}
-                  {summary.hasTarget ? (
-                    <>
-                      <Strong>{summary.targetPct}%</Strong> of the daily revenue
-                      target.
-                    </>
-                  ) : (
-                    <>with no revenue target configured.</>
+                  <Strong>
+                    {t.dashboard.briefLine1(
+                      money(summary.revenue),
+                      summary.transactions
+                    )}
+                  </Strong>
+                  {summary.hasTarget
+                    ? t.dashboard.briefTargetPart(summary.targetPct)
+                    : t.dashboard.briefNoTargetPart}
+                </p>
+                <p>
+                  {t.dashboard.briefLine2(
+                    summary.topOperator!.name,
+                    money(summary.topOperator!.revenue),
+                    summary.bestStation ?? "",
+                    summary.bestDepartment ?? ""
                   )}
                 </p>
                 <p>
-                  <Strong>{summary.topOperator!.name}</Strong> leads with{" "}
-                  <Strong>{money(summary.topOperator!.revenue)} AZN</Strong>;{" "}
-                  <Strong>{summary.bestStation}</Strong> is the strongest
-                  station and <Strong>{summary.bestDepartment}</Strong> the
-                  strongest department.
-                </p>
-                <p>
-                  Average productivity is{" "}
-                  <Strong>{money(summary.avgProductivity)} AZN/hour</Strong>{" "}
-                  with attendance at <Strong>{summary.avgAttendance}%</Strong>.{" "}
+                  {t.dashboard.briefLine3(
+                    money(summary.avgProductivity),
+                    summary.avgAttendance
+                  )}{" "}
                   {summary.alerts === 0
-                    ? "No suspicious activity was detected."
-                    : `${summary.alerts} suspicious transaction${summary.alerts === 1 ? "" : "s"} require review before shift close.`}
+                    ? t.dashboard.briefNoAlerts
+                    : t.dashboard.briefAlerts(summary.alerts)}
                 </p>
                 {summary.hasTarget ? (
                   <p>
                     <StatusLine band={bandFor(summary.targetPct, 100, 80)}>
                       {summary.targetPct >= 100
-                        ? "Revenue target exceeded"
+                        ? t.dashboard.targetExceededShort
                         : summary.targetPct >= 80
-                          ? "Revenue target nearly achieved"
-                          : "Revenue target missed"}
+                          ? t.dashboard.targetNearlyShort
+                          : t.dashboard.targetMissedShort}
                     </StatusLine>
                   </p>
                 ) : null}
@@ -464,9 +471,9 @@ export default async function DashboardPage(props: {
 
             <Card>
               <CardHeader>
-                <CardTitle>Recent alerts</CardTitle>
+                <CardTitle>{t.dashboard.recentAlerts}</CardTitle>
                 <CardDescription>
-                  Sales recorded outside working hours
+                  {t.dashboard.recentAlertsDesc}
                 </CardDescription>
                 <CardAction>
                   <Button
@@ -475,7 +482,7 @@ export default async function DashboardPage(props: {
                     nativeButton={false}
                     render={<Link href="/alerts" />}
                   >
-                    Alert center
+                    {t.dashboard.alertCenter}
                     <IconArrowRight data-icon="inline-end" />
                   </Button>
                 </CardAction>
@@ -486,7 +493,7 @@ export default async function DashboardPage(props: {
                     <EmptyMedia variant="icon">
                       <IconCircleCheck className="text-emerald-400" />
                     </EmptyMedia>
-                    <EmptyTitle>No operational alerts</EmptyTitle>
+                    <EmptyTitle>{t.dashboard.noAlerts}</EmptyTitle>
                     <EmptyDescription>
                       Every sale in this slice falls inside its operator&apos;s
                       registered working hours.
