@@ -6,14 +6,19 @@ import {
   IconCalendar,
   IconChevronLeft,
   IconChevronRight,
-  IconFilter,
   IconX,
 } from "@tabler/icons-react"
 
 import { useI18n } from "@/components/i18n-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import { Label } from "@/components/ui/label"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -26,6 +31,23 @@ import { formatDayLabel } from "@/lib/i18n"
 import type { FilterOptions } from "@/lib/data"
 
 const ALL = "__all__"
+
+/**
+ * `YYYY-MM-DD` <-> `Date`, both built from LOCAL parts.
+ *
+ * `new Date("2026-07-30")` parses as UTC midnight, which is the previous day
+ * anywhere west of Greenwich and would quietly select the wrong operational
+ * day. Splitting the string avoids the timezone entirely.
+ */
+const toDate = (iso: string) => {
+  const [y, m, d] = iso.split("-").map(Number)
+  return new Date(y, m - 1, d)
+}
+
+const toIso = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate()
+  ).padStart(2, "0")}`
 
 type FilterKey = "station" | "department" | "shift"
 
@@ -71,6 +93,7 @@ export function FilterBar({ options }: { options: FilterOptions }) {
   const dates = options.dates
   const selectedDate = searchParams.get("date") ?? options.selectedDate ?? ""
   const dateIndex = dates.indexOf(selectedDate)
+  const dateSet = React.useMemo(() => new Set(dates), [dates])
 
   const setDate = (value: string) => {
     const next = new URLSearchParams(searchParams.toString())
@@ -117,11 +140,6 @@ export function FilterBar({ options }: { options: FilterOptions }) {
       data-pending={pending || undefined}
       className="flex flex-wrap items-end gap-3 rounded-2xl border border-border/60 bg-card/40 p-3 transition-opacity data-pending:opacity-60"
     >
-      <div className="flex items-center gap-2 self-center pr-1 text-sm text-muted-foreground">
-        <IconFilter className="size-4" />
-        <span className="hidden sm:inline">{t.common.scope}</span>
-      </div>
-
       {groups.map(({ key, label, allLabel, values, translate }) => {
         const items = [
           { value: ALL, label: allLabel },
@@ -187,23 +205,42 @@ export function FilterBar({ options }: { options: FilterOptions }) {
             >
               <IconChevronLeft />
             </Button>
-            <Select
-              value={selectedDate}
-              onValueChange={(value) => setDate(value as string)}
-              items={dates.map((d) => ({ value: d, label: fmtDay(d) }))}
-            >
-              <SelectTrigger id="filter-date" size="sm" className="w-40">
-                <IconCalendar className="size-4 text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[...dates].reverse().map((d) => (
-                  <SelectItem key={d} value={d}>
-                    {fmtDay(d)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger
+                render={
+                  <Button
+                    id="filter-date"
+                    variant="outline"
+                    size="sm"
+                    className="w-44 justify-start font-normal"
+                  >
+                    <IconCalendar className="size-4 text-muted-foreground" />
+                    {selectedDate ? fmtDay(selectedDate) : ""}
+                  </Button>
+                }
+              />
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate ? toDate(selectedDate) : undefined}
+                  defaultMonth={
+                    selectedDate ? toDate(selectedDate) : undefined
+                  }
+                  onSelect={(day) => {
+                    if (day) setDate(toIso(day))
+                  }}
+                  // Days with no import are not selectable. Letting someone
+                  // pick one would show an empty dashboard that looks like a
+                  // day with no trade rather than a day with no data.
+                  disabled={(day) => !dateSet.has(toIso(day))}
+                  startMonth={dates[0] ? toDate(dates[0]) : undefined}
+                  endMonth={
+                    dates.at(-1) ? toDate(dates.at(-1)!) : undefined
+                  }
+                  autoFocus
+                />
+              </PopoverContent>
+            </Popover>
             <Button
               variant="ghost"
               size="icon-sm"

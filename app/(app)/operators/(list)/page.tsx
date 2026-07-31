@@ -1,3 +1,4 @@
+import { MiniStat } from "@/components/mini-stat"
 import { OperatorsTable, type OperatorRow } from "@/components/operators-table"
 import { RiskChips } from "@/components/overview/risk-chips"
 import { PageShell } from "@/components/page-shell"
@@ -93,31 +94,5 @@ export default async function OperatorsPage(props: {
         </>
       )}
     </PageShell>
-  )
-}
-
-function MiniStat({
-  label,
-  value,
-  unit,
-}: {
-  label: string
-  value: React.ReactNode
-  unit?: string
-}) {
-  return (
-    <Card size="sm">
-      <CardContent className="flex flex-col gap-0.5 py-1">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <span className="text-2xl font-semibold tracking-tight tabular-nums">
-          {value}
-          {unit ? (
-            <span className="ml-1 text-sm font-normal text-muted-foreground">
-              {unit}
-            </span>
-          ) : null}
-        </span>
-      </CardContent>
-    </Card>
   )
 }

@@ -1,7 +1,14 @@
 import Link from "next/link"
-import { IconArrowRight } from "@tabler/icons-react"
+import {
+  IconArrowRight,
+  IconClockHour4,
+  IconGauge,
+  IconReceipt,
+  IconUsers,
+} from "@tabler/icons-react"
 
 import { HourlyRevenueChart, RevenueRankChart } from "@/components/charts"
+import { MiniStat } from "@/components/mini-stat"
 import { AttentionPanel } from "@/components/overview/attention-panel"
 import { RevenueHero } from "@/components/overview/revenue-hero"
 import { WallLauncher } from "@/components/overview/wall-launcher"
@@ -92,14 +99,24 @@ export default async function OverviewPage(props: {
           {/* Supporting numbers. No icons, no captions — the labels are the
               captions, and four short words beat four sentences. */}
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <MiniStat label={t.overview.sales} value={summary.transactions} />
-            <MiniStat label={t.overview.onDuty} value={summary.operators} />
             <MiniStat
-              label={t.overview.perHour}
-              value={money(summary.avgProductivity)}
-              unit="AZN"
+              icon={IconReceipt}
+              label={t.overview.sales}
+              value={summary.transactions}
             />
             <MiniStat
+              icon={IconUsers}
+              label={t.overview.onDuty}
+              value={summary.operators}
+            />
+            <MiniStat
+              icon={IconGauge}
+              label={t.overview.perHour}
+              value={money(summary.avgProductivity)}
+              unit="₼"
+            />
+            <MiniStat
+              icon={IconClockHour4}
               label={t.overview.attendance}
               value={summary.avgAttendance}
               unit="%"
@@ -139,36 +156,5 @@ export default async function OverviewPage(props: {
         </>
       )}
     </PageShell>
-  )
-}
-
-/**
- * A number and a word. The old tiles carried an icon, a label, a value, a unit
- * and a sentence of caption each — six of them meant thirty pieces of text
- * competing with the one number that mattered.
- */
-function MiniStat({
-  label,
-  value,
-  unit,
-}: {
-  label: string
-  value: React.ReactNode
-  unit?: string
-}) {
-  return (
-    <Card size="sm">
-      <CardContent className="flex flex-col gap-0.5 py-1">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <span className="text-2xl font-semibold tracking-tight tabular-nums">
-          {value}
-          {unit ? (
-            <span className="ml-1 text-sm font-normal text-muted-foreground">
-              {unit}
-            </span>
-          ) : null}
-        </span>
-      </CardContent>
-    </Card>
   )
 }
