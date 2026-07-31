@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   IconAlertTriangle,
   IconCalendarStats,
+  IconChartHistogram,
   IconFileText,
   IconFolders,
   IconBuildingStore,
@@ -34,6 +35,7 @@ import {
 
 const NAV = [
   { key: "dashboard", href: "/", icon: IconLayoutDashboard },
+  { key: "breakdown", href: "/breakdown", icon: IconChartHistogram },
   { key: "operators", href: "/operators", icon: IconUsers },
   { key: "leaderboard", href: "/leaderboard", icon: IconTrophy },
   { key: "stations", href: "/stations", icon: IconBuildingStore },
