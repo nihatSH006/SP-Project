@@ -40,18 +40,23 @@ async function signIn(email: string, password: string): Promise<string> {
 }
 
 /**
- * The network revenue figure, read from its tagged element.
+ * The network revenue figure, read from its `data-value` attribute.
  *
- * An earlier version took the largest AZN number on the page. On the wall that
- * is the TARGET, because the wall labels its target in AZN and the overview
- * does not — so the check compared revenue against a target and reported a
- * mismatch that did not exist.
+ * Two earlier versions of this were wrong. The first took the largest AZN
+ * number on the page — which on the wall is the TARGET, so it compared revenue
+ * against a target and reported a mismatch that did not exist. The second read
+ * the rendered text, which broke the moment the figure became one span per
+ * digit for the odometer. The attribute carries the plain number and survives
+ * both.
  */
 function headline(html: string): number {
   const m = html.match(
-    /data-metric="network-revenue"[^>]*>\s*([\d,]+)/
+    /data-metric="network-revenue"[^>]*data-value="([\d.]+)"/
   )
-  return m ? Number(m[1].replace(/,/g, "")) : 0
+  // Rounded before comparing: the wall rounds to whole manat for display while
+  // the dashboard keeps two decimals, so an exact match would fail on cents
+  // that neither screen ever shows.
+  return m ? Math.round(Number(m[1])) : 0
 }
 
 async function main() {
@@ -64,16 +69,35 @@ async function main() {
   console.log("\nThe screen renders")
   const wall = await get("/wall", admin)
   check("wall loads", wall.status === 200, `HTTP ${wall.status}`)
-  // One card per station per copy; count the rank markers on the first pass.
+  // Counted from the card's data attribute: the visible rank numerals were
+  // removed, and counting occurrences of "Station" would have counted every
+  // duplicate copy in the ticker too.
   const stationCards = new Set(
-    Array.from(wall.html.matchAll(/>(\d{2})<\/span><span class="truncate/g)).map(
-      (m) => m[1]
-    )
+    Array.from(wall.html.matchAll(/data-station="([^"]+)"/g)).map((m) => m[1])
   ).size
   check(
     "every station is on it",
     stationCards >= 8,
     `${stationCards} distinct stations`
+  )
+
+  console.log("\nThe headline figure is an odometer")
+  // Ten digits per column; a static number would render as plain text.
+  const strips = (wall.html.match(/>0<\/span><span[^>]*>1</g) ?? []).length
+  check("digits render as rolling strips", strips > 0, `${strips} columns`)
+  check(
+    "the plain value is still exposed for tooling",
+    headline(wall.html) > 0,
+    headline(wall.html).toLocaleString("en-US")
+  )
+
+  console.log("\nSimulated figures cannot pass for real ones")
+  const demoBoard = await get("/wall?demo=1", admin)
+  check("demo mode loads", demoBoard.status === 200, `HTTP ${demoBoard.status}`)
+  check(
+    "a normal board carries no simulated marker",
+    !/data-simulated="true"/.test(wall.html),
+    "clean by default"
   )
 
   console.log("\nThe ticker scales past a screenful")
@@ -182,9 +206,13 @@ async function main() {
     anon.status === 307 || anon.status === 302,
     `HTTP ${anon.status}`
   )
+  // Checked against the tagged figure and the currency mark, not the string
+  // "AZN": that literal no longer appears anywhere on the board, so testing
+  // for it would pass even if the whole network's takings leaked.
+  const anonBody = await anon.text()
   check(
     "…and no figures are served with it",
-    !/AZN/.test(await anon.text()),
+    headline(anonBody) === 0 && !anonBody.includes("₼"),
     "nothing leaked to the lobby"
   )
 

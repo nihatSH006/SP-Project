@@ -36,6 +36,7 @@ export function RevenueHero({
           </span>
           <span
             data-metric="network-revenue"
+            data-value={revenue}
             className="text-4xl font-semibold tracking-tight tabular-nums md:text-5xl"
           >
             {money(revenue)}

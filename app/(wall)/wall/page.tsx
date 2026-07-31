@@ -5,6 +5,7 @@ import {
 } from "@tabler/icons-react"
 
 import { SocarLogo } from "@/components/socar-logo"
+import { LiveTotal } from "@/components/wall/live-total"
 import { Sparkline } from "@/components/wall/sparkline"
 import { WallClock } from "@/components/wall/wall-clock"
 import { formatDayLabel } from "@/lib/i18n"
@@ -21,13 +22,15 @@ export const dynamic = "force-dynamic"
 /** Seconds each card spends crossing the screen. Calm, not urgent. */
 const SECONDS_PER_CARD = 5
 
-export default async function WallPage() {
+export default async function WallPage(props: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await props.searchParams
   const [t, locale, board] = await Promise.all([
     getT(),
     getLocale(),
     getWallboard(),
   ])
-  const met = board.pct !== null && board.pct >= 100
 
   // Enough copies that the track always overflows the widest screen, even for
   // a two-station network. Two is the minimum for a seamless loop.
@@ -51,23 +54,12 @@ export default async function WallPage() {
       </header>
 
       {/* ------------------------------------------------ network total */}
-      <section className="flex flex-1 flex-col justify-center gap-10 px-8 py-8 lg:flex-row lg:items-center lg:gap-16 lg:px-12">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-baseline gap-4">
-            <span
-              // Stable hook so the wall and the overview can be checked against
-              // each other without parsing translated currency text.
-              data-metric="network-revenue"
-              className="wall-figure text-[6rem] font-semibold sm:text-[8rem] lg:text-[11rem] xl:text-[13rem]"
-            >
-              {money(board.revenue)}
-            </span>
-            <span className="text-2xl font-light text-muted-foreground lg:text-4xl">
-              AZN
-            </span>
-          </div>
-
-          <div className="mt-2 flex items-center gap-10">
+      <LiveTotal
+        revenue={board.revenue}
+        target={board.target}
+        demo={params.demo === "1"}
+        counters={
+          <>
             <Stat
               icon={<IconUsers className="size-6 lg:size-7" />}
               value={board.operators}
@@ -84,36 +76,9 @@ export default async function WallPage() {
               value={board.stations.length}
               label={t.wall.stations}
             />
-          </div>
-        </div>
-
-        {board.pct !== null ? (
-          <div className="flex flex-col gap-4 lg:ml-auto lg:min-w-[22rem] lg:border-l lg:wall-rule lg:pl-16">
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="wall-label">{t.wall.target}</span>
-              <span className="font-mono text-2xl text-muted-foreground tabular-nums lg:text-3xl">
-                {money(board.target!)} AZN
-              </span>
-            </div>
-            <span
-              className={cn(
-                "wall-figure text-7xl font-semibold lg:text-[9rem]",
-                met ? "text-emerald-400" : "text-foreground"
-              )}
-            >
-              {board.pct}
-              <span className="ml-1 text-3xl font-light text-muted-foreground lg:text-5xl">
-                %
-              </span>
-            </span>
-            <Bar pct={board.pct} met={met} className="h-2" />
-          </div>
-        ) : (
-          <span className="text-xl text-muted-foreground lg:ml-auto">
-            {t.wall.noTarget}
-          </span>
-        )}
-      </section>
+          </>
+        }
+      />
 
       {/* --------------------------------------------------- station ticker */}
       <section className="shrink-0 overflow-hidden border-t wall-rule py-6">
@@ -127,11 +92,10 @@ export default async function WallPage() {
           }
         >
           {Array.from({ length: copies }, (_, copy) =>
-            board.stations.map((station, index) => (
+            board.stations.map((station) => (
               <StationCard
                 key={`${copy}-${station.station}`}
                 station={station}
-                rank={index + 1}
                 t={t}
                 // Only the first pass is real content; the rest are visual
                 // duplicates and must not be read out twice.
@@ -217,18 +181,18 @@ function Bar({
  * One station in the ticker.
  *
  * Fixed width on purpose: the card size is what makes fifty stations as
- * readable as five. Behind-target is marked with an amber edge and amber
+ * readable as five. The cards are still ordered worst-first; the rank numerals
+ * that used to say so are gone, since on a moving ticker a position number is
+ * noise — nothing stays in place long enough for "03" to mean anything. Behind-target is marked with an amber edge and amber
  * figures rather than a fill — the card is already moving, and a moving
  * coloured block is noise.
  */
 function StationCard({
   station,
-  rank,
   t,
   duplicate,
 }: {
   station: WallStation
-  rank: number
   t: Awaited<ReturnType<typeof getT>>
   duplicate: boolean
 }) {
@@ -239,6 +203,7 @@ function StationCard({
   return (
     <div
       aria-hidden={duplicate || undefined}
+      data-station={station.station}
       className={cn(
         "flex w-[19rem] shrink-0 flex-col gap-3 rounded-2xl border bg-card/60 px-5 py-4",
         met && "border-emerald-500/30",
@@ -247,12 +212,7 @@ function StationCard({
       )}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <span className="flex min-w-0 items-baseline gap-2.5">
-          <span className="font-mono text-xs text-muted-foreground/60 tabular-nums">
-            {String(rank).padStart(2, "0")}
-          </span>
-          <span className="truncate text-lg font-medium">{station.station}</span>
-        </span>
+        <span className="truncate text-lg font-medium">{station.station}</span>
         {station.alerts > 0 ? (
           <span className="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 font-mono text-xs text-red-300 tabular-nums">
             {station.alerts}
