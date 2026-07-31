@@ -9,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import {
   Table,
   TableBody,
@@ -148,12 +147,24 @@ export function FairLeaderboard({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {/* Capped at 150 so one outlier does not squash the
-                            bar for everyone below them. */}
-                        <Progress
-                          value={Math.min(100, (card.percentOfExpected / 150) * 100)}
-                          className="h-1.5 w-24"
-                        />
+                        {/* A plain server-rendered bar rather than the
+                            `Progress` component. Progress is a client
+                            component, so 64 of them put 64 client-component
+                            references and their props into the navigation
+                            payload for what is decoratively a coloured
+                            rectangle. Capped at 150% so one outlier does not
+                            squash the bar for everyone below them. */}
+                        <div
+                          className="h-1.5 w-24 overflow-hidden rounded-full bg-muted"
+                          role="presentation"
+                        >
+                          <div
+                            className="h-full rounded-full bg-primary"
+                            style={{
+                              width: `${Math.min(100, (card.percentOfExpected / 150) * 100)}%`,
+                            }}
+                          />
+                        </div>
                         <span className="font-mono text-sm">
                           {card.percentOfExpected}%
                         </span>

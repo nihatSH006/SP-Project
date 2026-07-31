@@ -1,19 +1,18 @@
 import type * as React from "react"
 
-import { AppSidebar } from "@/components/app-sidebar"
 import { FilterBar } from "@/components/filter-bar"
-import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { collectAlerts } from "@/lib/analytics"
-import { getSessionUser } from "@/lib/auth"
-import { canTriageCase } from "@/lib/cases"
-import { getOperatorReports, type FilterOptions } from "@/lib/data"
+import type { FilterOptions } from "@/lib/data"
 
 /**
- * Shared chrome: sidebar, header, optional filter bar, page heading. Every
- * route renders its body inside this so the scope controls stay in one place.
+ * The body of a page: heading, optional filter bar, content.
+ *
+ * Deliberately synchronous and free of data fetching. The sidebar and header
+ * used to live here, which meant every page re-rendered and re-fetched the
+ * whole chrome on each navigation — the click hung until the new page's data
+ * arrived, then everything jumped at once. That chrome now sits in
+ * `app/(app)/layout.tsx`, which App Router preserves across navigation.
  */
-export async function PageShell({
+export function PageShell({
   title,
   description,
   actions,
@@ -27,63 +26,25 @@ export async function PageShell({
   options?: FilterOptions | null
   children: React.ReactNode
 }) {
-  // Sidebar badge + command palette always reflect the LATEST day, regardless
-  // of which historical day the page itself is showing.
-  const [user, latestReports] = await Promise.all([
-    getSessionUser(),
-    getOperatorReports(),
-  ])
-
-  const alertCount = collectAlerts(latestReports).length
-  const operators = latestReports.map((r) => ({
-    id: r.id,
-    name: r.name,
-    station: r.station,
-  }))
-
   return (
-    <SidebarProvider>
-      <AppSidebar
-        alertCount={alertCount}
-        isAdmin={user?.role === "admin"}
-        canSeeCases={Boolean(user && canTriageCase(user))}
-      />
-      <SidebarInset className="overflow-hidden ring-1 ring-border/60">
-        {/* Account lives in the header, not as a sidebar banner. */}
-        <SiteHeader
-          operators={operators}
-          user={
-            user
-              ? {
-                  name: user.name ?? user.email ?? "Signed in",
-                  email: user.email,
-                  role: user.role,
-                  station: user.station,
-                }
-              : null
-          }
-        />
-
-        <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="flex flex-col gap-1.5">
-              <h1 className="text-2xl font-semibold tracking-tight text-balance md:text-3xl">
-                {title}
-              </h1>
-              {description ? (
-                <p className="max-w-2xl text-muted-foreground text-pretty">
-                  {description}
-                </p>
-              ) : null}
-            </div>
-            {actions}
-          </div>
-
-          {options ? <FilterBar options={options} /> : null}
-
-          {children}
+    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-2xl font-semibold tracking-tight text-balance md:text-3xl">
+            {title}
+          </h1>
+          {description ? (
+            <p className="max-w-2xl text-muted-foreground text-pretty">
+              {description}
+            </p>
+          ) : null}
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+        {actions}
+      </div>
+
+      {options ? <FilterBar options={options} /> : null}
+
+      {children}
+    </div>
   )
 }

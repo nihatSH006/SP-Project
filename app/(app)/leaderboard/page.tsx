@@ -7,10 +7,9 @@ import {
 } from "@tabler/icons-react"
 
 import { PageShell } from "@/components/page-shell"
-import { GradeBadge, RiskBadge } from "@/components/risk-badge"
+import { GradeBadge } from "@/components/risk-badge"
 import { NoMatches } from "@/components/status"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
@@ -18,15 +17,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { rankOperators } from "@/lib/analytics"
 import { FairLeaderboard } from "@/components/fair-leaderboard"
 import { getScorecards } from "@/lib/scorecards-server"
@@ -161,90 +151,12 @@ export default async function LeaderboardPage(props: {
             />
           </div>
 
-          {/* ------------------------------------------- full ranking */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t.leaderboard.completeRanking}</CardTitle>
-              <CardDescription>
-                {t.leaderboard.allOperators(ranking.length)}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-0">
-              <ScrollArea className="w-full">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-14 pl-5">{t.common.rank}</TableHead>
-                      <TableHead>{t.common.operator}</TableHead>
-                      <TableHead>{t.common.station}</TableHead>
-                      <TableHead>{t.common.shift}</TableHead>
-                      <TableHead className="text-right">
-                        {t.operators.revenueAzn}
-                      </TableHead>
-                      <TableHead className="text-right">{t.common.sales}</TableHead>
-                      <TableHead className="text-right">AZN/h</TableHead>
-                      <TableHead className="text-right">{t.common.attendance}</TableHead>
-                      <TableHead className="text-right">{t.common.score}</TableHead>
-                      <TableHead className="pr-5">{t.common.risk}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {ranking.map((r, index) => (
-                      <TableRow key={r.id}>
-                        <TableCell className="pl-5">
-                          {index < 3 ? (
-                            <Badge
-                              variant="outline"
-                              className={cn("font-mono", podium[index])}
-                            >
-                              {index + 1}
-                            </Badge>
-                          ) : (
-                            <span className="pl-2 font-mono text-muted-foreground">
-                              {index + 1}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Link
-                            href={`/operators/${r.id}`}
-                            className="font-medium underline-offset-4 hover:underline"
-                          >
-                            {r.name}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {r.station}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {t.shifts[r.shift]}
-                        </TableCell>
-                        <TableCell className="text-right font-medium tabular-nums">
-                          {money(r.revenue)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {r.salesCount}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {money(r.productivity)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {r.attendanceScore}%
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {r.score}
-                        </TableCell>
-                        <TableCell className="pr-5">
-                          <RiskBadge risk={r.risk} label={t.risk[r.risk]} />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-            </CardContent>
-          </Card>
+          {/* The full 64-row table that used to sit here has gone. It ranked
+              the same people again, by raw revenue — the exact measure #11
+              exists to stop using — and rendering both rankings made this the
+              heaviest page in the app for no added information. The daily
+              podium above answers "who did well today"; the fair board answers
+              "who is performing", and lists everyone. */}
         </>
       )}
     </PageShell>

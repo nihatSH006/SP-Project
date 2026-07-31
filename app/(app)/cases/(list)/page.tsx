@@ -32,14 +32,7 @@ import {
   ItemSeparator,
   ItemTitle,
 } from "@/components/ui/item"
-import {
-  getCases,
-  canTriageCase,
-  CLOSED_STATUSES,
-  RULE_LABEL_KEY,
-} from "@/lib/cases"
-import { getSessionUser } from "@/lib/auth"
-import { notFound } from "next/navigation"
+import { getCases, CLOSED_STATUSES, RULE_LABEL_KEY } from "@/lib/cases"
 import { getT } from "@/lib/i18n/server"
 import type { FraudRuleId } from "@/lib/fraud-rules"
 
@@ -47,12 +40,9 @@ export const metadata = { title: "Cases" }
 
 export default async function CasesPage() {
   const t = await getT()
-  const user = await getSessionUser()
-
-  // 404 rather than a permission error: the queue's existence is itself
-  // information an operator should not have.
-  if (!user || !canTriageCase(user)) notFound()
-
+  // The role gate runs in `cases/layout.tsx`, above the streaming boundary,
+  // so an unauthorised request gets a real 404 rather than a 200 carrying the
+  // not-found page.
   const cases = await getCases()
 
   const open = cases.filter((c) => c.status === "open")
