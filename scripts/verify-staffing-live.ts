@@ -106,3 +106,7 @@ main().catch((e) => {
   console.error("\nverification failed to run:", e.message)
   process.exit(1)
 })
+
+// Keeps this file a module: two verifier scripts otherwise declare the same
+// top-level names in the global scope and collide at type-check time.
+export {}

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   IconAlertTriangle,
   IconCalendarStats,
+  IconFileText,
   IconFolders,
   IconBuildingStore,
   IconGasStation,
@@ -39,6 +40,7 @@ const NAV = [
   { key: "alerts", href: "/alerts", icon: IconAlertTriangle },
   { key: "staffing", href: "/staffing", icon: IconCalendarStats },
   { key: "cases", href: "/cases", icon: IconFolders },
+  { key: "boardPack", href: "/board-pack", icon: IconFileText },
 ] as const
 
 export function AppSidebar({

@@ -25,6 +25,7 @@ export const en = {
     settings: "Settings",
     cases: "Cases",
     staffing: "Staffing",
+    boardPack: "Board pack",
   },
 
   common: {
@@ -441,6 +442,52 @@ export const en = {
     caveat:
       "Cover is not only about takings. Night shifts exist for safety and single-manning rules, and this view knows nothing about either.",
     weekdays: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+  },
+
+  boardPack: {
+    title: "Monthly board pack",
+    description: "One page for the month, ready to print or save as PDF.",
+    print: "Print / Save as PDF",
+    generatedOn: (d: string) => `Generated ${d}`,
+    period: "Period",
+    scopeNetwork: "Whole network",
+    headline: "Headline",
+    revenue: "Revenue",
+    transactions: "Transactions",
+    operators: "Operators",
+    perStation: "By station",
+    station: "Station",
+    days: "Days",
+    dailyAverage: "Daily average",
+    integrity: "Loss prevention",
+    integrityDesc:
+      "Cases the detection rules proposed and what people concluded. A proposal is not a finding.",
+    casesOpen: "Awaiting review",
+    casesInvestigating: "Being investigated",
+    casesConfirmed: "Confirmed",
+    casesExplained: "Explained",
+    casesDismissed: "Dismissed",
+    outstanding: "Still awaiting a decision",
+    noOutstanding: "Every case has been reviewed.",
+    people: "People",
+    topPerformers: "Top performers",
+    topPerformersDesc:
+      "Ranked against what their own station and shift normally takes, so the figure reflects how they worked rather than where they were rostered.",
+    improved: "Most improved",
+    rota: "Rota",
+    rotaDesc: "Hours out of line with the same hour on other days.",
+    noRota: "Cover matched demand across the week.",
+    dataHealth: "Data quality",
+    dataHealthDesc:
+      "Stated so the figures above can be weighed properly. Numbers whose completeness is not declared invite decisions nobody checked.",
+    daysCovered: (a: number, b: number) => `${a} of ${b} days imported`,
+    complete: "Complete month",
+    incomplete: "Partial month \u2014 totals below cover only the days imported",
+    lastImport: "Last import",
+    warningsTitle: "Recorded on import",
+    noWarnings: "No issues recorded during import.",
+    confidential:
+      "Confidential. Contains performance and loss-prevention information about named staff.",
   },
 
   alerts: {

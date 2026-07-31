@@ -226,3 +226,51 @@
       0 2px 0 0 var(--btn3d-edge-4);
   }
 }
+/* ---------------------------------------------------------------- printing
+ * The monthly board pack (idea #4) is printed through the browser rather than
+ * rendered server-side: a headless browser in production to reproduce a layout
+ * the app already draws is a lot of machinery for one page, and printing keeps
+ * the reader's own paper size and language.
+ *
+ * Everything that is navigation rather than report is removed, and the dark
+ * theme is dropped — a pitch-black dashboard printed as-is is a solid black
+ * page and an empty toner cartridge.
+ */
+@media print {
+  [data-slot="sidebar"],
+  [data-slot="sidebar-wrapper"] > [data-slot="sidebar-container"],
+  [data-slot="sidebar-trigger"],
+  header,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Cards become plain ruled blocks; shadows and translucent fills print as
+     grey mush. */
+  [data-slot="card"] {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #d4d4d8 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  [data-slot="card-description"],
+  .text-muted-foreground {
+    color: #52525b !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  @page {
+    margin: 14mm;
+  }
+}

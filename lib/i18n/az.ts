@@ -19,6 +19,7 @@ export const az: Dictionary = {
     settings: "Parametrlər",
     cases: "Hallar",
     staffing: "İşçi sayı",
+    boardPack: "Hesabat",
   },
 
   common: {
@@ -439,6 +440,52 @@ export const az: Dictionary = {
     caveat:
       "\u018fhat\u0259 yaln\u0131z g\u0259lirl\u0259 ba\u011fl\u0131 deyil. Gec\u0259 n\u00f6vb\u0259l\u0259ri t\u0259hl\u00fck\u0259sizlik v\u0259 t\u0259k i\u015fl\u0259m\u0259 qaydalar\u0131na g\u00f6r\u0259 m\u00f6vcuddur v\u0259 bu g\u00f6r\u00fcn\u00fc\u015f onlar haqq\u0131nda he\u00e7 n\u0259 bilmir.",
     weekdays: ["B.", "B.e.", "\u00c7.a.", "\u00c7.", "C.a.", "C.", "\u015e."],
+  },
+
+  boardPack: {
+    title: "Ayl\u0131q idar\u0259 hey\u0259ti hesabat\u0131",
+    description: "Ay \u00fczr\u0259 bir s\u0259hif\u0259 \u2014 \u00e7ap etm\u0259y\u0259 v\u0259 ya PDF kimi saxlamağa haz\u0131rd\u0131r.",
+    print: "\u00c7ap et / PDF kimi saxla",
+    generatedOn: (d: string) => `${d} tarixind\u0259 haz\u0131rlan\u0131b`,
+    period: "D\u00f6vr",
+    scopeNetwork: "B\u00fct\u00fcn \u015f\u0259b\u0259k\u0259",
+    headline: "\u018fsas g\u00f6st\u0259ricil\u0259r",
+    revenue: "G\u0259lir",
+    transactions: "\u018fm\u0259liyyatlar",
+    operators: "Operatorlar",
+    perStation: "Stansiyalar \u00fczr\u0259",
+    station: "Stansiya",
+    days: "G\u00fcn",
+    dailyAverage: "G\u00fcnl\u00fck orta",
+    integrity: "\u0130tkil\u0259rin qar\u015f\u0131s\u0131n\u0131n al\u0131nmas\u0131",
+    integrityDesc:
+      "Qaydalar\u0131n t\u0259klif etdiyi hallar v\u0259 insanlar\u0131n g\u0259ldiyi n\u0259tic\u0259l\u0259r. T\u0259klif n\u0259tic\u0259 demək deyil.",
+    casesOpen: "Bax\u0131\u015f g\u00f6zl\u0259yir",
+    casesInvestigating: "Ara\u015fd\u0131r\u0131l\u0131r",
+    casesConfirmed: "T\u0259sdiql\u0259nib",
+    casesExplained: "\u0130zah olunub",
+    casesDismissed: "R\u0259dd edilib",
+    outstanding: "H\u0259l\u0259 q\u0259rar g\u00f6zl\u0259yir",
+    noOutstanding: "B\u00fct\u00fcn hallara bax\u0131l\u0131b.",
+    people: "\u018fm\u0259kda\u015flar",
+    topPerformers: "\u018fn yax\u015f\u0131 n\u0259tic\u0259l\u0259r",
+    topPerformersDesc:
+      "\u00d6z stansiyas\u0131n\u0131n v\u0259 n\u00f6vb\u0259sinin adi g\u00f6st\u0259ricisi il\u0259 m\u00fcqayis\u0259 olunur \u2014 yəni r\u0259q\u0259m i\u015f yerini deyil, i\u015fi \u0259ks etdirir.",
+    improved: "\u018fn \u00e7ox ir\u0259lil\u0259y\u0259nl\u0259r",
+    rota: "N\u00f6vb\u0259 c\u0259dv\u0259li",
+    rotaDesc: "Ba\u015fqa g\u00fcnl\u0259rd\u0259ki eyni saatdan f\u0259rql\u0259n\u0259n saatlar.",
+    noRota: "\u018fhat\u0259 t\u0259l\u0259b\u0259 uy\u011fun olub.",
+    dataHealth: "M\u0259lumat keyfiyy\u0259ti",
+    dataHealthDesc:
+      "Yuxar\u0131dak\u0131 r\u0259q\u0259ml\u0259ri d\u00fczg\u00fcn qiym\u0259tl\u0259ndirm\u0259k \u00fc\u00e7\u00fcn g\u00f6st\u0259rilir. Taml\u0131\u011f\u0131 bildirilm\u0259y\u0259n r\u0259q\u0259ml\u0259r yoxlan\u0131lmam\u0131\u015f q\u0259rarlara aparır.",
+    daysCovered: (a: number, b: number) => `${b} g\u00fcnd\u0259n ${a}-i y\u00fckl\u0259nib`,
+    complete: "Tam ay",
+    incomplete: "Natamam ay \u2014 a\u015fa\u011f\u0131dak\u0131 c\u0259ml\u0259r yaln\u0131z y\u00fckl\u0259n\u0259n g\u00fcnl\u0259ri \u0259hat\u0259 edir",
+    lastImport: "Son y\u00fckl\u0259m\u0259",
+    warningsTitle: "Y\u00fckl\u0259m\u0259 zaman\u0131 qeyd\u0259 al\u0131n\u0131b",
+    noWarnings: "Y\u00fckl\u0259m\u0259 zaman\u0131 problem qeyd\u0259 al\u0131nmay\u0131b.",
+    confidential:
+      "M\u0259xfidir. Ad\u0131 \u00e7\u0259kil\u0259n \u0259m\u0259kda\u015flar haqq\u0131nda m\u0259lumat ehtiva edir.",
   },
 
   alerts: {
