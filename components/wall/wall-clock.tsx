@@ -4,9 +4,8 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 
 import { useT } from "@/components/i18n-provider"
-import { cn } from "@/lib/utils"
 
-/** Anything older than this is called out rather than shown quietly. */
+/** Past this the board would actively mislead, so it says so. */
 const STALE_AFTER_HOURS = 30
 
 /**
@@ -59,9 +58,11 @@ function useNow(intervalMs: number): number | null {
  * nobody touches for weeks.
  */
 export function WallClock({
+  date,
   asOf,
   refreshSeconds = 120,
 }: {
+  date: string | null
   asOf: number | null
   refreshSeconds?: number
 }) {
@@ -84,33 +85,38 @@ export function WallClock({
           minute: "2-digit",
         })
 
-  let age: string = t.wall.ageUnknown
-  let stale = false
+  // Only surfaced once the data is genuinely old. On a normal day the header
+  // stays quiet; the operational day beside the clock already says which day
+  // the figures belong to. But a board showing a full day's takings from two
+  // days ago with no hint of it is worse than a blank screen, so past the
+  // threshold it is called out rather than left to be inferred.
+  let staleLabel: string | null = null
   if (asOf !== null && now !== null) {
-    const minutes = Math.max(0, Math.round((now - asOf) / 60_000))
-    stale = minutes > STALE_AFTER_HOURS * 60
-    age =
-      minutes < 60
-        ? t.wall.ageMinutes(minutes)
-        : minutes < 60 * 24
-          ? t.wall.ageHours(Math.round(minutes / 60))
-          : t.wall.ageDays(Math.round(minutes / (60 * 24)))
+    const hours = (now - asOf) / 3_600_000
+    if (hours > STALE_AFTER_HOURS) {
+      staleLabel =
+        hours < 48
+          ? t.wall.ageHours(Math.round(hours))
+          : t.wall.ageDays(Math.round(hours / 24))
+    }
   }
 
   return (
-    <div className="flex items-center gap-4 text-right">
-      <div className="flex flex-col items-end">
+    <div className="flex items-center gap-5">
+      {staleLabel ? (
         <span
-          className={cn(
-            "text-sm font-medium",
-            stale ? "text-amber-400" : "text-muted-foreground"
-          )}
+          data-stale="true"
+          className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-sm font-medium text-amber-300"
         >
-          {stale ? `${t.wall.stale} · ${age}` : age}
+          {t.wall.stale} · {staleLabel}
         </span>
-        <span className="text-xs text-muted-foreground">{t.wall.notLive}</span>
-      </div>
-      <span className="font-mono text-3xl tabular-nums">{clock}</span>
+      ) : null}
+      {/* Same size and weight as the clock: they are one reading, not a
+          label and a value. */}
+      <span className="font-mono text-lg tabular-nums lg:text-xl">
+        {date ?? "—"}
+      </span>
+      <span className="font-mono text-lg tabular-nums lg:text-xl">{clock}</span>
     </div>
   )
 }

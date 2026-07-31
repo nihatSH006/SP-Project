@@ -1,8 +1,14 @@
-import Link from "next/link"
-import { IconAlertTriangle, IconArrowLeft, IconUsers } from "@tabler/icons-react"
+import {
+  IconAlertTriangle,
+  IconBuildingStore,
+  IconUsers,
+} from "@tabler/icons-react"
 
+import { SocarLogo } from "@/components/socar-logo"
+import { Sparkline } from "@/components/wall/sparkline"
 import { WallClock } from "@/components/wall/wall-clock"
-import { getT } from "@/lib/i18n/server"
+import { formatDayLabel } from "@/lib/i18n"
+import { getLocale, getT } from "@/lib/i18n/server"
 import { money } from "@/lib/format"
 import { getWallboard, type WallStation } from "@/lib/wallboard"
 import { cn } from "@/lib/utils"
@@ -12,128 +18,139 @@ export const metadata = { title: "Office screen" }
 /** Wall screens are left running; never serve one from a cache. */
 export const dynamic = "force-dynamic"
 
+/** Seconds each card spends crossing the screen. Calm, not urgent. */
+const SECONDS_PER_CARD = 5
+
 export default async function WallPage() {
-  const t = await getT()
-  const board = await getWallboard()
+  const [t, locale, board] = await Promise.all([
+    getT(),
+    getLocale(),
+    getWallboard(),
+  ])
   const met = board.pct !== null && board.pct >= 100
 
+  // Enough copies that the track always overflows the widest screen, even for
+  // a two-station network. Two is the minimum for a seamless loop.
+  const copies = Math.max(2, Math.ceil(10 / Math.max(1, board.stations.length)))
+  const duration = Math.max(20, board.stations.length * SECONDS_PER_CARD)
+
   return (
-    <div className="flex min-h-svh flex-col gap-5 overflow-hidden p-6 lg:gap-7 lg:p-10">
+    <div className="wall-ambient flex h-svh flex-col overflow-hidden">
       {/* ------------------------------------------------------- header */}
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <span className="text-2xl font-semibold tracking-tight lg:text-3xl">
-            SOCAR{" "}
-            <span className="text-primary">SASIS</span>
-          </span>
-          <span className="rounded-full border border-border/70 px-3 py-1 font-mono text-sm text-muted-foreground tabular-nums lg:text-base">
-            {board.date ?? "—"}
-          </span>
-        </div>
-        <div className="flex items-center gap-6">
-          <WallClock asOf={board.asOf} />
-          {/* Small on purpose: the way back matters to whoever sets the screen
-              up, and to nobody else in the room. */}
-          <Link
-            href="/"
-            className="text-muted-foreground/50 transition-colors hover:text-foreground"
-            aria-label={t.wall.exit}
-          >
-            <IconArrowLeft className="size-5" />
-          </Link>
+      {/* Everything left-aligned and nothing clickable. A board on a wall has
+          no navigation: a stray touch should not be able to take the screen
+          somewhere else, and there is nobody standing at it to bring it back. */}
+      <header className="flex items-center gap-8 border-b wall-rule px-8 py-4 lg:px-12">
+        <SocarLogo className="h-8 w-auto text-foreground lg:h-10" />
+        <div className="ml-auto">
+          <WallClock
+            date={board.date ? formatDayLabel(board.date, locale) : null}
+            asOf={board.asOf}
+          />
         </div>
       </header>
 
       {/* ------------------------------------------------ network total */}
-      <section className="wall-glow relative overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-br from-primary/[0.12] via-card to-card p-7 lg:p-10">
-        <div className="flex flex-wrap items-end justify-between gap-8">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase lg:text-sm">
-              {t.wall.network}
-            </span>
+      <section className="flex flex-1 flex-col justify-center gap-10 px-8 py-8 lg:flex-row lg:items-center lg:gap-16 lg:px-12">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-baseline gap-4">
             <span
-              // Stable hook so the wall and the overview can be checked
-              // against each other without parsing translated currency text.
+              // Stable hook so the wall and the overview can be checked against
+              // each other without parsing translated currency text.
               data-metric="network-revenue"
-              className="wall-figure text-7xl font-bold lg:text-[8.5rem]"
+              className="wall-figure text-[6rem] font-semibold sm:text-[8rem] lg:text-[11rem] xl:text-[13rem]"
             >
               {money(board.revenue)}
             </span>
-            <span className="text-lg font-medium text-muted-foreground lg:text-2xl">
+            <span className="text-2xl font-light text-muted-foreground lg:text-4xl">
               AZN
             </span>
           </div>
 
-          {board.pct !== null ? (
-            <div className="flex flex-col items-end gap-1">
-              <span
-                className={cn(
-                  "text-6xl font-bold tabular-nums lg:text-8xl",
-                  met ? "text-emerald-400" : "text-primary"
-                )}
-                style={{
-                  textShadow: met
-                    ? "0 0 60px oklch(0.7 0.18 155 / 0.45)"
-                    : "0 0 60px oklch(0.6 0.22 264 / 0.45)",
-                }}
-              >
-                {board.pct}
-                <span className="text-3xl lg:text-5xl">%</span>
-              </span>
-              <span className="text-sm text-muted-foreground lg:text-lg">
-                {t.wall.target} {money(board.target!)} AZN
-              </span>
-            </div>
-          ) : (
-            <span className="text-xl text-muted-foreground">
-              {t.wall.noTarget}
-            </span>
-          )}
+          <div className="mt-2 flex items-center gap-10">
+            <Stat
+              icon={<IconUsers className="size-6 lg:size-7" />}
+              value={board.operators}
+              label={t.wall.operators}
+            />
+            <Stat
+              icon={<IconAlertTriangle className="size-6 lg:size-7" />}
+              value={board.alerts}
+              label={t.wall.alerts}
+              critical={board.alerts > 0}
+            />
+            <Stat
+              icon={<IconBuildingStore className="size-6 lg:size-7" />}
+              value={board.stations.length}
+              label={t.wall.stations}
+            />
+          </div>
         </div>
 
         {board.pct !== null ? (
-          <div className="mt-8 h-4 w-full overflow-hidden rounded-full bg-foreground/10">
-            <div
+          <div className="flex flex-col gap-4 lg:ml-auto lg:min-w-[22rem] lg:border-l lg:wall-rule lg:pl-16">
+            <div className="flex items-baseline justify-between gap-4">
+              <span className="wall-label">{t.wall.target}</span>
+              <span className="font-mono text-2xl text-muted-foreground tabular-nums lg:text-3xl">
+                {money(board.target!)} AZN
+              </span>
+            </div>
+            <span
               className={cn(
-                "wall-bar h-full rounded-full transition-[width] duration-1000",
-                met ? "bg-emerald-500" : "bg-primary"
+                "wall-figure text-7xl font-semibold lg:text-[9rem]",
+                met ? "text-emerald-400" : "text-foreground"
               )}
-              style={{ width: `${Math.min(100, Math.max(2, board.pct))}%` }}
-            />
+            >
+              {board.pct}
+              <span className="ml-1 text-3xl font-light text-muted-foreground lg:text-5xl">
+                %
+              </span>
+            </span>
+            <Bar pct={board.pct} met={met} className="h-2" />
           </div>
-        ) : null}
-
-        <div className="mt-7 flex flex-wrap gap-4">
-          <Counter
-            icon={<IconUsers className="size-5" />}
-            value={board.operators}
-            label={t.wall.operators}
-          />
-          <Counter
-            icon={<IconAlertTriangle className="size-5" />}
-            value={board.alerts}
-            label={t.wall.alerts}
-            critical={board.alerts > 0}
-          />
-        </div>
+        ) : (
+          <span className="text-xl text-muted-foreground lg:ml-auto">
+            {t.wall.noTarget}
+          </span>
+        )}
       </section>
 
-      {/* --------------------------------------------------- station grid */}
-      <section className="grid flex-1 auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {board.stations.map((station, index) => (
-          <StationCard
-            key={station.station}
-            station={station}
-            rank={index + 1}
-            t={t}
-          />
-        ))}
+      {/* --------------------------------------------------- station ticker */}
+      <section className="shrink-0 overflow-hidden border-t wall-rule py-6">
+        <div
+          className="wall-track gap-4 px-4"
+          style={
+            {
+              "--marquee-duration": `${duration}s`,
+              "--marquee-copies": copies,
+            } as React.CSSProperties
+          }
+        >
+          {Array.from({ length: copies }, (_, copy) =>
+            board.stations.map((station, index) => (
+              <StationCard
+                key={`${copy}-${station.station}`}
+                station={station}
+                rank={index + 1}
+                t={t}
+                // Only the first pass is real content; the rest are visual
+                // duplicates and must not be read out twice.
+                duplicate={copy > 0}
+              />
+            ))
+          )}
+        </div>
       </section>
     </div>
   )
 }
 
-function Counter({
+/**
+ * An icon and a number. The words are carried by `title`/`aria-label` rather
+ * than printed: at this size a glyph is read faster than a caption, and three
+ * captions across the hero competed with the revenue figure above them.
+ */
+function Stat({
   icon,
   value,
   label,
@@ -147,113 +164,144 @@ function Counter({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2.5 rounded-2xl border px-4 py-2.5 text-lg lg:text-xl",
-        critical
-          ? "border-red-500/35 bg-red-500/10 text-red-300"
-          : "border-border/70 bg-foreground/[0.03] text-muted-foreground"
+        "flex items-center gap-2.5",
+        critical ? "text-red-400" : "text-muted-foreground"
       )}
+      title={label}
     >
       {icon}
       <span
         className={cn(
-          "text-2xl font-bold tabular-nums lg:text-3xl",
-          critical ? "text-red-300" : "text-foreground"
+          "text-3xl font-semibold tabular-nums lg:text-4xl",
+          critical ? "text-red-400" : "text-foreground"
         )}
       >
         {value}
       </span>
-      {label}
+      <span className="sr-only">{label}</span>
     </span>
   )
 }
 
+function Bar({
+  pct,
+  met,
+  behind = false,
+  className,
+}: {
+  pct: number
+  met: boolean
+  behind?: boolean
+  className?: string
+}) {
+  return (
+    <div
+      className={cn(
+        "w-full overflow-hidden rounded-full bg-foreground/[0.08]",
+        className
+      )}
+      role="presentation"
+    >
+      <div
+        className={cn(
+          "h-full rounded-full",
+          met ? "bg-emerald-500" : behind ? "bg-amber-500" : "bg-primary"
+        )}
+        style={{ width: `${Math.min(100, Math.max(1.5, pct))}%` }}
+      />
+    </div>
+  )
+}
+
 /**
- * One station, sized to be read from across a room: rank, revenue, and a
- * percentage large enough that nobody has to walk closer to find the site
- * that is behind.
+ * One station in the ticker.
+ *
+ * Fixed width on purpose: the card size is what makes fifty stations as
+ * readable as five. Behind-target is marked with an amber edge and amber
+ * figures rather than a fill — the card is already moving, and a moving
+ * coloured block is noise.
  */
 function StationCard({
   station,
   rank,
   t,
+  duplicate,
 }: {
   station: WallStation
   rank: number
   t: Awaited<ReturnType<typeof getT>>
+  duplicate: boolean
 }) {
   const pct = station.pct
+  const met = pct !== null && pct >= 100
   const behind = pct !== null && pct < 80
-  const ahead = pct !== null && pct >= 100
 
   return (
     <div
+      aria-hidden={duplicate || undefined}
       className={cn(
-        "relative flex flex-col justify-between gap-5 overflow-hidden rounded-3xl border p-5 lg:p-6",
-        ahead && "border-emerald-500/35 bg-gradient-to-br from-emerald-500/[0.12] to-transparent",
-        behind &&
-          "wall-pulse border-red-500/40 bg-gradient-to-br from-red-500/[0.13] to-transparent",
-        !ahead && !behind && "border-border/70 bg-card"
+        "flex w-[19rem] shrink-0 flex-col gap-3 rounded-2xl border bg-card/60 px-5 py-4",
+        met && "border-emerald-500/30",
+        behind && "border-amber-500/40",
+        !met && !behind && "border-border/70"
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-foreground/10 font-mono text-sm font-semibold text-muted-foreground tabular-nums">
-            {rank}
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="flex min-w-0 items-baseline gap-2.5">
+          <span className="font-mono text-xs text-muted-foreground/60 tabular-nums">
+            {String(rank).padStart(2, "0")}
           </span>
-          <span className="text-lg leading-tight font-semibold lg:text-xl">
-            {station.station}
-          </span>
-        </div>
+          <span className="truncate text-lg font-medium">{station.station}</span>
+        </span>
         {station.alerts > 0 ? (
-          <span className="flex shrink-0 items-center gap-1 rounded-full bg-red-500/20 px-2.5 py-1 text-sm font-semibold text-red-300 tabular-nums">
-            <IconAlertTriangle className="size-3.5" />
+          <span className="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 font-mono text-xs text-red-300 tabular-nums">
             {station.alerts}
           </span>
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-3">
-        <div className="flex items-end justify-between gap-3">
-          <span className="wall-figure text-4xl font-bold lg:text-5xl">
-            {money(station.revenue)}
-          </span>
-          {pct !== null ? (
+      <div className="flex items-end justify-between gap-3">
+        <span className="wall-figure text-4xl font-semibold">
+          {money(station.revenue)}
+        </span>
+        <Sparkline
+          values={station.spark}
+          width={72}
+          height={24}
+          className={cn(
+            met
+              ? "text-emerald-400/70"
+              : behind
+                ? "text-amber-400/70"
+                : "text-primary/70"
+          )}
+        />
+      </div>
+
+      {pct !== null ? (
+        <div className="flex flex-col gap-2">
+          <Bar pct={pct} met={met} behind={behind} className="h-1" />
+          <div className="flex items-baseline justify-between">
+            <span className="wall-label">
+              {station.operators} {t.wall.operators}
+            </span>
             <span
               className={cn(
-                "text-4xl font-bold tabular-nums lg:text-5xl",
-                ahead
+                "text-xl font-semibold tabular-nums",
+                met
                   ? "text-emerald-400"
                   : behind
-                    ? "text-red-400"
+                    ? "text-amber-400"
                     : "text-foreground"
               )}
             >
-              {pct}
-              <span className="text-xl lg:text-2xl">%</span>
+              {pct}%
             </span>
-          ) : null}
-        </div>
-
-        {pct !== null ? (
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-foreground/10">
-            <div
-              className={cn(
-                "wall-bar h-full rounded-full",
-                ahead ? "bg-emerald-500" : behind ? "bg-red-500" : "bg-primary"
-              )}
-              style={{ width: `${Math.min(100, Math.max(2, pct))}%` }}
-            />
           </div>
-        ) : (
-          <span className="text-sm text-muted-foreground">
-            {t.wall.noTarget}
-          </span>
-        )}
-
-        <span className="text-sm text-muted-foreground tabular-nums lg:text-base">
-          {station.operators} {t.wall.operators}
-        </span>
-      </div>
+        </div>
+      ) : (
+        <span className="text-sm text-muted-foreground">{t.wall.noTarget}</span>
+      )}
     </div>
   )
 }

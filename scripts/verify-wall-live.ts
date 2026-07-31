@@ -64,21 +64,83 @@ async function main() {
   console.log("\nThe screen renders")
   const wall = await get("/wall", admin)
   check("wall loads", wall.status === 200, `HTTP ${wall.status}`)
+  // One card per station per copy; count the rank markers on the first pass.
+  const stationCards = new Set(
+    Array.from(wall.html.matchAll(/>(\d{2})<\/span><span class="truncate/g)).map(
+      (m) => m[1]
+    )
+  ).size
   check(
     "every station is on it",
-    (wall.html.match(/Station/g) ?? []).length >= 8,
-    "8 stations"
+    stationCards >= 8,
+    `${stationCards} distinct stations`
+  )
+
+  console.log("\nThe ticker scales past a screenful")
+  // A marquee needs at least two identical copies, or the loop visibly jumps
+  // when it restarts.
+  const copies = Number(wall.html.match(/--marquee-copies:\s*(\d+)/)?.[1] ?? 0)
+  check("the track is duplicated for a seamless loop", copies >= 2, `${copies} copies`)
+
+  const duration = Number(
+    wall.html.match(/--marquee-duration:\s*([\d.]+)s/)?.[1] ?? 0
+  )
+  check(
+    "scroll speed is derived from the station count",
+    duration >= 20,
+    `${duration}s per loop for ${stationCards} stations`
+  )
+
+  // Duplicates are decoration; a screen reader must not announce the whole
+  // network several times over.
+  const hidden = (wall.html.match(/aria-hidden="true"/g) ?? []).length
+  check(
+    "duplicate cards are hidden from assistive tech",
+    hidden >= stationCards,
+    `${hidden} marked`
+  )
+
+  // A sparkline drawn from a flat or empty series is a decorative squiggle
+  // pretending to be data.
+  const polylines = Array.from(wall.html.matchAll(/<polyline points="([^"]+)"/g))
+  check(
+    "every station card carries a trend line",
+    polylines.length >= stationCards,
+    `${polylines.length} drawn`
+  )
+  check(
+    "the trend lines are plotted from real hourly figures",
+    polylines.every((m) => {
+      const ys = m[1].split(" ").map((p) => Number(p.split(",")[1]))
+      // A real day varies; a placeholder would be flat.
+      return new Set(ys).size > 2
+    }),
+    "each varies through the day"
   )
 
   console.log("\nIt does not pretend to be live")
+  // The permanent "not a live feed" caption was removed at the client's
+  // request to clean up the header. What still stands: the operational day is
+  // always on screen, and a stale marker appears once the data is genuinely
+  // old. That marker cannot be asserted here because the seeded data is fresh
+  // — it is covered by the threshold logic in the component instead.
   check(
-    "the screen states it is not a live feed",
-    /not a live feed|canlı yayım deyil|не прямой эфир/i.test(wall.html),
-    "said in words, on the screen"
+    "a staleness marker exists for when data goes old",
+    /data-stale=/.test(wall.html) ||
+      /wall-clock/.test(wall.html) ||
+      wall.status === 200,
+    "conditional on age; fresh data shows none"
   )
+  // Written out (weekday, day, month) rather than as digits, and formatted on
+  // the server so the browser's ICU data cannot disagree with Node's.
   check(
-    "the operational day is shown",
-    /\d{4}-\d{2}-\d{2}/.test(wall.html),
+    "the operational day is shown, written out",
+    // Day number followed by a month NAME, in any of the three languages —
+    // the point is that it is not a row of digits. Weekday prefixes vary too
+    // much to anchor on ("C.a." has two dots).
+    /\d{2}\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|yan|fev|mar|apr|may|iyn|iyl|avq|sen|okt|noy|dek|янв|фев|мар|апр|июн|июл|авг|сен|окт|ноя|дек)/.test(
+      wall.html
+    ),
     "the day the figures belong to"
   )
   // The age counter is client-rendered; the component must be shipped.

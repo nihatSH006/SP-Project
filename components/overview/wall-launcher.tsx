@@ -6,20 +6,21 @@ import type { Dictionary } from "@/lib/i18n"
 /**
  * Launches the office screen from the overview.
  *
- * Deliberately a wide banner rather than another button in the header row:
- * this is something someone does once, on a TV, and it should be findable
- * without hunting — but it must not compete with the revenue figure, which is
- * why it sits below the fold-line content rather than beside it.
+ * Deliberately a wide, quiet row rather than another button in the header:
+ * this is something someone does once, on a TV, so it should be findable
+ * without hunting and invisible the rest of the time. An earlier version used
+ * a blue gradient fill, which made a once-a-month action the brightest thing
+ * on a page whose job is to show revenue.
  */
 export function WallLauncher({ t }: { t: Dictionary }) {
   return (
     <Link
       href="/wall"
-      className="group relative flex items-center justify-between gap-4 overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/[0.14] via-primary/[0.06] to-transparent px-5 py-4 transition-colors hover:border-primary/45 hover:from-primary/[0.2]"
+      className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-card px-5 py-4 transition-colors hover:border-primary/40 hover:bg-primary/[0.04]"
     >
       <span className="flex items-center gap-4">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/25 transition-transform group-hover:scale-105">
-          <IconDeviceTv className="size-6" />
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
+          <IconDeviceTv className="size-5" />
         </span>
         <span className="flex flex-col">
           <span className="font-semibold">{t.wall.open}</span>

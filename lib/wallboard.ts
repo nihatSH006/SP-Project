@@ -2,7 +2,7 @@ import "server-only"
 
 import { cache } from "react"
 
-import { collectAlerts } from "@/lib/analytics"
+import { collectAlerts, mergeHourly } from "@/lib/analytics"
 import { adminDb } from "@/lib/firebase/admin"
 import { COLLECTIONS } from "@/lib/firebase/schema"
 import {
@@ -35,6 +35,11 @@ export type WallStation = {
   pct: number | null
   operators: number
   alerts: number
+  /**
+   * Revenue per hour through the day, for the row's trend line. Already
+   * aggregated on the report documents, so this costs no extra reads.
+   */
+  spark: number[]
 }
 
 export type Wallboard = {
@@ -81,6 +86,7 @@ export const getWallboard = cache(async (): Promise<Wallboard> => {
       pct: target && target > 0 ? Math.round((revenue / target) * 100) : null,
       operators: rows.length,
       alerts: collectAlerts(rows).length,
+      spark: mergeHourly(rows.map((r) => r.hourly)).map((p) => p.revenue),
     }
   })
 

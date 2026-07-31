@@ -276,83 +276,81 @@
 }
 
 /* ------------------------------------------------------------ wall screen
- * The office board is read from across a room, so it leans on light and scale
- * rather than on labels. These live here rather than inline because a wall
- * screen runs for weeks and every one of them is deliberately cheap to paint:
- * no JS, no layout thrash, nothing that will drift on a TV left on overnight.
+ * Read from across a room, in a room where executives work. The first version
+ * of this leaned on glow, gradient fills and a pulsing halo, which reads as a
+ * games dashboard rather than an operations board — impressive for five
+ * seconds and tiring for the eight hours it is actually on the wall.
+ *
+ * What replaces it is restraint: one ambient wash, hairline rules instead of
+ * card borders, and figures set in tabular numerals so columns align to the
+ * digit. All CSS — a screen that runs for weeks should recalculate nothing.
  */
 
-/* Soft coloured bloom behind the hero figure. */
-@utility wall-glow {
-  position: relative;
-  isolation: isolate;
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: -20% -10% auto -10%;
-    height: 140%;
-    z-index: -1;
-    border-radius: 999px;
-    background: radial-gradient(
-      60% 60% at 50% 40%,
-      oklch(0.55 0.23 264 / 0.28) 0%,
-      transparent 70%
-    );
-    filter: blur(40px);
-    pointer-events: none;
-  }
+/* A single cool wash across the top. No per-card gradients. */
+@utility wall-ambient {
+  background-image: radial-gradient(
+    120% 80% at 50% -20%,
+    oklch(0.55 0.23 264 / 0.13) 0%,
+    transparent 60%
+  );
 }
 
-/* The big numerals: tight, luminous, unmistakably the headline. */
+/* Micro-labels: the convention that reads as instrumentation, not decoration. */
+@utility wall-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Figures: tight, aligned, no glow. Weight and size carry the hierarchy. */
 @utility wall-figure {
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.035em;
-  line-height: 0.92;
-  background-image: linear-gradient(
-    180deg,
-    oklch(1 0 0) 0%,
-    oklch(0.86 0.02 260) 100%
-  );
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 0 60px oklch(0.7 0.16 264 / 0.25);
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
 }
 
-/* Progress fill with a lit leading edge, so the bar reads at distance. */
-@utility wall-bar {
-  position: relative;
-  overflow: hidden;
+/* Hairline separators between rows, lighter than a border. */
+@utility wall-rule {
+  border-color: oklch(1 0 0 / 0.07);
+}
 
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: linear-gradient(
-      90deg,
-      transparent 0%,
-      oklch(1 0 0 / 0.35) 100%
-    );
+/*
+ * Infinite station ticker.
+ *
+ * The board must look right with 5 stations and with 50. A grid cannot do
+ * both — past a dozen the cards shrink until nothing is readable across a
+ * room. A marquee holds the card size constant and spends time instead of
+ * space, which a wall screen has plenty of.
+ *
+ * The track holds N identical copies of the list and shifts left by exactly
+ * one copy, so the loop is seamless. Duration is set per render from the
+ * station count, keeping the speed the same whatever the network size.
+ */
+@utility wall-track {
+  display: flex;
+  width: max-content;
+  animation: wall-marquee var(--marquee-duration, 40s) linear infinite;
+  will-change: transform;
+}
+
+@keyframes wall-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(calc(-100% / var(--marquee-copies, 2)), 0, 0);
   }
 }
 
-/* Slow breathing highlight for a station that needs someone. */
-@utility wall-pulse {
-  animation: wall-pulse 2.4s ease-in-out infinite;
-}
-
-@keyframes wall-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 oklch(0.63 0.24 25 / 0.35);
-  }
-  50% {
-    box-shadow: 0 0 0 10px oklch(0.63 0.24 25 / 0);
-  }
-}
-
+/* Motion in peripheral vision is a tax on everyone in the room; let the OS
+   setting turn it into an ordinary scrollable strip. */
 @media (prefers-reduced-motion: reduce) {
-  .wall-pulse {
+  .wall-track {
     animation: none;
+    width: auto;
+    overflow-x: auto;
   }
 }
