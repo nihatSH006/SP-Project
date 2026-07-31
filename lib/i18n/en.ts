@@ -544,6 +544,7 @@ export const en = {
   },
 
   wall: {
+    launchHint: "Full-screen board for a TV in the office",
     title: "Office screen",
     network: "Network",
     target: "Target",

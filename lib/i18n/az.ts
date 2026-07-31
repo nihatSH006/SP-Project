@@ -542,6 +542,7 @@ export const az: Dictionary = {
   },
 
   wall: {
+    launchHint: "Ofisdəki televizor üçün tam ekran lövhə",
     title: "Ofis ekran\u0131",
     network: "\u015e\u0259b\u0259k\u0259",
     target: "H\u0259d\u0259f",

@@ -103,6 +103,16 @@ async function main() {
     `wall ${headline(wall.html).toLocaleString("en-US")} vs overview ${headline(overview.html).toLocaleString("en-US")}`
   )
 
+  console.log("\nIt can be found from the dashboard")
+  // The sidebar links to /wall too, so match the launcher's own wording rather
+  // than any link to the page.
+  const LAUNCHER = /Full-screen board|tam ekran lövhə|Полноэкранное табло/
+  check(
+    "the overview offers a way to open the screen",
+    LAUNCHER.test(overview.html),
+    "launcher present"
+  )
+
   console.log("\nStill behind authentication")
   const anon = await fetch(`${BASE}/wall`, { redirect: "manual" })
   check(
@@ -114,6 +124,22 @@ async function main() {
     "…and no figures are served with it",
     !/AZN/.test(await anon.text()),
     "nothing leaked to the lobby"
+  )
+
+  // An operator has no reason to put a network board on a wall, so the
+  // launcher is not offered to them — the page itself stays reachable, since
+  // the figures on it are their own station's and already visible to them.
+  const staff = await signIn("staff@sasis.test", "Sasis-Staff-2026!")
+  const staffOverview = await get("/", staff)
+  check(
+    "an operator is not offered the launcher",
+    !LAUNCHER.test(staffOverview.html),
+    "hidden for staff"
+  )
+  check(
+    "…nor a sidebar link to it",
+    !/href="\/wall"/.test(staffOverview.html),
+    "no nav entry either"
   )
 
   // A station manager's screen must show their station, not the network.

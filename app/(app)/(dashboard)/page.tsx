@@ -4,6 +4,7 @@ import { IconArrowRight } from "@tabler/icons-react"
 import { HourlyRevenueChart, RevenueRankChart } from "@/components/charts"
 import { AttentionPanel } from "@/components/overview/attention-panel"
 import { RevenueHero } from "@/components/overview/revenue-hero"
+import { WallLauncher } from "@/components/overview/wall-launcher"
 import { PageShell } from "@/components/page-shell"
 import { NoMatches } from "@/components/status"
 import { Button } from "@/components/ui/button"
@@ -20,6 +21,8 @@ import {
   summarise,
   toChartSeries,
 } from "@/lib/analytics"
+import { getSessionUser } from "@/lib/auth"
+import { canTriageCase } from "@/lib/cases"
 import { deriveStatus } from "@/lib/dashboard-status"
 import { getSlice, type SearchParams } from "@/lib/data"
 import { getT } from "@/lib/i18n/server"
@@ -31,7 +34,12 @@ export default async function OverviewPage(props: {
   searchParams: Promise<SearchParams>
 }) {
   const t = await getT()
-  const { reports, options, target } = await getSlice(await props.searchParams)
+  const [{ reports, options, target }, user] = await Promise.all([
+    getSlice(await props.searchParams),
+    getSessionUser(),
+  ])
+  // An operator has no reason to put a network board on a wall.
+  const canOpenWall = Boolean(user && canTriageCase(user))
   const summary = summarise(reports, target)
 
   const status = deriveStatus({
@@ -106,6 +114,8 @@ export default async function OverviewPage(props: {
               <HourlyRevenueChart data={hourlySeries} />
             </CardContent>
           </Card>
+
+          {canOpenWall ? <WallLauncher t={t} /> : null}
 
           <Card>
             <CardHeader>

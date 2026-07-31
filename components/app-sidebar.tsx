@@ -116,8 +116,12 @@ export function AppSidebar({
         {SECTIONS.map((section) => {
           // Hidden rather than merely disabled: an operator has no business
           // knowing a case queue exists, let alone that it is one click away.
+          // Both are gated on the same predicate: an operator has no business
+          // knowing a case queue exists, and no reason to put a network board
+          // on a wall.
           const items = section.items.filter(
-            (item) => item.href !== "/cases" || canSeeCases
+            (item) =>
+              (item.href !== "/cases" && item.href !== "/wall") || canSeeCases
           )
           if (items.length === 0) return null
 

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { IconArrowLeft } from "@tabler/icons-react"
+import { IconAlertTriangle, IconArrowLeft, IconUsers } from "@tabler/icons-react"
 
 import { WallClock } from "@/components/wall/wall-clock"
 import { getT } from "@/lib/i18n/server"
@@ -15,26 +15,28 @@ export const dynamic = "force-dynamic"
 export default async function WallPage() {
   const t = await getT()
   const board = await getWallboard()
+  const met = board.pct !== null && board.pct >= 100
 
   return (
-    <div className="flex min-h-svh flex-col gap-6 p-6 lg:p-8">
+    <div className="flex min-h-svh flex-col gap-5 overflow-hidden p-6 lg:gap-7 lg:p-10">
       {/* ------------------------------------------------------- header */}
       <header className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-baseline gap-4">
-          <span className="text-xl font-semibold tracking-tight">
-            SOCAR SASIS
+        <div className="flex items-center gap-4">
+          <span className="text-2xl font-semibold tracking-tight lg:text-3xl">
+            SOCAR{" "}
+            <span className="text-primary">SASIS</span>
           </span>
-          <span className="font-mono text-lg text-muted-foreground tabular-nums">
+          <span className="rounded-full border border-border/70 px-3 py-1 font-mono text-sm text-muted-foreground tabular-nums lg:text-base">
             {board.date ?? "—"}
           </span>
         </div>
         <div className="flex items-center gap-6">
           <WallClock asOf={board.asOf} />
-          {/* Small and unobtrusive: the way back matters to the person setting
-              the screen up, and to nobody else in the room. */}
+          {/* Small on purpose: the way back matters to whoever sets the screen
+              up, and to nobody else in the room. */}
           <Link
             href="/"
-            className="text-muted-foreground transition-colors hover:text-foreground"
+            className="text-muted-foreground/50 transition-colors hover:text-foreground"
             aria-label={t.wall.exit}
           >
             <IconArrowLeft className="size-5" />
@@ -43,22 +45,22 @@ export default async function WallPage() {
       </header>
 
       {/* ------------------------------------------------ network total */}
-      <section className="rounded-3xl bg-primary/[0.07] p-6 ring-1 ring-primary/20 lg:p-8">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div className="flex flex-col gap-1">
-            <span className="text-sm tracking-wide text-muted-foreground uppercase">
+      <section className="wall-glow relative overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-br from-primary/[0.12] via-card to-card p-7 lg:p-10">
+        <div className="flex flex-wrap items-end justify-between gap-8">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase lg:text-sm">
               {t.wall.network}
             </span>
             <span
               // Stable hook so the wall and the overview can be checked
               // against each other without parsing translated currency text.
               data-metric="network-revenue"
-              className="text-6xl font-semibold tracking-tight tabular-nums lg:text-8xl"
+              className="wall-figure text-7xl font-bold lg:text-[8.5rem]"
             >
               {money(board.revenue)}
-              <span className="ml-3 text-2xl font-normal text-muted-foreground">
-                AZN
-              </span>
+            </span>
+            <span className="text-lg font-medium text-muted-foreground lg:text-2xl">
+              AZN
             </span>
           </div>
 
@@ -66,154 +68,191 @@ export default async function WallPage() {
             <div className="flex flex-col items-end gap-1">
               <span
                 className={cn(
-                  "text-5xl font-semibold tabular-nums lg:text-7xl",
-                  board.pct >= 100 ? "text-emerald-400" : "text-foreground"
+                  "text-6xl font-bold tabular-nums lg:text-8xl",
+                  met ? "text-emerald-400" : "text-primary"
                 )}
+                style={{
+                  textShadow: met
+                    ? "0 0 60px oklch(0.7 0.18 155 / 0.45)"
+                    : "0 0 60px oklch(0.6 0.22 264 / 0.45)",
+                }}
               >
-                {board.pct}%
+                {board.pct}
+                <span className="text-3xl lg:text-5xl">%</span>
               </span>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-muted-foreground lg:text-lg">
                 {t.wall.target} {money(board.target!)} AZN
               </span>
             </div>
           ) : (
-            <span className="text-lg text-muted-foreground">
+            <span className="text-xl text-muted-foreground">
               {t.wall.noTarget}
             </span>
           )}
         </div>
 
         {board.pct !== null ? (
-          <div
-            className="mt-6 h-3 w-full overflow-hidden rounded-full bg-muted"
-            role="presentation"
-          >
+          <div className="mt-8 h-4 w-full overflow-hidden rounded-full bg-foreground/10">
             <div
               className={cn(
-                "h-full rounded-full",
-                board.pct >= 100 ? "bg-emerald-500" : "bg-primary"
+                "wall-bar h-full rounded-full transition-[width] duration-1000",
+                met ? "bg-emerald-500" : "bg-primary"
               )}
-              style={{ width: `${Math.min(100, Math.max(0, board.pct))}%` }}
+              style={{ width: `${Math.min(100, Math.max(2, board.pct))}%` }}
             />
           </div>
         ) : null}
 
-        <div className="mt-5 flex gap-8 text-lg text-muted-foreground">
-          <span>
-            <span className="font-semibold text-foreground tabular-nums">
-              {board.operators}
-            </span>{" "}
-            {t.wall.operators}
-          </span>
-          <span>
-            <span
-              className={cn(
-                "font-semibold tabular-nums",
-                board.alerts > 0 ? "text-red-400" : "text-foreground"
-              )}
-            >
-              {board.alerts}
-            </span>{" "}
-            {t.wall.alerts}
-          </span>
+        <div className="mt-7 flex flex-wrap gap-4">
+          <Counter
+            icon={<IconUsers className="size-5" />}
+            value={board.operators}
+            label={t.wall.operators}
+          />
+          <Counter
+            icon={<IconAlertTriangle className="size-5" />}
+            value={board.alerts}
+            label={t.wall.alerts}
+            critical={board.alerts > 0}
+          />
         </div>
       </section>
 
       {/* --------------------------------------------------- station grid */}
       <section className="grid flex-1 auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {board.stations.map((station) => (
-          <StationCard key={station.station} station={station} t={t} />
+        {board.stations.map((station, index) => (
+          <StationCard
+            key={station.station}
+            station={station}
+            rank={index + 1}
+            t={t}
+          />
         ))}
       </section>
     </div>
   )
 }
 
+function Counter({
+  icon,
+  value,
+  label,
+  critical = false,
+}: {
+  icon: React.ReactNode
+  value: number
+  label: string
+  critical?: boolean
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-2.5 rounded-2xl border px-4 py-2.5 text-lg lg:text-xl",
+        critical
+          ? "border-red-500/35 bg-red-500/10 text-red-300"
+          : "border-border/70 bg-foreground/[0.03] text-muted-foreground"
+      )}
+    >
+      {icon}
+      <span
+        className={cn(
+          "text-2xl font-bold tabular-nums lg:text-3xl",
+          critical ? "text-red-300" : "text-foreground"
+        )}
+      >
+        {value}
+      </span>
+      {label}
+    </span>
+  )
+}
+
 /**
- * One station. Read from across a room, so: big number, big percentage, and a
- * colour that means the same thing everywhere in the app.
+ * One station, sized to be read from across a room: rank, revenue, and a
+ * percentage large enough that nobody has to walk closer to find the site
+ * that is behind.
  */
 function StationCard({
   station,
+  rank,
   t,
 }: {
   station: WallStation
+  rank: number
   t: Awaited<ReturnType<typeof getT>>
 }) {
   const pct = station.pct
-  const band =
-    pct === null
-      ? "border-border"
-      : pct >= 100
-        ? "border-emerald-500/40 bg-emerald-500/[0.07]"
-        : pct >= 80
-          ? "border-border bg-card"
-          : "border-red-500/40 bg-red-500/[0.07]"
-
-  const pctColour =
-    pct === null
-      ? "text-muted-foreground"
-      : pct >= 100
-        ? "text-emerald-400"
-        : pct >= 80
-          ? "text-foreground"
-          : "text-red-400"
+  const behind = pct !== null && pct < 80
+  const ahead = pct !== null && pct >= 100
 
   return (
     <div
       className={cn(
-        "flex flex-col justify-between gap-4 rounded-2xl border p-5",
-        band
+        "relative flex flex-col justify-between gap-5 overflow-hidden rounded-3xl border p-5 lg:p-6",
+        ahead && "border-emerald-500/35 bg-gradient-to-br from-emerald-500/[0.12] to-transparent",
+        behind &&
+          "wall-pulse border-red-500/40 bg-gradient-to-br from-red-500/[0.13] to-transparent",
+        !ahead && !behind && "border-border/70 bg-card"
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="text-lg leading-tight font-medium">
-          {station.station}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-foreground/10 font-mono text-sm font-semibold text-muted-foreground tabular-nums">
+            {rank}
+          </span>
+          <span className="text-lg leading-tight font-semibold lg:text-xl">
+            {station.station}
+          </span>
+        </div>
         {station.alerts > 0 ? (
-          <span className="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 text-sm text-red-400 tabular-nums">
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-red-500/20 px-2.5 py-1 text-sm font-semibold text-red-300 tabular-nums">
+            <IconAlertTriangle className="size-3.5" />
             {station.alerts}
           </span>
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-2">
-        <span className="text-3xl font-semibold tracking-tight tabular-nums xl:text-4xl">
-          {money(station.revenue)}
-        </span>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-end justify-between gap-3">
+          <span className="wall-figure text-4xl font-bold lg:text-5xl">
+            {money(station.revenue)}
+          </span>
+          {pct !== null ? (
+            <span
+              className={cn(
+                "text-4xl font-bold tabular-nums lg:text-5xl",
+                ahead
+                  ? "text-emerald-400"
+                  : behind
+                    ? "text-red-400"
+                    : "text-foreground"
+              )}
+            >
+              {pct}
+              <span className="text-xl lg:text-2xl">%</span>
+            </span>
+          ) : null}
+        </div>
 
         {pct !== null ? (
-          <>
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-foreground/10">
             <div
-              className="h-2 w-full overflow-hidden rounded-full bg-muted"
-              role="presentation"
-            >
-              <div
-                className={cn(
-                  "h-full rounded-full",
-                  pct >= 100
-                    ? "bg-emerald-500"
-                    : pct >= 80
-                      ? "bg-primary"
-                      : "bg-red-500"
-                )}
-                style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
-              />
-            </div>
-            <div className="flex items-baseline justify-between gap-2">
-              <span className={cn("text-2xl font-semibold tabular-nums", pctColour)}>
-                {pct}%
-              </span>
-              <span className="text-sm text-muted-foreground tabular-nums">
-                {station.operators} {t.wall.operators}
-              </span>
-            </div>
-          </>
+              className={cn(
+                "wall-bar h-full rounded-full",
+                ahead ? "bg-emerald-500" : behind ? "bg-red-500" : "bg-primary"
+              )}
+              style={{ width: `${Math.min(100, Math.max(2, pct))}%` }}
+            />
+          </div>
         ) : (
           <span className="text-sm text-muted-foreground">
             {t.wall.noTarget}
           </span>
         )}
+
+        <span className="text-sm text-muted-foreground tabular-nums lg:text-base">
+          {station.operators} {t.wall.operators}
+        </span>
       </div>
     </div>
   )
