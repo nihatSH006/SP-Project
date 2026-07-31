@@ -38,15 +38,20 @@ import { cn } from "@/lib/utils"
 import type { OperatorReport } from "@/lib/analytics"
 
 /** Only the fields the table needs — reports carry raw sales we don't ship. */
+/**
+ * Only what the list needs.
+ *
+ * The table used to carry thirteen columns — department, shift, hours, sales
+ * and score as well — which forced horizontal scrolling and made scanning
+ * sixty-four rows for a problem genuinely hard. Every dropped column is on the
+ * operator's own profile, one click away, so nothing became unreachable.
+ */
 export type OperatorRow = Pick<
   OperatorReport,
   | "id"
   | "name"
-  | "department"
   | "station"
   | "shift"
-  | "workingHours"
-  | "salesCount"
   | "revenue"
   | "productivity"
   | "attendanceScore"
@@ -57,8 +62,6 @@ export type OperatorRow = Pick<
 
 type SortKey =
   | "name"
-  | "workingHours"
-  | "salesCount"
   | "revenue"
   | "productivity"
   | "attendanceScore"
@@ -69,16 +72,11 @@ type Column = { key: SortKey | null; label: string; numeric?: boolean }
 function columnsFor(t: ReturnType<typeof useT>): Column[] {
   return [
     { key: "name", label: t.common.operator },
-    { key: null, label: t.common.department },
-    { key: null, label: t.common.station },
-    { key: null, label: t.common.shift },
-    { key: "workingHours", label: t.common.hours, numeric: true },
-    { key: "salesCount", label: t.common.sales, numeric: true },
     { key: "revenue", label: t.operators.revenueAzn, numeric: true },
     { key: "productivity", label: t.common.perHour, numeric: true },
     { key: "attendanceScore", label: t.common.attendance, numeric: true },
-    { key: "score", label: t.common.score, numeric: true },
-    { key: null, label: t.common.grade },
+    // Sorted by the underlying score, since the grade is derived from it.
+    { key: "score", label: t.common.grade, numeric: true },
     { key: null, label: t.common.risk },
   ]
 }
@@ -96,7 +94,7 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
     const needle = query.trim().toLowerCase()
     const filtered = needle
       ? rows.filter((row) =>
-          `${row.name} ${row.station} ${row.department} ${row.shift}`
+          `${row.name} ${row.station} ${row.shift}`
             .toLowerCase()
             .includes(needle)
         )
@@ -125,7 +123,7 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
       <div className="flex flex-wrap items-center justify-between gap-3 px-(--card-spacing)">
         <p className="text-muted-foreground">
           {t.operators.countLabel(visible.length, rows.length)} ·{" "}
-          {t.operators.clickForProfile}
+          {t.operators.profileHint}
         </p>
         <InputGroup className="w-full sm:w-72">
           <InputGroupAddon>
@@ -206,21 +204,12 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
                     >
                       {row.name}
                     </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {row.department}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {row.station}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {t.shifts[row.shift]}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {row.workingHours}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {row.salesCount}
+                    {/* Station and shift as a second line rather than two more
+                        columns: they identify the person, they are not figures
+                        anyone compares down a column. */}
+                    <div className="text-xs text-muted-foreground">
+                      {row.station} · {t.shifts[row.shift]}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
                     {money(row.revenue)}
@@ -231,13 +220,10 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
                   <TableCell className="text-right tabular-nums">
                     {row.attendanceScore}%
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {row.score}
-                  </TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     <GradeBadge grade={row.grade} />
                   </TableCell>
-                  <TableCell className="pr-5">
+                  <TableCell className="pr-5 text-right">
                     <RiskBadge risk={row.risk} label={t.risk[row.risk]} />
                   </TableCell>
                 </TableRow>

@@ -33,16 +33,41 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-const NAV = [
-  { key: "dashboard", href: "/", icon: IconLayoutDashboard },
-  { key: "breakdown", href: "/breakdown", icon: IconChartHistogram },
-  { key: "operators", href: "/operators", icon: IconUsers },
-  { key: "leaderboard", href: "/leaderboard", icon: IconTrophy },
-  { key: "stations", href: "/stations", icon: IconBuildingStore },
-  { key: "alerts", href: "/alerts", icon: IconAlertTriangle },
-  { key: "staffing", href: "/staffing", icon: IconCalendarStats },
-  { key: "cases", href: "/cases", icon: IconFolders },
-  { key: "boardPack", href: "/board-pack", icon: IconFileText },
+/**
+ * Navigation grouped by the question each page answers, rather than one flat
+ * list of nine links. A chief executive should be able to find "is anything
+ * wrong" without reading every label to work out which page holds it.
+ */
+const SECTIONS = [
+  {
+    label: "sectionOverview",
+    items: [
+      { key: "dashboard", href: "/", icon: IconLayoutDashboard },
+      { key: "breakdown", href: "/breakdown", icon: IconChartHistogram },
+      { key: "boardPack", href: "/board-pack", icon: IconFileText },
+    ],
+  },
+  {
+    label: "sectionPeople",
+    items: [
+      { key: "operators", href: "/operators", icon: IconUsers },
+      { key: "leaderboard", href: "/leaderboard", icon: IconTrophy },
+    ],
+  },
+  {
+    label: "sectionSites",
+    items: [
+      { key: "stations", href: "/stations", icon: IconBuildingStore },
+      { key: "staffing", href: "/staffing", icon: IconCalendarStats },
+    ],
+  },
+  {
+    label: "sectionIntegrity",
+    items: [
+      { key: "alerts", href: "/alerts", icon: IconAlertTriangle },
+      { key: "cases", href: "/cases", icon: IconFolders },
+    ],
+  },
 ] as const
 
 export function AppSidebar({
@@ -86,42 +111,48 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>{t.nav.sectionAnalysis}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {NAV.map((item) => {
-                const isActive =
-                  item.href === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(item.href)
+        {SECTIONS.map((section) => {
+          // Hidden rather than merely disabled: an operator has no business
+          // knowing a case queue exists, let alone that it is one click away.
+          const items = section.items.filter(
+            (item) => item.href !== "/cases" || canSeeCases
+          )
+          if (items.length === 0) return null
 
-                // Hidden rather than merely disabled: an operator has no
-                // business knowing a case queue exists, let alone that it is
-                // one click away.
-                if (item.href === "/cases" && !canSeeCases) return null
+          return (
+            <SidebarGroup key={section.label}>
+              <SidebarGroupLabel>{t.nav[section.label]}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {items.map((item) => {
+                    const isActive =
+                      item.href === "/"
+                        ? pathname === "/"
+                        : pathname.startsWith(item.href)
 
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      tooltip={t.nav[item.key]}
-                      isActive={isActive}
-                      render={<Link href={item.href} />}
-                    >
-                      <item.icon />
-                      <span>{t.nav[item.key]}</span>
-                    </SidebarMenuButton>
-                    {item.href === "/alerts" && alertCount > 0 ? (
-                      <SidebarMenuBadge>
-                        <Badge variant="destructive">{alertCount}</Badge>
-                      </SidebarMenuBadge>
-                    ) : null}
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton
+                          tooltip={t.nav[item.key]}
+                          isActive={isActive}
+                          render={<Link href={item.href} />}
+                        >
+                          <item.icon />
+                          <span>{t.nav[item.key]}</span>
+                        </SidebarMenuButton>
+                        {item.href === "/alerts" && alertCount > 0 ? (
+                          <SidebarMenuBadge>
+                            <Badge variant="destructive">{alertCount}</Badge>
+                          </SidebarMenuBadge>
+                        ) : null}
+                      </SidebarMenuItem>
+                    )
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )
+        })}
 
         {isAdmin ? (
           <SidebarGroup>

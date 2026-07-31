@@ -9,6 +9,10 @@ export const az: Dictionary = {
   },
 
   nav: {
+    sectionOverview: "\u00dcmumi",
+    sectionPeople: "\u018fm\u0259kda\u015flar",
+    sectionSites: "Stansiyalar",
+    sectionIntegrity: "T\u0259hl\u00fck\u0259sizlik",
     sectionAnalysis: "Təhlil",
     sectionAdmin: "İdarəetmə",
     dashboard: "İdarə paneli",
@@ -241,6 +245,11 @@ export const az: Dictionary = {
   },
 
   operators: {
+    all: "Ham\u0131s\u0131",
+    onDuty: "N\u00f6vb\u0259d\u0259",
+    perHour: "Saatl\u0131q",
+    sales: "Sat\u0131\u015flar",
+    profileHint: "Saat, sat\u0131\u015f v\u0259 bal \u00fc\u00e7\u00fcn ada kli\u06a9l\u0259yin.",
     title: "Operatorlar",
     description:
       "Növbədə olan hər operator — performans və risk bir baxışda.",

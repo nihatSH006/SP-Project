@@ -1,11 +1,14 @@
-import { IconClockHour4, IconCoin, IconGauge, IconUsers } from "@tabler/icons-react"
-
 import { OperatorsTable, type OperatorRow } from "@/components/operators-table"
+import { RiskChips } from "@/components/overview/risk-chips"
 import { PageShell } from "@/components/page-shell"
-import { StatTile } from "@/components/stat-tile"
 import { NoMatches } from "@/components/status"
 import { Card, CardContent } from "@/components/ui/card"
-import { rankOperators, summarise } from "@/lib/analytics"
+import {
+  applyFilters,
+  rankOperators,
+  summarise,
+  type RiskLevel,
+} from "@/lib/analytics"
 import { getSlice, type SearchParams } from "@/lib/data"
 import { getT } from "@/lib/i18n/server"
 import { money } from "@/lib/format"
@@ -16,18 +19,22 @@ export default async function OperatorsPage(props: {
   searchParams: Promise<SearchParams>
 }) {
   const t = await getT()
-  const { reports, options, target } = await getSlice(await props.searchParams)
+  const params = await props.searchParams
+  const { reports, options, target, filters } = await getSlice(params)
   const summary = summarise(reports, target)
+
+  // Risk counts come from the slice WITHOUT the risk filter, so the chips keep
+  // working after one is chosen rather than collapsing to a single band.
+  const unbanded = applyFilters(reports, { ...filters, risk: null })
+  const counts: Record<RiskLevel, number> = { LOW: 0, MEDIUM: 0, HIGH: 0 }
+  for (const r of unbanded) counts[r.risk] += 1
 
   // Ship only what the table renders — reports carry every raw sale.
   const rows: OperatorRow[] = rankOperators(reports).map((r) => ({
     id: r.id,
     name: r.name,
-    department: r.department,
     station: r.station,
     shift: r.shift,
-    workingHours: r.workingHours,
-    salesCount: r.salesCount,
     revenue: r.revenue,
     productivity: r.productivity,
     attendanceScore: r.attendanceScore,
@@ -42,6 +49,16 @@ export default async function OperatorsPage(props: {
       title={t.operators.title}
       description={t.operators.description}
     >
+      {/* The first control on the page is "show me the ones with a problem".
+          That is what this page is opened for. */}
+      <RiskChips
+        counts={counts}
+        total={unbanded.length}
+        active={filters.risk}
+        params={params}
+        t={t}
+      />
+
       {rows.length === 0 ? (
         <NoMatches
           title={t.errors.noMatch(t.common.operators.toLowerCase())}
@@ -49,33 +66,22 @@ export default async function OperatorsPage(props: {
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-            <StatTile
-              label={t.common.operators}
-              value={summary.operators}
-              icon={IconUsers}
-              caption={t.operators.inCurrentSlice}
-            />
-            <StatTile
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <MiniStat label={t.operators.onDuty} value={summary.operators} />
+            <MiniStat
               label={t.common.revenue}
               value={money(summary.revenue)}
               unit="AZN"
-              icon={IconCoin}
-              caption={t.operators.transactionsCount(summary.transactions)}
             />
-            <StatTile
-              label={t.dashboard.avgProductivity}
+            <MiniStat
+              label={t.operators.perHour}
               value={money(summary.avgProductivity)}
-              unit="AZN/h"
-              icon={IconGauge}
-              caption={t.operators.perWorkingHour}
+              unit="AZN"
             />
-            <StatTile
-              label={t.operators.avgAttendance}
+            <MiniStat
+              label={t.common.attendance}
               value={summary.avgAttendance}
               unit="%"
-              icon={IconClockHour4}
-              caption={t.operators.againstShift}
             />
           </div>
 
@@ -87,5 +93,31 @@ export default async function OperatorsPage(props: {
         </>
       )}
     </PageShell>
+  )
+}
+
+function MiniStat({
+  label,
+  value,
+  unit,
+}: {
+  label: string
+  value: React.ReactNode
+  unit?: string
+}) {
+  return (
+    <Card size="sm">
+      <CardContent className="flex flex-col gap-0.5 py-1">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className="text-2xl font-semibold tracking-tight tabular-nums">
+          {value}
+          {unit ? (
+            <span className="ml-1 text-sm font-normal text-muted-foreground">
+              {unit}
+            </span>
+          ) : null}
+        </span>
+      </CardContent>
+    </Card>
   )
 }

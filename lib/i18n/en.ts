@@ -15,6 +15,10 @@ export const en = {
   },
 
   nav: {
+    sectionOverview: "Overview",
+    sectionPeople: "People",
+    sectionSites: "Sites",
+    sectionIntegrity: "Integrity",
     sectionAnalysis: "Analysis",
     sectionAdmin: "Administration",
     dashboard: "Dashboard",
@@ -245,8 +249,13 @@ export const en = {
   },
 
   operators: {
+    all: "All",
+    onDuty: "On duty",
+    perHour: "Per hour",
+    sales: "Sales",
+    profileHint: "Open a name for hours, sales and score.",
     title: "Operators",
-    description: "Every operator on duty, with performance and risk at a glance.",
+    description: "Performance and risk for everyone on duty.",
     inCurrentSlice: "in the current slice",
     transactionsCount: (n: number) => `${n} transactions`,
     perWorkingHour: "per working hour",
@@ -257,7 +266,7 @@ export const en = {
         ? `${total} operator${total === 1 ? "" : "s"}`
         : `${visible} of ${total} operators`,
     clickForProfile: "click a name for the full profile",
-    searchPlaceholder: "Search name, station, department…",
+    searchPlaceholder: "Search name or station…",
     clearSearch: "Clear search",
     noMatch: (query: string) => `No operators match "${query}"`,
     noMatchDesc: "Try a different name, station or department.",

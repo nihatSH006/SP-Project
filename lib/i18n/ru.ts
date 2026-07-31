@@ -9,6 +9,10 @@ export const ru: Dictionary = {
   },
 
   nav: {
+    sectionOverview: "\u041e\u0431\u0437\u043e\u0440",
+    sectionPeople: "\u041f\u0435\u0440\u0441\u043e\u043d\u0430\u043b",
+    sectionSites: "\u0421\u0442\u0430\u043d\u0446\u0438\u0438",
+    sectionIntegrity: "\u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u044c",
     sectionAnalysis: "Аналитика",
     sectionAdmin: "Администрирование",
     dashboard: "Панель управления",
@@ -239,6 +243,11 @@ export const ru: Dictionary = {
   },
 
   operators: {
+    all: "\u0412\u0441\u0435",
+    onDuty: "\u041d\u0430 \u0441\u043c\u0435\u043d\u0435",
+    perHour: "\u0412 \u0447\u0430\u0441",
+    sales: "\u041f\u0440\u043e\u0434\u0430\u0436\u0438",
+    profileHint: "\u041e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 \u0438\u043c\u044f \u2014 \u0447\u0430\u0441\u044b, \u043f\u0440\u043e\u0434\u0430\u0436\u0438, \u0431\u0430\u043b\u043b.",
     title: "Операторы",
     description:
       "Каждый оператор на смене — производительность и риск с первого взгляда.",

@@ -9,6 +9,8 @@ import {
   type Filters,
   type HourlyPoint,
   type OperatorMetrics,
+  type RiskLevel,
+  RISK_LEVELS,
   type Shift,
   SHIFTS,
 } from "@/lib/analytics"
@@ -319,11 +321,13 @@ async function resolveFilters(
   const station = single(searchParams.station)
   const department = single(searchParams.department)
   const shift = single(searchParams.shift) as Shift | undefined
+  const risk = single(searchParams.risk) as RiskLevel | undefined
 
   return {
     station: station && stations.has(station) ? station : null,
     department: department && departments.has(department) ? department : null,
     shift: shift && SHIFTS.includes(shift) ? shift : null,
+    risk: risk && RISK_LEVELS.includes(risk) ? risk : null,
   }
 }
 

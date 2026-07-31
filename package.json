@@ -29,7 +29,8 @@
     "verify:board": "tsx --conditions=react-server --env-file=.env.local scripts/verify-board-pack.ts",
     "verify:nav": "tsx --conditions=react-server --env-file=.env.local scripts/verify-navigation.ts",
     "verify:status": "tsx scripts/verify-dashboard-status.ts",
-    "verify:overview": "tsx --conditions=react-server --env-file=.env.local scripts/verify-overview-live.ts"
+    "verify:overview": "tsx --conditions=react-server --env-file=.env.local scripts/verify-overview-live.ts",
+    "verify:operators": "tsx --conditions=react-server --env-file=.env.local scripts/verify-operators-live.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

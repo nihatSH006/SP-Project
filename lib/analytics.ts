@@ -112,6 +112,8 @@ export type Filters = {
   station: string | null
   department: string | null
   shift: Shift | null
+  /** Risk band, so "2 high-risk operators" can link straight to those two. */
+  risk: RiskLevel | null
 }
 
 const round = (value: number, digits = 0) => {
@@ -244,12 +246,13 @@ export function buildOperatorReports(
 
 export function applyFilters<T extends OperatorMetrics>(
   reports: T[],
-  { station, department, shift }: Filters
+  { station, department, shift, risk }: Filters
 ): T[] {
   let out = reports
   if (station) out = out.filter((r) => r.station === station)
   if (department) out = out.filter((r) => r.department === department)
   if (shift) out = out.filter((r) => r.shift === shift)
+  if (risk) out = out.filter((r) => r.risk === risk)
   return out
 }
 
