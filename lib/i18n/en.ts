@@ -15,6 +15,7 @@ export const en = {
   },
 
   nav: {
+    wall: "Office screen",
     sectionOverview: "Overview",
     sectionPeople: "People",
     sectionSites: "Sites",
@@ -540,6 +541,26 @@ export const en = {
     noWarnings: "No issues recorded during import.",
     confidential:
       "Confidential. Contains performance and loss-prevention information about named staff.",
+  },
+
+  wall: {
+    title: "Office screen",
+    network: "Network",
+    target: "Target",
+    noTarget: "No target set",
+    operators: "on duty",
+    alerts: "flagged",
+    asOf: (time: string) => `Figures as of ${time}`,
+    ageMinutes: (n: number) => `${n} min old`,
+    ageHours: (n: number) => `${n} h old`,
+    ageDays: (n: number) => `${n} d old`,
+    ageUnknown: "Import time not recorded",
+    notLive:
+      "Updated once per daily import \u2014 not a live feed.",
+    stale: "Data is out of date",
+    refreshed: (time: string) => `Screen refreshed ${time}`,
+    open: "Office screen",
+    exit: "Exit",
   },
 
   alerts: {

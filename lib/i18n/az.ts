@@ -9,6 +9,7 @@ export const az: Dictionary = {
   },
 
   nav: {
+    wall: "Ofis ekranı",
     sectionOverview: "\u00dcmumi",
     sectionPeople: "\u018fm\u0259kda\u015flar",
     sectionSites: "Stansiyalar",
@@ -538,6 +539,26 @@ export const az: Dictionary = {
     noWarnings: "Y\u00fckl\u0259m\u0259 zaman\u0131 problem qeyd\u0259 al\u0131nmay\u0131b.",
     confidential:
       "M\u0259xfidir. Ad\u0131 \u00e7\u0259kil\u0259n \u0259m\u0259kda\u015flar haqq\u0131nda m\u0259lumat ehtiva edir.",
+  },
+
+  wall: {
+    title: "Ofis ekran\u0131",
+    network: "\u015e\u0259b\u0259k\u0259",
+    target: "H\u0259d\u0259f",
+    noTarget: "H\u0259d\u0259f yoxdur",
+    operators: "n\u00f6vb\u0259d\u0259",
+    alerts: "i\u015far\u0259l\u0259nmi\u015f",
+    asOf: (time: string) => `M\u0259lumat ${time} vəziyyəti il\u0259`,
+    ageMinutes: (n: number) => `${n} d\u0259q \u0259vv\u0259l`,
+    ageHours: (n: number) => `${n} saat \u0259vv\u0259l`,
+    ageDays: (n: number) => `${n} g\u00fcn \u0259vv\u0259l`,
+    ageUnknown: "Y\u00fckl\u0259m\u0259 vaxt\u0131 qeyd olunmay\u0131b",
+    notLive:
+      "G\u00fcnd\u0259 bir d\u0259f\u0259 y\u00fckl\u0259nir \u2014 canl\u0131 yay\u0131m deyil.",
+    stale: "M\u0259lumat k\u00f6hn\u0259lib",
+    refreshed: (time: string) => `Ekran yenil\u0259ndi ${time}`,
+    open: "Ofis ekran\u0131",
+    exit: "\u00c7\u0131x\u0131\u015f",
   },
 
   alerts: {

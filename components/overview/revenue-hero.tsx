@@ -34,7 +34,10 @@ export function RevenueHero({
           <span className="text-sm text-muted-foreground">
             {t.common.revenue}
           </span>
-          <span className="text-4xl font-semibold tracking-tight tabular-nums md:text-5xl">
+          <span
+            data-metric="network-revenue"
+            className="text-4xl font-semibold tracking-tight tabular-nums md:text-5xl"
+          >
             {money(revenue)}
             <span className="ml-2 text-lg font-normal text-muted-foreground">
               AZN

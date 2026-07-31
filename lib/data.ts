@@ -5,7 +5,6 @@ import { cache } from "react"
 import {
   applyFilters,
   deriveScores,
-  targetForSlice,
   type Filters,
   type HourlyPoint,
   type OperatorMetrics,
@@ -250,22 +249,41 @@ const getRollups = cache(async (): Promise<Rollups> => {
  * Returns null when nothing is configured, so the UI can say so honestly
  * rather than inventing the old self-referential 87%.
  */
-async function targetFor(
-  reports: StoredReport[],
+/**
+ * The daily revenue target for each named station.
+ *
+ * Exported because the wallboard needs targets PER station while the pages
+ * need one total. Deriving both from this single map means the office screen
+ * and the dashboard can never disagree about the same number — the fastest way
+ * to lose a room's trust in a wallboard is for it to contradict the report
+ * someone is holding.
+ *
+ * Manual: the admin's per-station figure, falling back to the default.
+ * Baseline: that station's own trailing average times the configured uplift,
+ * so a quiet station is measured against itself.
+ */
+export async function stationTargetMap(
+  stations: string[],
   settings: Settings,
   date: string | null
-): Promise<number | null> {
-  if (reports.length === 0) return null
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>()
+  if (stations.length === 0) return out
 
   if (settings.targetMode === "manual") {
-    return targetForSlice(reports, settings, stationId)
+    for (const name of stations) {
+      out.set(
+        name,
+        settings.stationDailyTargets[stationId(name)] ??
+          settings.defaultStationDailyTarget
+      )
+    }
+    return out
   }
 
   const rollups = await getRollups()
-  const stations = [...new Set(reports.map((r) => r.station))]
   const BASELINE_DAYS = 14
 
-  let total = 0
   for (const name of stations) {
     const byDate = rollups[stationId(name)] ?? {}
     const past = Object.entries(byDate)
@@ -275,9 +293,24 @@ async function targetFor(
       .map(([, revenue]) => revenue)
     if (past.length === 0) continue
     const average = past.reduce((sum, v) => sum + v, 0) / past.length
-    total += average * settings.baselineUplift
+    out.set(name, average * settings.baselineUplift)
   }
 
+  return out
+}
+
+async function targetFor(
+  reports: StoredReport[],
+  settings: Settings,
+  date: string | null
+): Promise<number | null> {
+  if (reports.length === 0) return null
+
+  const stations = [...new Set(reports.map((r) => r.station))]
+  const targets = await stationTargetMap(stations, settings, date)
+
+  let total = 0
+  for (const value of targets.values()) total += value
   return total > 0 ? total : null
 }
 

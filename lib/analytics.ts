@@ -317,28 +317,12 @@ const emptyRiskCounts = (): Record<RiskLevel, number> => ({
 })
 
 /** Fleet-level KPIs for whatever slice of operators is passed in. */
-/**
- * Sum the per-station daily targets for the stations present in this slice.
- *
- * Returns null when no target basis is available, so the caller can say "no
- * target set" instead of inventing one — the failure mode of the old formula.
+/*
+ * `targetForSlice` used to live here. Its manual-mode rule now sits inside
+ * `stationTargetMap` in lib/data.ts alongside the baseline rule, so the
+ * per-station targets the wall screen shows and the total the dashboard shows
+ * come from one implementation and cannot drift apart.
  */
-export function targetForSlice(
-  reports: OperatorMetrics[],
-  settings: Settings,
-  stationIdOf: (stationName: string) => string
-): number | null {
-  const stations = [...new Set(reports.map((r) => r.station))]
-  if (stations.length === 0) return null
-  if (settings.targetMode !== "manual") return null // baseline handled by caller
-
-  return stations.reduce((sum, name) => {
-    const id = stationIdOf(name)
-    const target =
-      settings.stationDailyTargets[id] ?? settings.defaultStationDailyTarget
-    return sum + target
-  }, 0)
-}
 
 export function summarise(
   reports: OperatorMetrics[],

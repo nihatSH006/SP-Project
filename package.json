@@ -30,7 +30,8 @@
     "verify:nav": "tsx --conditions=react-server --env-file=.env.local scripts/verify-navigation.ts",
     "verify:status": "tsx scripts/verify-dashboard-status.ts",
     "verify:overview": "tsx --conditions=react-server --env-file=.env.local scripts/verify-overview-live.ts",
-    "verify:operators": "tsx --conditions=react-server --env-file=.env.local scripts/verify-operators-live.ts"
+    "verify:operators": "tsx --conditions=react-server --env-file=.env.local scripts/verify-operators-live.ts",
+    "verify:wall": "tsx --conditions=react-server --env-file=.env.local scripts/verify-wall-live.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

@@ -7,6 +7,7 @@ import {
   IconAlertTriangle,
   IconCalendarStats,
   IconChartHistogram,
+  IconDeviceTv,
   IconFileText,
   IconFolders,
   IconBuildingStore,
@@ -45,6 +46,7 @@ const SECTIONS = [
       { key: "dashboard", href: "/", icon: IconLayoutDashboard },
       { key: "breakdown", href: "/breakdown", icon: IconChartHistogram },
       { key: "boardPack", href: "/board-pack", icon: IconFileText },
+      { key: "wall", href: "/wall", icon: IconDeviceTv },
     ],
   },
   {
