@@ -96,8 +96,30 @@ async function main() {
   check("demo mode loads", demoBoard.status === 200, `HTTP ${demoBoard.status}`)
   check(
     "a normal board carries no simulated marker",
-    !/data-simulated="true"/.test(wall.html),
+    !/data-simulated/.test(wall.html),
     "clean by default"
+  )
+  // The visible badge was dropped at the client's request so the board can be
+  // presented from. The attribute is the remaining trace, and it is what makes
+  // a simulated figure identifiable to anyone inspecting the page.
+  check(
+    "demo figures are marked as simulated in the markup",
+    /data-simulated/.test(demoBoard.html),
+    "invisible on screen, present in the DOM"
+  )
+
+  // It should open just short of target so the climb crosses the line while
+  // someone is watching.
+  const demoValue = headline(demoBoard.html)
+  const targetValue = Number(
+    demoBoard.html.match(/data-target="(\d+)"/)?.[1] ?? 0
+  )
+  check(
+    "demo opens at ~95% of target",
+    targetValue > 0 && Math.abs(demoValue / targetValue - 0.95) < 0.01,
+    targetValue > 0
+      ? `${demoValue.toLocaleString("en-US")} of ${targetValue.toLocaleString("en-US")} = ${Math.round((demoValue / targetValue) * 100)}%`
+      : "no target exposed"
   )
 
   console.log("\nThe ticker scales past a screenful")

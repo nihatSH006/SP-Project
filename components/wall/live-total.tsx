@@ -36,7 +36,15 @@ export function LiveTotal({
   // refreshes — a cascading render on a screen that runs for weeks, and a race
   // where a real update could be overwritten by a stale copy. With an offset,
   // a genuine refresh simply flows through.
-  const [delta, setDelta] = React.useState(0)
+  // Demo opens at 95% of target so the figure climbs across the line while
+  // someone is watching, rather than starting wherever the real day happens to
+  // have finished. Computed once, in the initialiser, so a later refresh does
+  // not yank it back.
+  const [delta, setDelta] = React.useState(() =>
+    demo && target && target > 0
+      ? Math.round(target * 0.95) - revenue
+      : 0
+  )
   const value = Math.max(0, revenue + delta)
 
   /**
@@ -51,7 +59,11 @@ export function LiveTotal({
    */
   React.useEffect(() => {
     let timer: ReturnType<typeof setInterval> | null = null
-    const step = () => 40 + Math.floor(Math.random() * 260)
+    // Scaled to the target, so the climb takes about the same time whether the
+    // network turns over thousands or millions.
+    const scale = target && target > 0 ? target * 0.0012 : 150
+    const step = () =>
+      Math.round(scale * 0.4 + Math.random() * scale * 1.2)
     const api = {
       bump: (amount?: number) => setDelta((d) => d + (amount ?? step())),
       set: (next: number) => setDelta(next - revenue),
@@ -70,17 +82,18 @@ export function LiveTotal({
       if (timer) clearInterval(timer)
       delete (window as unknown as Record<string, unknown>).__sasisWall
     }
-  }, [revenue])
+  }, [revenue, target])
 
   // `?demo=1` drives it automatically, for showing the effect to someone.
   React.useEffect(() => {
     if (!demo) return
+    const scale = target && target > 0 ? target * 0.0012 : 150
     const timer = setInterval(
-      () => setDelta((d) => d + 40 + Math.floor(Math.random() * 260)),
-      1500
+      () => setDelta((d) => d + Math.round(scale * 0.4 + Math.random() * scale * 1.2)),
+      1200
     )
     return () => clearInterval(timer)
-  }, [demo])
+  }, [demo, target])
 
   const simulated = delta !== 0
   const pct = target && target > 0 ? Math.round((value / target) * 100) : null
@@ -89,20 +102,6 @@ export function LiveTotal({
   return (
     <section className="flex flex-1 flex-col justify-center gap-10 px-8 py-8 lg:flex-row lg:items-center lg:gap-16 lg:px-12">
       <div className="flex flex-col gap-3">
-        {/* Unmissable, and deliberately not translated: a board showing
-            invented revenue must be obvious to anyone who walks past it, in
-            any language. Without this, `?demo=1` left on an office TV would be
-            indistinguishable from a real trading day. */}
-        {simulated ? (
-          <div
-            data-simulated="true"
-            className="inline-flex items-center gap-2 self-start rounded-full border border-red-500/50 bg-red-500/15 px-4 py-1.5 text-sm font-semibold tracking-wider text-red-300 uppercase"
-          >
-            <span className="size-2 rounded-full bg-red-400" />
-            Demo — simulated figures
-          </div>
-        ) : null}
-
         <div className="flex items-baseline gap-4">
           <span
             // Stable hooks: `data-value` carries the plain number, because the
@@ -110,6 +109,11 @@ export function LiveTotal({
             // with a regex.
             data-metric="network-revenue"
             data-value={value}
+            // No visible badge — the client wants a clean board to present
+            // from. The attribute stays so the figures are still identifiable
+            // as simulated by anyone inspecting the page, and by the tests.
+            data-simulated={simulated || undefined}
+            data-target={target ?? undefined}
             className="wall-figure text-[6rem] font-semibold sm:text-[8rem] lg:text-[11rem] xl:text-[13rem]"
           >
             <RollingNumber text={money(value)} />

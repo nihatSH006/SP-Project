@@ -141,7 +141,20 @@ export function AppSidebar({
                         <SidebarMenuButton
                           tooltip={t.nav[item.key]}
                           isActive={isActive}
-                          render={<Link href={item.href} />}
+                          render={
+                            item.href === "/wall" ? (
+                              // The board fills the screen and has no way back;
+                              // it opens in its own window so the app is still
+                              // there when you are done with it.
+                              <Link
+                                href={item.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              />
+                            ) : (
+                              <Link href={item.href} />
+                            )
+                          }
                         >
                           <item.icon />
                           <span>{t.nav[item.key]}</span>

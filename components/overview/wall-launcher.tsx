@@ -16,6 +16,12 @@ export function WallLauncher({ t }: { t: Dictionary }) {
   return (
     <Link
       href="/wall"
+      // A new window is the point: you drag it onto the second screen and
+      // full-screen it there, while the dashboard stays on the main monitor.
+      // It also matters because the board has no back button — opening it in
+      // place would leave nothing to click to get out of.
+      target="_blank"
+      rel="noopener noreferrer"
       className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-card px-5 py-4 transition-colors hover:border-primary/40 hover:bg-primary/[0.04]"
     >
       <span className="flex items-center gap-4">
