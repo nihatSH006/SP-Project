@@ -212,13 +212,13 @@ async function main() {
   )
 
   console.log("\nIt can be found from the dashboard")
-  // The sidebar links to /wall too, so match the launcher's own wording rather
-  // than any link to the page.
-  const LAUNCHER = /Full-screen board|tam ekran lövhə|Полноэкранное табло/
+  // The dashboard banner was removed at the client's request; the sidebar
+  // entry is now the only way in, so that is what has to hold.
+  const WALL_LINK = /href="\/wall"/
   check(
-    "the overview offers a way to open the screen",
-    LAUNCHER.test(overview.html),
-    "launcher present"
+    "the app offers a way to open the screen",
+    WALL_LINK.test(overview.html),
+    "sidebar entry present"
   )
 
   console.log("\nStill behind authentication")
@@ -244,14 +244,9 @@ async function main() {
   const staff = await signIn("staff@sasis.test", "Sasis-Staff-2026!")
   const staffOverview = await get("/", staff)
   check(
-    "an operator is not offered the launcher",
-    !LAUNCHER.test(staffOverview.html),
-    "hidden for staff"
-  )
-  check(
-    "…nor a sidebar link to it",
-    !/href="\/wall"/.test(staffOverview.html),
-    "no nav entry either"
+    "an operator is offered no way in at all",
+    !WALL_LINK.test(staffOverview.html),
+    "no sidebar entry"
   )
 
   // A station manager's screen must show their station, not the network.
