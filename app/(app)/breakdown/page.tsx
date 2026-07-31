@@ -1,8 +1,15 @@
 import Link from "next/link"
-import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
+import {
+  IconArrowLeft,
+  IconArrowRight,
+  IconBuildingStore,
+  IconCategory,
+  IconCoin,
+} from "@tabler/icons-react"
 
 import { RevenueRankChart, ShiftDonutChart } from "@/components/charts"
 import { Meter } from "@/components/meter"
+import { MiniStat } from "@/components/mini-stat"
 import { PageShell } from "@/components/page-shell"
 import { RiskBadge } from "@/components/risk-badge"
 import { NoMatches } from "@/components/status"
@@ -73,20 +80,26 @@ export default async function BreakdownPage(props: {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Summary
+            <MiniStat
+              icon={IconCoin}
               label={t.breakdown.perOperator}
-              value={`${money(summary.revenue / summary.operators)} AZN`}
+              value={money(summary.revenue / summary.operators)}
+              unit="₼"
             />
-            <Summary
+            <MiniStat
+              icon={IconBuildingStore}
               label={t.breakdown.bestStation}
               value={summary.bestStation ?? "—"}
             />
-            <Summary
+            <MiniStat
+              icon={IconCategory}
               label={t.breakdown.bestDepartment}
               value={summary.bestDepartment ?? "—"}
             />
           </div>
 
+          {/* Four equal cells: the composition questions carry the same
+              weight, and a 2x2 reads as one block rather than a hierarchy. */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
@@ -96,6 +109,7 @@ export default async function BreakdownPage(props: {
                 <RevenueRankChart data={groupRevenue(reports, "station")} />
               </CardContent>
             </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>{t.breakdown.byDepartment}</CardTitle>
@@ -104,9 +118,7 @@ export default async function BreakdownPage(props: {
                 <RevenueRankChart data={groupRevenue(reports, "department")} />
               </CardContent>
             </Card>
-          </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>{t.breakdown.byShift}</CardTitle>
@@ -120,7 +132,7 @@ export default async function BreakdownPage(props: {
               <CardHeader>
                 <CardTitle>{t.breakdown.byRisk}</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4">
+              <CardContent className="flex flex-col justify-center gap-4">
                 {(["LOW", "MEDIUM", "HIGH"] as const).map((level) => (
                   <Meter
                     key={level}
@@ -128,7 +140,11 @@ export default async function BreakdownPage(props: {
                     value={(summary.riskCounts[level] / summary.operators) * 100}
                     display={String(summary.riskCounts[level])}
                     band={
-                      level === "LOW" ? "good" : level === "MEDIUM" ? "warn" : "crit"
+                      level === "LOW"
+                        ? "good"
+                        : level === "MEDIUM"
+                          ? "warn"
+                          : "crit"
                     }
                   />
                 ))}
@@ -192,18 +208,5 @@ export default async function BreakdownPage(props: {
         </>
       )}
     </PageShell>
-  )
-}
-
-function Summary({ label, value }: { label: string; value: string }) {
-  return (
-    <Card size="sm">
-      <CardContent className="flex flex-col gap-0.5 py-1">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <span className="truncate text-lg font-semibold tracking-tight">
-          {value}
-        </span>
-      </CardContent>
-    </Card>
   )
 }

@@ -35,7 +35,9 @@ export function MiniStat({
         {Icon ? <Icon className="size-8 shrink-0 text-primary" /> : null}
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-xs text-muted-foreground">{label}</span>
-          <span className="text-2xl font-semibold tracking-tight tabular-nums">
+          {/* Values are usually short numbers, but "Absheron Highway Station"
+              also lands here on the breakdown page. */}
+          <span className="truncate text-2xl font-semibold tracking-tight tabular-nums">
             {value}
             {unit ? (
               <span className="ml-1 text-sm font-normal text-muted-foreground">

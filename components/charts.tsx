@@ -9,6 +9,7 @@ import {
   CartesianGrid,
   Cell,
   Label,
+  LabelList,
   Pie,
   PieChart,
   XAxis,
@@ -95,6 +96,15 @@ export function HourlyRevenueChart({
 }
 
 /** Horizontal revenue ranking — used for stations and departments. */
+/**
+ * Ranked horizontal bars with the figure printed on each one.
+ *
+ * The value used to live only in the tooltip, which means the exact number is
+ * unavailable on a screen nobody is hovering — a printed board pack, a
+ * screenshot in a deck, or anyone reading over a shoulder. A ranked chart
+ * whose values you have to hover for is a picture of an ordering, not a set
+ * of figures.
+ */
 export function RevenueRankChart({
   data,
   className,
@@ -113,13 +123,10 @@ export function RevenueRankChart({
         margin={{ left: 4, right: 24, top: 4, bottom: 4 }}
       >
         <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-        <XAxis
-          type="number"
-          dataKey="revenue"
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={(value) => money(Number(value))}
-        />
+        {/* The axis goes: with the number on every bar it is one more set of
+            digits saying the same thing. Extra headroom keeps the longest
+            label inside the plot. */}
+        <XAxis type="number" dataKey="revenue" hide domain={[0, "dataMax * 1.18"]} />
         <YAxis
           type="category"
           dataKey="label"
@@ -141,7 +148,16 @@ export function RevenueRankChart({
           fill="var(--color-revenue)"
           radius={6}
           isAnimationActive={false}
-        />
+        >
+          <LabelList
+            dataKey="revenue"
+            position="right"
+            offset={8}
+            className="fill-foreground"
+            fontSize={12}
+            formatter={(value) => money(Number(value ?? 0))}
+          />
+        </Bar>
       </BarChart>
     </ChartContainer>
   )
