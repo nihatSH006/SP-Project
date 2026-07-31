@@ -120,6 +120,12 @@ service cloud.firestore {
       // Scorecards are readable by anyone who can read the station, operators
       // included: knowing how you are being measured is part of being measured
       // fairly.
+      // Rota planning data. No individual appears in it, by construction.
+      match /staffing/{docId} {
+        allow read: if canReadStation(stationId);
+        allow write: if false;
+      }
+
       match /scorecards/{employeeId} {
         allow read: if canReadStation(stationId);
         allow write: if false;
@@ -146,6 +152,11 @@ service cloud.firestore {
     // A manager's case list is read from their own station path, so the
     // collection-group form is restricted to regional roles only.
     match /{path=**}/cases/{caseId} {
+      allow read: if isRegional();
+      allow write: if false;
+    }
+
+    match /{path=**}/staffing/{docId} {
       allow read: if isRegional();
       allow write: if false;
     }

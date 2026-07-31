@@ -23,7 +23,9 @@
     "verify:fraud": "tsx scripts/verify-fraud-rules.ts",
     "verify:cases": "tsx --conditions=react-server --env-file=.env.local scripts/verify-cases-live.ts",
     "verify:fair": "tsx scripts/verify-scorecards.ts",
-    "verify:fair-live": "tsx --conditions=react-server --env-file=.env.local scripts/verify-fair-live.ts"
+    "verify:fair-live": "tsx --conditions=react-server --env-file=.env.local scripts/verify-fair-live.ts",
+    "verify:staffing": "tsx scripts/verify-staffing.ts",
+    "verify:staffing-live": "tsx --conditions=react-server --env-file=.env.local scripts/verify-staffing-live.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

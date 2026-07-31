@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   IconAlertTriangle,
+  IconCalendarStats,
   IconFolders,
   IconBuildingStore,
   IconGasStation,
@@ -36,6 +37,7 @@ const NAV = [
   { key: "leaderboard", href: "/leaderboard", icon: IconTrophy },
   { key: "stations", href: "/stations", icon: IconBuildingStore },
   { key: "alerts", href: "/alerts", icon: IconAlertTriangle },
+  { key: "staffing", href: "/staffing", icon: IconCalendarStats },
   { key: "cases", href: "/cases", icon: IconFolders },
 ] as const
 

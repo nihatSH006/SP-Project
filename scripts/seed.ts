@@ -20,6 +20,11 @@ import { validateImport } from "@/lib/import-validation"
 import { runFraudRules, scoreFraud, summariseOperator, type FraudVerdict } from "@/lib/fraud-rules"
 import { buildFraudInputs } from "@/lib/fraud-context"
 import { buildScorecards, type ScorecardDay } from "@/lib/scorecards"
+import {
+  buildStaffingProfiles,
+  type StaffingDay,
+  type StaffingSale,
+} from "@/lib/staffing"
 import { adminDb, usingEmulators } from "@/lib/firebase/admin"
 import { COLLECTIONS, stationId } from "@/lib/firebase/schema"
 import {
@@ -66,7 +71,7 @@ async function reset(db: Firestore) {
   // `cases` is cleared here because a seed is a full rebuild of a synthetic
   // dataset. A real incremental import MUST NOT do this: a case carries human
   // triage — who owns it, what they concluded — which no importer may discard.
-  for (const group of ["sales", "reports", "roster", "employees", "cases", "scorecards"]) {
+  for (const group of ["sales", "reports", "roster", "employees", "cases", "scorecards", "staffing"]) {
     await deleteCollection(db, db.collectionGroup(group))
     console.log(`    cleared collection group: ${group}`)
   }
@@ -189,6 +194,10 @@ async function main() {
   const verdictsByWorker = new Map<number, { date: string; verdict: FraudVerdict }[]>()
   // Facts the fair leaderboard scores against peers (idea #11).
   const scorecardRows: ScorecardDay[] = []
+  // Coverage vs demand (idea #12). Every hour is attributed to the clock hour
+  // it really was, so a night shift's small hours land on the next day.
+  const staffingShifts: StaffingDay[] = []
+  const staffingSales: StaffingSale[] = []
   let reportCount = 0
   let saleCount = 0
   const reportWrites: Write[] = []
@@ -300,6 +309,23 @@ async function main() {
       })
     }
 
+    for (const att of day.attendance) {
+      const worker = workerById.get(att.employeeId)!
+      staffingShifts.push({
+        entry: att.entry,
+        exit: att.exit,
+        station: worker.station,
+      })
+    }
+    for (const sale of day.sales) {
+      const worker = workerById.get(sale.employeeId)!
+      staffingSales.push({
+        soldAt: sale.soldAt,
+        station: worker.station,
+        amount: sale.amount,
+      })
+    }
+
     day.sales.forEach((sale, index) => {
       const worker = workerById.get(sale.employeeId)!
       saleCount += 1
@@ -399,8 +425,30 @@ async function main() {
   await commitInBatches(db, caseWrites, "cases")
   console.log(`  cases:     ${caseCount} opened for review`)
 
+  const staffingProfiles = buildStaffingProfiles(staffingShifts, staffingSales)
+  const staffingWrites: Write[] = staffingProfiles.map((profile) => (batch) => {
+    batch.set(
+      db
+        .collection(COLLECTIONS.stations)
+        .doc(stationId(profile.station))
+        .collection(COLLECTIONS.staffing)
+        .doc("profile"),
+      {
+        station: profile.station,
+        fromDate: allDates[0],
+        toDate: allDates[allDates.length - 1],
+        median: profile.median,
+        cells: profile.cells,
+        updatedAt: Timestamp.now(),
+      }
+    )
+  })
+
   await commitInBatches(db, scorecardWrites, "scorecards")
   console.log(`  scorecards: ${scorecards.length}`)
+
+  await commitInBatches(db, staffingWrites, "staffing")
+  console.log(`  staffing:  ${staffingProfiles.length} station profiles`)
 
   // ---------------------------------------------------- per-station rollups
   // Station x day revenue totals in one small document, so "target from this

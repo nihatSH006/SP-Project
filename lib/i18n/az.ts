@@ -18,6 +18,7 @@ export const az: Dictionary = {
     alerts: "Xəbərdarlıqlar",
     settings: "Parametrlər",
     cases: "Hallar",
+    staffing: "İşçi sayı",
   },
 
   common: {
@@ -410,6 +411,34 @@ export const az: Dictionary = {
       deadHours:
         "Demək olar ki, gəlir gətirməyən uzun aralıqlar. Adətən sınmış nasos və ya sakit stansiya, oğurluq yox.",
     },
+  },
+
+  staffing: {
+    title: "\u0130\u015f\u00e7i say\u0131 v\u0259 y\u00fckl\u0259nm\u0259",
+    description:
+      "\u018fhat\u0259 il\u0259 t\u0259l\u0259bin uy\u011fun g\u0259ldiyi v\u0259 g\u0259lm\u0259diyi yerl\u0259r. H\u0259ft\u0259nin saatlar\u0131 \u00fczr\u0259 operator-saat\u0131na d\u00fc\u015f\u0259n g\u0259lir.",
+    heatmap: "Operator-saat\u0131na t\u0259l\u0259b",
+    heatmapDesc:
+      "Daha t\u00fcnd r\u0259ng n\u00f6vb\u0259d\u0259ki h\u0259r operatorun daha \u00e7ox i\u015f g\u00f6rd\u00fcy\u00fcn\u00fc bildirir. Bu, n\u0259 q\u0259d\u0259r m\u00fc\u015ft\u0259ri g\u0259ldiyini \u0259ks etdirir, kimins\u0259 n\u0259 q\u0259d\u0259r \u00e7al\u0131\u015fd\u0131\u011f\u0131n\u0131 yox.",
+    networkLabel: "B\u00fct\u00fcn \u015f\u0259b\u0259k\u0259",
+    perOperatorHour: "operator-saat\u0131na",
+    onShift: "n\u00f6vb\u0259d\u0259",
+    noData: "Profil qurmaq \u00fc\u00e7\u00fcn kifay\u0259t q\u0259d\u0259r m\u0259lumat yoxdur.",
+    suggestions: "Diqq\u0259t\u0259 layiq",
+    suggestionsDesc:
+      "Ba\u015fqa g\u00fcnl\u0259rd\u0259ki EYN\u0130 saatdan k\u0259skin f\u0259rql\u0259n\u0259n saatlar. H\u0259ft\u0259lik ortalama il\u0259 m\u00fcqayis\u0259 sad\u0259c\u0259 \u201cgec\u0259l\u0259r sakitdir\u201d dey\u0259rdi \u2014 do\u011frudur, lakin 24 saatl\u0131q stansiya bununla ba\u011fl\u0131 he\u00e7 n\u0259 ed\u0259 bilm\u0259z.",
+    noSuggestions: "\u018fhat\u0259 t\u0259l\u0259b\u0259 uy\u011fundur. D\u0259yi\u015fiklik laz\u0131m deyil.",
+    stretched: "Y\u00fckl\u0259nib",
+    idle: "Art\u0131q \u0259hat\u0259",
+    stretchedDesc: (x: number) => `bu saat \u00fc\u00e7\u00fcn adi s\u0259viyy\u0259nin ${x} misli`,
+    idleDesc: (x: number) => `bu saat \u00fc\u00e7\u00fcn adi s\u0259viyy\u0259nin ${x} misli`,
+    usualAt: (v: number) => `ad\u0259t\u0259n ${v}`,
+    busiest: "\u018fn y\u00fckl\u00fc saat",
+    quietest: "\u018fn sakit saat",
+    median: "Adi s\u0259viyy\u0259",
+    caveat:
+      "\u018fhat\u0259 yaln\u0131z g\u0259lirl\u0259 ba\u011fl\u0131 deyil. Gec\u0259 n\u00f6vb\u0259l\u0259ri t\u0259hl\u00fck\u0259sizlik v\u0259 t\u0259k i\u015fl\u0259m\u0259 qaydalar\u0131na g\u00f6r\u0259 m\u00f6vcuddur v\u0259 bu g\u00f6r\u00fcn\u00fc\u015f onlar haqq\u0131nda he\u00e7 n\u0259 bilmir.",
+    weekdays: ["B.", "B.e.", "\u00c7.a.", "\u00c7.", "C.a.", "C.", "\u015e."],
   },
 
   alerts: {

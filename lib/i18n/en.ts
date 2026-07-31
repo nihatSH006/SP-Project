@@ -24,6 +24,7 @@ export const en = {
     alerts: "Alerts",
     settings: "Settings",
     cases: "Cases",
+    staffing: "Staffing",
   },
 
   common: {
@@ -412,6 +413,34 @@ export const en = {
       deadHours:
         "Long stretches taking almost nothing. Usually a broken pump or a quiet forecourt, not theft.",
     },
+  },
+
+  staffing: {
+    title: "Staffing vs busyness",
+    description:
+      "Where cover and demand line up, and where they do not. Revenue per operator-hour, by hour of the week.",
+    heatmap: "Demand per operator-hour",
+    heatmapDesc:
+      "Darker means each operator on shift handled more. It reflects how many customers arrived, not how hard anyone worked.",
+    networkLabel: "Whole network",
+    perOperatorHour: "per operator-hour",
+    onShift: "on shift",
+    noData: "Not enough coverage recorded to build a profile yet.",
+    suggestions: "Worth a look",
+    suggestionsDesc:
+      "Hours that are out of line with the SAME hour on other days. Comparing them against the weekly average would just report that nights are quiet \u2014 true, and not something a 24-hour forecourt can act on.",
+    noSuggestions: "Cover matches demand across the week. Nothing to change.",
+    stretched: "Stretched",
+    idle: "Over-covered",
+    stretchedDesc: (x: number) => `${x}x the usual rate for this hour`,
+    idleDesc: (x: number) => `${x}x the usual rate for this hour`,
+    usualAt: (v: number) => `usually ${v}`,
+    busiest: "Busiest hour",
+    quietest: "Quietest hour",
+    median: "Typical rate",
+    caveat:
+      "Cover is not only about takings. Night shifts exist for safety and single-manning rules, and this view knows nothing about either.",
+    weekdays: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
   },
 
   alerts: {

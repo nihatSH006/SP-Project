@@ -172,6 +172,29 @@ export type ScorecardDoc = {
   updatedAt: Timestamp
 }
 
+/**
+ * Coverage-vs-demand grid for one station (idea #12).
+ * Path: /stations/{stationId}/staffing/profile
+ *
+ * 168 cells — one per weekday x hour — computed at import time from every
+ * shift and sale in the window.
+ */
+export type StaffingDoc = {
+  station: string
+  fromDate: string
+  toDate: string
+  median: number
+  cells: {
+    weekday: number
+    hour: number
+    revenue: number
+    operatorHours: number
+    perOperatorHour: number
+    avgOperators: number
+  }[]
+  updatedAt: Timestamp
+}
+
 export type SaleDoc = {
   date: string
   employeeId: number
@@ -216,6 +239,7 @@ export const COLLECTIONS = {
   reports: "reports",
   cases: "cases",
   scorecards: "scorecards",
+  staffing: "staffing",
   sales: "sales",
   users: "users",
   settings: "settings",
