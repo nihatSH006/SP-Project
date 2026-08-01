@@ -46,10 +46,12 @@ async function signIn(email: string, password: string): Promise<string> {
 
 /** Largest AZN figure on the page — the headline revenue. */
 function headlineRevenue(html: string): number {
-  const numbers = Array.from(html.matchAll(/([\d,]{5,})\s*AZN/g)).map((m) =>
-    Number(m[1].replace(/,/g, ""))
-  )
-  return numbers.length ? Math.max(...numbers) : 0
+  // Read from a tagged attribute rather than the rendered text. The previous
+  // version matched the largest number followed by "AZN", which returned 0
+  // the moment the currency became the manat sign — and 0 === 0 would have
+  // passed the comparison as a match.
+  const m = html.match(/data-metric="pack-revenue"[^>]*data-value="([\d.]+)"/)
+  return m ? Math.round(Number(m[1])) : 0
 }
 
 async function main() {
@@ -69,20 +71,31 @@ async function main() {
   check("there is a print control", /Save as PDF|PDF kimi saxla|Сохранить в PDF/.test(admin.html))
 
   console.log("\nIt states its own data quality")
+  // The period the pack covers is stated, because it is now chosen rather than
+  // implied. Every figure below it is computed from exactly these dates.
   check(
-    "the data-quality section is present",
-    /Data quality|Məlumat keyfiyyəti|Качество данных/.test(admin.html)
+    "the period is stated on the pack",
+    // React puts comment markers between adjacent expressions, so the two
+    // dates are not textually adjacent in the markup.
+    /2026-\d{2}-\d{2}(?:<!--[^>]*-->|\s|→)+2026-\d{2}-\d{2}/.test(admin.html),
+    "from → to"
   )
+  // Completeness now means "no GAP inside the chosen period" rather than "a
+  // whole calendar month". A contiguous run must not be flagged as partial —
+  // the old wording called 3–30 July incomplete because July has 31 days,
+  // which said nothing about the data.
   check(
-    "completeness of the month is declared",
-    /days imported|yüklənib|дней/.test(admin.html)
+    "a contiguous period is not reported as partial",
+    !/days imported|yüklənib|дней/.test(admin.html),
+    "3–30 July has no missing days"
   )
-  // The pack covers 3–30 July, so the month is partial and must say so rather
-  // than presenting the totals as a full month.
+  // The card is for import problems only. A section that reports "no issues"
+  // on every clean month is one people learn to skip — and then they skip it
+  // on the month it matters.
   check(
-    "a partial month is labelled as partial, not shown as whole",
-    /Partial month|Natamam ay|Неполный месяц/.test(admin.html),
-    "the seeded window is 28 of 31 days"
+    "no data-quality card on a clean import",
+    !/Data quality|Məlumat keyfiyyəti|Качество данных/.test(admin.html),
+    "shown only when something was recorded"
   )
 
   console.log("\nFraud figures are framed as proposals, not findings")

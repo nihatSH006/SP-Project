@@ -270,8 +270,81 @@
     padding: 0 !important;
   }
 
+  /* The app shell is built for a viewport: the sidebar wrapper is min-h-svh
+     and SidebarInset carries overflow-hidden. On paper that clips the document
+     to a single sheet — the reason the pack used to stop mid-section. Printing
+     needs the content to flow, so every ancestor is released. */
+  html,
+  body,
+  [data-slot="sidebar-wrapper"],
+  [data-slot="sidebar-inset"],
+  main,
+  main > div {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  /* The page heading duplicates the letterhead, which is already at the top of
+     the printed sheet. */
+  [data-page-heading] {
+    display: none !important;
+  }
+
+  /* Tables are the whole document, so they get the print treatment properly:
+     a header repeated on every sheet, rows that never split across a page
+     break, and rules dark enough to survive a black-and-white printer. */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 10.5pt;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  th {
+    color: #000 !important;
+    font-weight: 600 !important;
+    border-bottom: 1.5px solid #000 !important;
+    padding: 5px 8px !important;
+  }
+
+  td {
+    color: #000 !important;
+    border-bottom: 1px solid #c4c4c8 !important;
+    padding: 5px 8px !important;
+  }
+
+  /* Zebra striping helps the eye track across a wide printed row. */
+  tbody tr:nth-child(even) td {
+    background: #f6f6f7 !important;
+  }
+
+  /*
+   * Browsers draw their own header and footer — the page URL, the date — in
+   * the PAGE MARGIN. There is no CSS that removes them directly, but with no
+   * vertical margin there is nowhere to put them, and Chrome and Edge drop
+   * them. Horizontal margin stays, so text never runs to the paper edge.
+   *
+   * The cost is that the top and bottom margin has to come from the document
+   * instead. `main` supplies it on the first and last sheet; the gap between
+   * cards keeps the middle ones from sitting flush.
+   */
   @page {
-    margin: 14mm;
+    margin: 0 14mm;
+  }
+
+  main {
+    padding-top: 12mm !important;
+    padding-bottom: 12mm !important;
   }
 }
 

@@ -1,36 +1,56 @@
 import "server-only"
 
-import { cache } from "react"
-
 import { getSessionUser, stationScopeFor } from "@/lib/auth"
 import { CLOSED_STATUSES, getCases, type CaseRecord } from "@/lib/cases"
+import {
+  getAvailableDates,
+  getOperatorReports,
+  stationTargetMap,
+} from "@/lib/data"
 import { adminDb } from "@/lib/firebase/admin"
-import { COLLECTIONS, stationId } from "@/lib/firebase/schema"
-import { getScorecards } from "@/lib/scorecards-server"
-import { mostImproved, type Scorecard } from "@/lib/scorecards"
-import { suggestions, type StaffingSuggestion } from "@/lib/staffing"
-import { getNetworkStaffing, getStaffingProfiles } from "@/lib/staffing-server"
+import { COLLECTIONS } from "@/lib/firebase/schema"
+import { daysBetween, resolvePeriod } from "@/lib/period"
+import { getSettings } from "@/lib/settings-server"
+import {
+  buildScorecards,
+  mostImproved,
+  type Scorecard,
+  type ScorecardDay,
+} from "@/lib/scorecards"
 
 /**
- * The monthly board pack (idea #4).
+ * The board pack (idea #4), over a period the reader chooses.
  *
- * Assembled entirely from figures already computed at import time, so
- * producing it costs a handful of document reads rather than a scan of the
- * month's sales.
+ * It used to cover "the latest month", taken from the roll-up document. Making
+ * the period a parameter forced a real change rather than a cosmetic one:
+ * every figure now has to be computed FROM that period. Reading the month
+ * roll-up and pairing it with window-wide scorecards would have produced a
+ * pack whose revenue moved with the date picker while its top performers
+ * silently did not — a report that looks responsive and is quietly wrong in
+ * half its sections.
  *
- * The section that matters most is `dataHealth`. A board pack that does not
- * state how complete and how trustworthy its own inputs are invites decisions
- * taken on numbers nobody checked — and this pack contains fraud figures about
- * named staff, which is the last place for unstated uncertainty.
+ * So it is built from the day reports in range: one cached read per day rather
+ * than a single roll-up. That is the price of every section meaning the same
+ * thing.
+ *
+ * `dataHealth` remains the part that matters most. A pack that does not state
+ * how complete its own inputs are invites decisions taken on numbers nobody
+ * checked — and this one names staff in a loss-prevention table.
  */
 
 export type BoardPack = {
-  month: string
   fromDate: string
   toDate: string
+  /** Every operational day available, for the picker. */
+  availableDates: string[]
   scope: string
   generatedAt: number
   revenue: number
+  /**
+   * Each station's daily target times the days it traded IN THIS PERIOD.
+   * Summing a daily figure over a partial period would overstate it.
+   */
+  target: number | null
   transactions: number
   operators: number
   stations: {
@@ -46,129 +66,195 @@ export type BoardPack = {
     confirmed: number
     explained: number
     dismissed: number
-    /** Cases still awaiting a human decision — the board's actual to-do. */
-    outstanding: CaseRecord[]
+    /**
+     * Cases still awaiting a human decision — the board's actual to-do.
+     * `owner` is a person's name, resolved from the account that holds the
+     * case: an email address in a board paper tells a director nothing about
+     * who is dealing with it.
+     */
+    outstanding: (CaseRecord & { owner: string | null })[]
   }
   topPerformers: Scorecard[]
   mostImproved: Scorecard[]
-  staffing: StaffingSuggestion[]
   dataHealth: {
     daysCovered: number
+    /** Days between `fromDate` and `toDate` inclusive. */
     daysExpected: number
-    lastImport: number | null
     warnings: string[]
     complete: boolean
   }
 }
 
-type Rollups = Record<string, Record<string, number>>
 
-/** Days in the month a `YYYY-MM-DD` string belongs to. */
-function daysInMonth(month: string): number {
-  const [year, m] = month.split("-").map(Number)
-  return new Date(year, m, 0).getDate()
-}
-
-export const getBoardPack = cache(async (): Promise<BoardPack | null> => {
+export async function getBoardPack(
+  requestedFrom?: string,
+  requestedTo?: string
+): Promise<BoardPack | null> {
   const user = await getSessionUser()
   if (!user) return null
 
-  const db = adminDb()
+  const availableDates = await getAvailableDates()
+  if (availableDates.length === 0) return null
+
+  const period = resolvePeriod(availableDates, requestedFrom, requestedTo)
+  if (!period) return null
+  const { from, to } = period
+
+  // One cached read per day. The alternative — a single roll-up document —
+  // cannot answer "who performed best in this period", only "in the window the
+  // importer happened to write".
+  const perDay = await Promise.all(
+    period.dates.map((date) => getOperatorReports(date))
+  )
+  const reports = perDay.flat()
+
+  const [cases, settings, warnings] = await Promise.all([
+    getCases(),
+    getSettings(),
+    importWarnings(),
+  ])
+
   const scope = stationScopeFor(user)
 
-  const [rollupDoc, importDoc, cases, scorecards, profiles] =
-    await Promise.all([
-      db.collection(COLLECTIONS.meta).doc("rollups").get(),
-      db.collection(COLLECTIONS.meta).doc("import").get(),
-      getCases(),
-      getScorecards(),
-      getStaffingProfiles(),
-    ])
-
-  const rollups = (rollupDoc.data()?.stationDaily as Rollups | undefined) ?? {}
-  const importMeta = importDoc.data() ?? {}
-
-  // Every date present, newest first; the pack covers the latest whole month
-  // that has data.
-  const allDates = new Set<string>()
-  for (const perDay of Object.values(rollups)) {
-    for (const date of Object.keys(perDay)) allDates.add(date)
-  }
-  const dates = [...allDates].sort()
-  if (dates.length === 0) return null
-
-  const month = dates[dates.length - 1].slice(0, 7)
-  const monthDates = dates.filter((d) => d.startsWith(month))
-
-  // Station scoping is applied to the roll-up too, or a manager's pack would
-  // quietly report the whole network's revenue under their own station's name.
-  const scopeId = scope ? stationId(scope) : null
-
-  const stations: BoardPack["stations"] = []
+  // ---- money, from the reports themselves
   let revenue = 0
-  for (const [id, perDay] of Object.entries(rollups)) {
-    if (scopeId && id !== scopeId) continue
-    const stationRevenue = monthDates.reduce(
-      (sum, date) => sum + (perDay[date] ?? 0),
-      0
-    )
-    if (stationRevenue === 0) continue
-    const days = monthDates.filter((d) => (perDay[d] ?? 0) > 0).length
-    stations.push({
-      station: id,
-      revenue: Math.round(stationRevenue),
-      days,
-      dailyAverage: days > 0 ? Math.round(stationRevenue / days) : 0,
-    })
-    revenue += stationRevenue
-  }
-  stations.sort((a, b) => b.revenue - a.revenue)
+  let transactions = 0
+  const operators = new Set<number>()
+  const byStation = new Map<string, { revenue: number; days: Set<string> }>()
 
-  const network = await getNetworkStaffing(profiles, "Network")
-  const staffingSource = network ?? profiles[0] ?? null
+  for (const r of reports) {
+    revenue += r.revenue
+    transactions += r.salesCount
+    operators.add(r.id)
+    const entry = byStation.get(r.station) ?? { revenue: 0, days: new Set() }
+    entry.revenue += r.revenue
+    entry.days.add(r.date)
+    byStation.set(r.station, entry)
+  }
+
+  const stations = [...byStation.entries()]
+    .map(([station, v]) => ({
+      station,
+      revenue: Math.round(v.revenue),
+      days: v.days.size,
+      dailyAverage: v.days.size > 0 ? Math.round(v.revenue / v.days.size) : 0,
+    }))
+    .sort((a, b) => b.revenue - a.revenue)
+
+  // ---- target, scaled by the days each station actually traded in period
+  let target: number | null = null
+  try {
+    const targets = await stationTargetMap(
+      stations.map((s) => s.station),
+      settings,
+      null
+    )
+    let total = 0
+    for (const row of stations) {
+      total += (targets.get(row.station) ?? 0) * row.days
+    }
+    target = total > 0 ? Math.round(total) : null
+  } catch {
+    target = null
+  }
+
+  // ---- people, computed over the SAME period rather than the import window
+  const rows: ScorecardDay[] = reports.map((r) => ({
+    date: r.date,
+    employeeId: r.id,
+    station: r.station,
+    shift: r.shift,
+    revenue: r.revenue,
+    attendanceScore: r.attendanceScore,
+    productivity: r.productivity,
+  }))
+  const names = new Map(reports.map((r) => [r.id, r.name]))
+  const scorecards = buildScorecards(rows, names)
+
+  // ---- cases whose flagged days fall inside the period
+  const inPeriod = cases
+    .map((c) => {
+      const dates = (c.dates ?? []).filter((d) => d >= from && d <= to)
+      return { ...c, dates, flaggedDays: dates.length }
+    })
+    .filter((c) => c.dates.length > 0)
 
   const byStatus = (status: string) =>
-    cases.filter((c) => c.status === status).length
+    inPeriod.filter((c) => c.status === status).length
 
-  const daysExpected = daysInMonth(month)
-  const warnings = Array.isArray(importMeta.warnings)
-    ? (importMeta.warnings as string[])
-    : []
+  const outstanding = inPeriod.filter(
+    (c) => !CLOSED_STATUSES.includes(c.status)
+  )
+  const emails = [
+    ...new Set(outstanding.map((c) => c.assignedTo).filter(Boolean)),
+  ] as string[]
+
+  // Resolve the handful of owner emails to display names, queried by the
+  // emails actually present rather than reading every user document.
+  const owners = new Map<string, string>()
+  if (emails.length > 0) {
+    try {
+      const snap = await adminDb()
+        .collection(COLLECTIONS.users)
+        // Firestore caps `in` at 30; more open cases than that is a bigger
+        // problem than a board paper's formatting.
+        .where("email", "in", emails.slice(0, 30))
+        .get()
+      for (const doc of snap.docs) {
+        const d = doc.data()
+        if (d.email && d.displayName) owners.set(d.email, d.displayName)
+      }
+    } catch {
+      // Fall back to the raw identifier rather than losing the section.
+    }
+  }
+
+  const expected = daysBetween(from, to)
 
   return {
-    month,
-    fromDate: monthDates[0],
-    toDate: monthDates[monthDates.length - 1],
+    fromDate: from,
+    toDate: to,
+    availableDates,
     scope: scope ?? "",
     // Read at render time, not baked in — a stale "generated on" date on a
     // board pack is worse than none.
     generatedAt: Date.now(),
     revenue: Math.round(revenue),
-    transactions: Number(importMeta.salesRows ?? 0),
-    operators: scorecards.length,
+    target,
+    transactions,
+    operators: operators.size,
     stations,
     cases: {
-      total: cases.length,
+      total: inPeriod.length,
       open: byStatus("open"),
       investigating: byStatus("investigating"),
       confirmed: byStatus("confirmed"),
       explained: byStatus("explained"),
       dismissed: byStatus("dismissed"),
-      outstanding: cases.filter((c) => !CLOSED_STATUSES.includes(c.status)),
+      outstanding: outstanding.map((c) => ({
+        ...c,
+        owner: c.assignedTo ? (owners.get(c.assignedTo) ?? c.assignedTo) : null,
+      })),
     },
     topPerformers: scorecards.slice(0, 5),
     mostImproved: mostImproved(scorecards, 5),
-    staffing: staffingSource ? suggestions(staffingSource, 5) : [],
     dataHealth: {
-      daysCovered: monthDates.length,
-      daysExpected,
-      lastImport:
-        typeof importMeta.at?.toMillis === "function"
-          ? importMeta.at.toMillis()
-          : null,
+      daysCovered: period.dates.length,
+      daysExpected: expected,
       warnings,
-      complete: monthDates.length >= daysExpected,
+      // Every day between the endpoints has data. This catches a GAP: a period
+      // missing four days reads as a weak period, not an incomplete one.
+      complete: period.dates.length >= expected,
     },
   }
-})
+}
 
+async function importWarnings(): Promise<string[]> {
+  try {
+    const doc = await adminDb().collection(COLLECTIONS.meta).doc("import").get()
+    const warnings = doc.data()?.warnings
+    return Array.isArray(warnings) ? (warnings as string[]) : []
+  } catch {
+    return []
+  }
+}

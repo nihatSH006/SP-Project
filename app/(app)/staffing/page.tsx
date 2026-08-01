@@ -1,16 +1,18 @@
 import {
   IconAlertTriangle,
+  IconGauge,
+  IconTrendingDown,
+  IconTrendingUp,
   IconInfoCircle,
   IconMoonStars,
-  IconZzz,
 } from "@tabler/icons-react"
 
 import { PageShell } from "@/components/page-shell"
 import { StaffingHeatmap } from "@/components/staffing-heatmap"
-import { StatTile } from "@/components/stat-tile"
-import { Badge } from "@/components/ui/badge"
+import { MiniStat } from "@/components/mini-stat"
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -27,6 +29,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { getT } from "@/lib/i18n/server"
 import { money } from "@/lib/format"
+import { cn } from "@/lib/utils"
 import { suggestions } from "@/lib/staffing"
 import { getNetworkStaffing, getStaffingProfiles } from "@/lib/staffing-server"
 
@@ -87,37 +90,28 @@ export default async function StaffingPage(props: {
       </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <StatTile
+          <MiniStat
+            icon={IconGauge}
             label={t.staffing.median}
             value={money(profile.median)}
-            caption={t.staffing.perOperatorHour}
+            unit="₼/h"
           />
-          <StatTile
+          <MiniStat
+            icon={IconAlertTriangle}
             label={t.staffing.busiest}
             value={
               profile.busiestCell
                 ? `${weekday(profile.busiestCell.weekday)} ${clock(profile.busiestCell.hour)}`
                 : "—"
             }
-            icon={IconAlertTriangle}
-            caption={
-              profile.busiestCell
-                ? `${money(profile.busiestCell.perOperatorHour)} ${t.staffing.perOperatorHour}`
-                : undefined
-            }
           />
-          <StatTile
+          <MiniStat
+            icon={IconMoonStars}
             label={t.staffing.quietest}
             value={
               profile.quietestCell
                 ? `${weekday(profile.quietestCell.weekday)} ${clock(profile.quietestCell.hour)}`
                 : "—"
-            }
-            icon={IconMoonStars}
-            caption={
-              profile.quietestCell
-                ? `${money(profile.quietestCell.perOperatorHour)} ${t.staffing.perOperatorHour}`
-                : undefined
             }
           />
         </div>
@@ -125,10 +119,28 @@ export default async function StaffingPage(props: {
         <Card>
           <CardHeader>
             <CardTitle>{t.staffing.heatmap}</CardTitle>
-            <CardDescription>{t.staffing.heatmapDesc}</CardDescription>
+            <CardAction>
+              {/* A scale shows what the shading means in three words; the
+                  paragraph it replaces took thirty. */}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{t.staffing.legendLow}</span>
+                <span className="flex gap-0.5">
+                  {[12, 34, 56, 78, 100].map((step) => (
+                    <span
+                      key={step}
+                      className="size-3 rounded-[3px]"
+                      style={{
+                        backgroundColor: `color-mix(in oklab, var(--color-primary) ${step}%, transparent)`,
+                      }}
+                    />
+                  ))}
+                </span>
+                <span>{t.staffing.legendHigh}</span>
+              </div>
+            </CardAction>
           </CardHeader>
           <CardContent>
-            <StaffingHeatmap profile={profile} t={t} />
+            <StaffingHeatmap profile={profile} />
           </CardContent>
         </Card>
 
@@ -145,39 +157,49 @@ export default async function StaffingPage(props: {
                 {t.staffing.noSuggestions}
               </EmptyDescription>
             ) : (
+              /* One line each: when, which way, by how much. The previous
+                 row carried the rate, the baseline and the headcount under the
+                 time — three numbers to compare before you knew whether the
+                 hour was busy or quiet. The arrow says which way at a glance
+                 and the multiple says how far. */
               <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                {flagged.map((s) => (
-                  <div
-                    key={`${s.weekday}-${s.hour}`}
-                    className={
-                      s.kind === "stretched"
-                        ? "flex items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2"
-                        : "flex items-center justify-between gap-3 rounded-xl border border-sky-500/25 bg-sky-500/[0.06] px-3 py-2"
-                    }
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        {s.kind === "stretched" ? (
-                          <IconAlertTriangle className="size-4 text-amber-400" />
-                        ) : (
-                          <IconZzz className="size-4 text-sky-400" />
+                {flagged.map((s) => {
+                  const stretched = s.kind === "stretched"
+                  const Icon = stretched ? IconTrendingUp : IconTrendingDown
+                  return (
+                    <div
+                      key={`${s.weekday}-${s.hour}`}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl border px-3 py-2.5",
+                        stretched
+                          ? "border-amber-500/25 bg-amber-500/[0.06]"
+                          : "border-sky-500/25 bg-sky-500/[0.06]"
+                      )}
+                    >
+                      <Icon
+                        className={cn(
+                          "size-7 shrink-0",
+                          stretched ? "text-amber-400" : "text-sky-400"
                         )}
-                        {weekday(s.weekday)} {clock(s.hour)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {money(s.perOperatorHour)}{" "}
-                        {t.staffing.perOperatorHour} ·{" "}
-                        {t.staffing.usualAt(s.hourBaseline)} · ~
-                        {s.avgOperators} {t.staffing.onShift}
+                      />
+                      <div className="flex min-w-0 flex-col">
+                        <span className="font-medium">
+                          {weekday(s.weekday)} {clock(s.hour)}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-sm",
+                            stretched ? "text-amber-300" : "text-sky-300"
+                          )}
+                        >
+                          {stretched
+                            ? t.staffing.busierBy(s.ratio)
+                            : t.staffing.quieterBy(s.ratio)}
+                        </span>
                       </div>
                     </div>
-                    <Badge variant="outline" className="shrink-0">
-                      {s.kind === "stretched"
-                        ? t.staffing.stretched
-                        : t.staffing.idle}
-                    </Badge>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
             {/* Stated on the page, not just in the code: this view has

@@ -387,7 +387,23 @@ export function summarise(
   }
 }
 
-export function stationReports(reports: OperatorMetrics[]): StationReport[] {
+/**
+ * Per-station aggregates.
+ *
+ * `days` is the number of operational days the rows span. It defaults to 1,
+ * which keeps single-day callers behaving exactly as before, and it matters
+ * for two fields that are otherwise silently wrong over a period:
+ *
+ *   · `employees` counts DISTINCT people. Counting rows gave 8 operators x 28
+ *     days = 224 staff at a station nobody hired.
+ *   · `health` is derived from alerts PER DAY. Raw alert counts accumulate, so
+ *     any station with ten flagged sales across a month would report 0% health
+ *     — a month-long view would paint the whole network as failing.
+ */
+export function stationReports(
+  reports: OperatorMetrics[],
+  days = 1
+): StationReport[] {
   const grouped = new Map<string, OperatorMetrics[]>()
   for (const r of reports) {
     const rows = grouped.get(r.station)
@@ -398,9 +414,10 @@ export function stationReports(reports: OperatorMetrics[]): StationReport[] {
   const out: StationReport[] = []
   for (const [name, rows] of grouped) {
     const alerts = rows.reduce((sum, r) => sum + r.suspicious, 0)
+    const alertsPerDay = alerts / Math.max(1, days)
     out.push({
       name,
-      employees: rows.length,
+      employees: new Set(rows.map((r) => r.id)).size,
       revenue: round(
         rows.reduce((sum, r) => sum + r.revenue, 0),
         2
@@ -415,7 +432,7 @@ export function stationReports(reports: OperatorMetrics[]): StationReport[] {
         rows.reduce((sum, r) => sum + r.attendanceScore, 0) / rows.length,
         1
       ),
-      health: Math.max(0, 100 - alerts * 10),
+      health: Math.max(0, Math.round(100 - alertsPerDay * 10)),
     })
   }
 

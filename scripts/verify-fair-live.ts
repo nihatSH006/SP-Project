@@ -62,24 +62,40 @@ async function main() {
   const rows = Array.from(
     admin.html.matchAll(/href="\/operators\/(\d+)"/g)
   ).map((m) => m[1])
-  check("every operator is ranked", new Set(rows).size >= 60, `${new Set(rows).size} operators`)
+  // The table is paged now, so only the first page renders. What must still
+  // hold is that the ranking covers everyone — stated by the range label
+  // rather than by counting rows.
+  check(
+    "the first page of the ranking renders",
+    new Set(rows).size >= 20,
+    `${new Set(rows).size} links on page one`
+  )
+  const total = Number(
+    admin.html.match(/data-row-total="(\d+)"/)?.[1] ?? 0
+  )
+  check(
+    "the whole roster is still ranked, not just the page",
+    total >= 60,
+    `${total} operators in total`
+  )
 
   check(
     "percentages are shown, not just money",
     /\d+(\.\d+)?%/.test(admin.html),
     "% of expected present"
   )
+  // The explanatory copy — the "why this changed" card, the tier note and the
+  // raw-revenue caveat — was removed at the client's request. Three checks
+  // went with it. What is still checkable on the page is that the ranking
+  // column is a RATIO rather than money: a board that looks like a revenue
+  // ranking but is not would mislead about named staff.
+  //
+  // The fairness of the maths is unaffected and still covered in full by
+  // `npm run verify:fair`.
   check(
-    "the page explains why the ranking changed",
-    /rostered|iş yerinə|место работы/i.test(admin.html)
-  )
-  check(
-    "raw revenue is labelled as context only",
-    /does not affect rank|Sıralamaya təsir etmir|не влияет на рейтинг/i.test(admin.html)
-  )
-  check(
-    "the lowest band is not presented as a verdict",
-    /prompt to ask why|səbəbini soruşmaq|повод выяснить/i.test(admin.html)
+    "the ranking column is a ratio, not raw money",
+    /% of expected|Gözlənilənə nisbətən|% от ожидаемого/i.test(admin.html),
+    "column header states the basis"
   )
 
   console.log("\nA night operator can place")

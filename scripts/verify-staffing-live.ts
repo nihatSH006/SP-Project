@@ -67,9 +67,10 @@ async function main() {
   check("the grid is rendered", cells > 50, `${cells} labelled cells`)
 
   console.log("\nHonesty of the framing")
+  // Same property, shorter wording: "Customers arriving — not effort."
   check(
     "the page says the rate reflects customers, not effort",
-    /not how hard anyone worked|kiminsə nə qədər çalışdığını yox|а не усердие/.test(admin.html)
+    /not effort|səy deyil|не усердие/.test(admin.html)
   )
   check(
     "the night-cover caveat is shown to the user, not just in the code",
@@ -77,9 +78,15 @@ async function main() {
       admin.html
     )
   )
+  // The paragraph explaining why the comparison is same-hour rather than
+  // weekly-average was cut for brevity. The BEHAVIOUR is unchanged and still
+  // covered by the fixture in `npm run verify:staffing`, which proves a
+  // uniformly quiet 03:00 is never flagged. What remains on the page is the
+  // one line that stops someone acting on it wrongly.
   check(
-    "it explains why it does not compare against the weekly average",
-    /nights are quiet|gecələr sakitdir|ночью тихо/.test(admin.html)
+    "the same-hour basis is still stated",
+    /same hour|eyni saatla|тем же часом/i.test(admin.html),
+    "suggestions subtitle"
   )
 
   console.log("\nScoping")

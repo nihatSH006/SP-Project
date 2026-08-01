@@ -163,6 +163,70 @@ export function RevenueRankChart({
   )
 }
 
+/**
+ * The same ranking as columns rather than bars.
+ *
+ * Used where the card is full width: horizontal bars waste that width on
+ * whitespace, while columns use it and put the station names on a baseline
+ * where they read as labels rather than as a list.
+ *
+ * Names are shortened on the axis — every station here ends in "Station", so
+ * printing it eight times is eight repetitions of a word that distinguishes
+ * nothing.
+ */
+export function RevenueColumnChart({
+  data,
+  className,
+}: {
+  data: { label: string; revenue: number }[]
+  className?: string
+}) {
+  return (
+    <ChartContainer
+      config={revenueConfig}
+      className={className ?? "aspect-auto h-80 w-full"}
+    >
+      <BarChart data={data} margin={{ left: 4, right: 4, top: 24, bottom: 4 }}>
+        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+        <XAxis
+          dataKey="label"
+          tickLine={false}
+          axisLine={false}
+          interval={0}
+          tickMargin={8}
+          tickFormatter={(value: string) =>
+            String(value).replace(/\s*Station$/i, "")
+          }
+        />
+        {/* No y-axis: the figure is printed on each column, so a scale down
+            the side is a second set of numbers saying the same thing. */}
+        <YAxis hide domain={[0, "dataMax * 1.15"]} />
+        <ChartTooltip
+          cursor={false}
+          content={
+            <ChartTooltipContent formatter={(value) => `${money(Number(value))} ₼`} />
+          }
+        />
+        <Bar
+          dataKey="revenue"
+          fill="var(--color-revenue)"
+          radius={[6, 6, 0, 0]}
+          isAnimationActive={false}
+        >
+          <LabelList
+            dataKey="revenue"
+            position="top"
+            offset={8}
+            className="fill-foreground"
+            fontSize={12}
+            formatter={(value) => money(Number(value ?? 0))}
+          />
+        </Bar>
+      </BarChart>
+    </ChartContainer>
+  )
+}
+
 const shiftConfig = {
   operators: { label: "Operators" },
   Morning: { label: "Morning", color: "var(--chart-1)" },

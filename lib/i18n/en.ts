@@ -35,6 +35,8 @@ export const en = {
   },
 
   common: {
+    previousPage: "Previous",
+    nextPage: "Next",
     revenue: "Revenue",
     transactions: "Transactions",
     operators: "Operators",
@@ -250,6 +252,9 @@ export const en = {
   },
 
   operators: {
+    perPage: (n: number) => `${n} per page`,
+    showingRange: (from: number, to: number, total: number) =>
+      `${from}–${to} of ${total}`,
     all: "All",
     onDuty: "On duty",
     perHour: "Per hour",
@@ -319,30 +324,19 @@ export const en = {
     title: "Performance leaderboard",
     description: "Operators ranked by revenue, then productivity.",
     revenueChampion: "Revenue champion",
-    revenueChampionDesc: "Highest revenue in the slice",
     productivityChampion: "Productivity champion",
-    productivityChampionDesc: "Most AZN per working hour",
     attendanceChampion: "Attendance champion",
-    attendanceChampionDesc: "Best shift-hours compliance",
     completeRanking: "Complete ranking",
     allOperators: (n: number) => `All ${n} operators in the current slice`,
     shiftSuffix: (shift: string) => `${shift} shift`,
     fair: {
+      rankBy: "Rank by",
+      improvement: "Improvement",
       title: "Fair ranking",
-      subtitle:
-        "Everyone is measured against what their own station and shift normally takes \u2014 not against the network.",
-      why: "Why this changed",
-      whyBody:
-        "Ranking by revenue measured where someone was rostered, not how they worked. A highway forecourt outsells a regional one every day whatever anyone does, and a night operator could never place at all. Each person is now compared against the median day in their own slot.",
       percentOfExpected: "% of expected",
       expected: "Expected",
       actual: "Actual",
-      overWindow: (n: number) => `over ${n} days`,
-      mostImproved: "Most improved",
-      mostImprovedDesc:
-        "Biggest gain between the first and second half of the window, measured in ratio points \u2014 so improving at a quiet station counts the same as at a busy one.",
       noImproved: "No clear improvement yet in this window.",
-      improvementPoints: (n: number) => `${n > 0 ? "+" : ""}${n} pts`,
       tierLabel: "Band",
       tiers: {
         exceptional: "Exceptional",
@@ -351,9 +345,6 @@ export const en = {
         below: "Below expected",
         "needs-support": "Needs support",
       },
-      tierNote:
-        "Bands describe output against a slot's norm. Below expected is a prompt to ask why \u2014 a broken pump, a new starter, an expectation that is simply wrong \u2014 not a judgement about effort.",
-      rawNote: "Raw revenue is shown for context only. It does not affect rank.",
     },
   },
 
@@ -369,9 +360,6 @@ export const en = {
     monitor: "monitor",
     intervention: "intervention advised",
     bestStation: "Best performing station",
-    bestStationDesc: "Highest revenue in the current slice",
-    viewOperators: "View operators",
-    onDutyCount: (n: number) => `${n} operator${n === 1 ? "" : "s"} on duty`,
     operatorsTransactions: (ops: number, tx: number) =>
       `${ops} operator${ops === 1 ? "" : "s"} · ${tx} transactions`,
     alertsCount: (n: number) => `${n} alert${n === 1 ? "" : "s"}`,
@@ -470,34 +458,40 @@ export const en = {
   },
 
   staffing: {
+    busierBy: (x: number) => `${x}× busier than usual`,
+    quieterBy: (x: number) => `${x}× quieter than usual`,
     title: "Staffing vs busyness",
-    description:
-      "Where cover and demand line up, and where they do not. Revenue per operator-hour, by hour of the week.",
-    heatmap: "Demand per operator-hour",
-    heatmapDesc:
-      "Darker means each operator on shift handled more. It reflects how many customers arrived, not how hard anyone worked.",
+    description: "How busy each hour was per person on shift.",
+    heatmap: "By hour of the week",
+    legendLow: "Quiet",
+    legendHigh: "Busy",
+    legendNote: "Customers arriving \u2014 not effort.",
     networkLabel: "Whole network",
     perOperatorHour: "per operator-hour",
     onShift: "on shift",
     noData: "Not enough coverage recorded to build a profile yet.",
     suggestions: "Worth a look",
-    suggestionsDesc:
-      "Hours that are out of line with the SAME hour on other days. Comparing them against the weekly average would just report that nights are quiet \u2014 true, and not something a 24-hour forecourt can act on.",
+    suggestionsDesc: "Compared with the same hour on other days.",
     noSuggestions: "Cover matches demand across the week. Nothing to change.",
     stretched: "Stretched",
     idle: "Over-covered",
-    stretchedDesc: (x: number) => `${x}x the usual rate for this hour`,
-    idleDesc: (x: number) => `${x}x the usual rate for this hour`,
-    usualAt: (v: number) => `usually ${v}`,
     busiest: "Busiest hour",
     quietest: "Quietest hour",
     median: "Typical rate",
-    caveat:
-      "Cover is not only about takings. Night shifts exist for safety and single-manning rules, and this view knows nothing about either.",
+    caveat: "Night cover is set by safety rules, not takings.",
     weekdays: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
   },
 
   boardPack: {
+    colMetric: "Measure",
+    colValue: "Value",
+    colStatus: "Status",
+    colCases: "Cases",
+    colResult: "% of expected",
+    colOperator: "Operator",
+    colDays: "Flagged days",
+    colOwner: "Handled by",
+    improvedFromTo: "Improvement",
     title: "Monthly board pack",
     description: "One page for the month, ready to print or save as PDF.",
     print: "Print / Save as PDF",
@@ -527,9 +521,6 @@ export const en = {
     topPerformersDesc:
       "Ranked against what their own station and shift normally takes, so the figure reflects how they worked rather than where they were rostered.",
     improved: "Most improved",
-    rota: "Rota",
-    rotaDesc: "Hours out of line with the same hour on other days.",
-    noRota: "Cover matched demand across the week.",
     dataHealth: "Data quality",
     dataHealthDesc:
       "Stated so the figures above can be weighed properly. Numbers whose completeness is not declared invite decisions nobody checked.",

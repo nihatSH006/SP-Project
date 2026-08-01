@@ -167,6 +167,8 @@ export type ScorecardDoc = {
   attendanceAvg: number
   productivityAvg: number
   improvement: number
+  improvedFrom: number
+  improvedTo: number
   hasImprovement: boolean
   tier: string
   updatedAt: Timestamp

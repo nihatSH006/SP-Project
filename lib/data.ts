@@ -15,6 +15,7 @@ import {
 } from "@/lib/analytics"
 import { getSessionUser, stationScopeFor } from "@/lib/auth"
 import { adminDb } from "@/lib/firebase/admin"
+import { resolvePeriod } from "@/lib/period"
 import { getSettings } from "@/lib/settings-server"
 import type { Settings } from "@/lib/settings"
 import { COLLECTIONS, stationId } from "@/lib/firebase/schema"
@@ -361,6 +362,78 @@ async function resolveFilters(
     department: department && departments.has(department) ? department : null,
     shift: shift && SHIFTS.includes(shift) ? shift : null,
     risk: risk && RISK_LEVELS.includes(risk) ? risk : null,
+  }
+}
+
+/**
+ * The same slice, but over a chosen period rather than one day.
+ *
+ * Pages that aggregate across days need every day's reports; `getSlice` only
+ * ever loads one. Filters and options are resolved exactly as they are there,
+ * so a station or shift chosen in the filter bar narrows the whole period.
+ */
+export async function getPeriodSlice(searchParams: SearchParams) {
+  const dates = await getAvailableDates()
+  const period = resolvePeriod(
+    dates,
+    single(searchParams.from),
+    single(searchParams.to)
+  )
+
+  if (!period) {
+    return {
+      reports: [] as StoredReport[],
+      options: {
+        stations: [],
+        departments: [],
+        shifts: [],
+        dates,
+        selectedDate: null,
+      } as FilterOptions,
+      period: { from: "", to: "", dates: [] },
+      availableDates: dates,
+      target: null as number | null,
+      days: 0,
+    }
+  }
+
+  // One cached read per day.
+  const perDay = await Promise.all(
+    period.dates.map((date) => getOperatorReports(date))
+  )
+  const all = perDay.flat()
+  const filters = await resolveFilters(searchParams, all)
+
+  const options: FilterOptions = {
+    stations: [...new Set(all.map((r) => r.station))].sort(),
+    departments: [...new Set(all.map((r) => r.department))].sort(),
+    shifts: SHIFTS.filter((s) => all.some((r) => r.shift === s)),
+    dates,
+    selectedDate: null,
+  }
+
+  const filtered = applyFilters(all, filters)
+  const settings = await getSettings()
+
+  // Daily targets scaled by the days each station actually traded, so a
+  // partial period is not measured against a whole one.
+  const names = [...new Set(filtered.map((r) => r.station))]
+  const targets = await stationTargetMap(names, settings, null)
+  let total = 0
+  for (const name of names) {
+    const traded = new Set(
+      filtered.filter((r) => r.station === name).map((r) => r.date)
+    ).size
+    total += (targets.get(name) ?? 0) * traded
+  }
+
+  return {
+    reports: filtered,
+    options,
+    period,
+    availableDates: dates,
+    target: total > 0 ? total : null,
+    days: period.dates.length,
   }
 }
 

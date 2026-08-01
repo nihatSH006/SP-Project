@@ -190,7 +190,10 @@ export function FilterBar({ options }: { options: FilterOptions }) {
         </>
       ) : null}
 
-      {dates.length > 0 ? (
+      {/* Hidden when the page works in periods rather than days — `getPeriodSlice`
+          returns a null `selectedDate` to say so. Two date controls on one page
+          is one too many, and this one would have had nothing to select. */}
+      {options.selectedDate !== null && dates.length > 0 ? (
         <div className="ml-auto flex flex-col gap-1.5">
           <Label htmlFor="filter-date" className="text-xs text-muted-foreground">
             {t.common.operationalDay}

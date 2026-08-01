@@ -29,6 +29,8 @@ export const az: Dictionary = {
   },
 
   common: {
+    previousPage: "Əvvəlki",
+    nextPage: "Növbəti",
     revenue: "Gəlir",
     transactions: "Əməliyyatlar",
     operators: "Operatorlar",
@@ -246,6 +248,9 @@ export const az: Dictionary = {
   },
 
   operators: {
+    perPage: (n: number) => `səhifədə ${n}`,
+    showingRange: (from: number, to: number, total: number) =>
+      `${total} nəticədən ${from}–${to}`,
     all: "Ham\u0131s\u0131",
     onDuty: "N\u00f6vb\u0259d\u0259",
     perHour: "Saatl\u0131q",
@@ -317,30 +322,19 @@ export const az: Dictionary = {
     title: "Performans reytinqi",
     description: "Operatorlar gəlirə, sonra məhsuldarlığa görə sıralanıb.",
     revenueChampion: "Gəlir çempionu",
-    revenueChampionDesc: "Kəsimdə ən yüksək gəlir",
     productivityChampion: "Məhsuldarlıq çempionu",
-    productivityChampionDesc: "İş saatı başına ən çox AZN",
     attendanceChampion: "Davamiyyət çempionu",
-    attendanceChampionDesc: "Ən yaxşı növbə saatlarına riayət",
     completeRanking: "Tam sıralama",
     allOperators: (n: number) => `Cari kəsimdə bütün ${n} operator`,
     shiftSuffix: (shift: string) => `${shift} növbəsi`,
     fair: {
+      rankBy: "Sıralama",
+      improvement: "İrəliləyiş",
       title: "\u018fdal\u0259tli reytinq",
-      subtitle:
-        "H\u0259r k\u0259s \u00f6z stansiyas\u0131n\u0131n v\u0259 n\u00f6vb\u0259sinin adi g\u00f6st\u0259ricisi il\u0259 m\u00fcqayis\u0259 olunur \u2014 b\u00fct\u00fcn \u015f\u0259b\u0259k\u0259 il\u0259 yox.",
-      why: "N\u0259 d\u0259yi\u015fdi",
-      whyBody:
-        "G\u0259lir\u0259 g\u00f6r\u0259 s\u0131ralama i\u015f\u0259 deyil, i\u015f yerin\u0259 g\u00f6r\u0259 qiym\u0259t verirdi. Magistral stansiya regional stansiyan\u0131 h\u0259r g\u00fcn \u00fcst\u0259l\u0259yir, gec\u0259 n\u00f6vb\u0259si is\u0259 he\u00e7 vaxt yer ala bilmirdi. \u0130ndi h\u0259r k\u0259s \u00f6z n\u00f6vb\u0259sinin median g\u00fcn\u00fc il\u0259 m\u00fcqayis\u0259 olunur.",
       percentOfExpected: "G\u00f6zl\u0259nil\u0259n\u0259 nisb\u0259t\u0259n %",
       expected: "G\u00f6zl\u0259nil\u0259n",
       actual: "Faktiki",
-      overWindow: (n: number) => `${n} g\u00fcn \u0259rzind\u0259`,
-      mostImproved: "\u018fn \u00e7ox ir\u0259lil\u0259y\u0259nl\u0259r",
-      mostImprovedDesc:
-        "D\u00f6vr\u00fcn birinci v\u0259 ikinci yar\u0131s\u0131 aras\u0131nda \u0259n b\u00f6y\u00fck art\u0131m \u2014 nisb\u0259t bal\u0131 il\u0259 \u00f6l\u00e7\u00fcl\u00fcr, ona g\u00f6r\u0259 sakit stansiyada ir\u0259lil\u0259yi\u015f d\u0259 eyni d\u0259y\u0259r\u0259 malikdir.",
       noImproved: "Bu d\u00f6vrd\u0259 aydın ir\u0259lil\u0259yi\u015f yoxdur.",
-      improvementPoints: (n: number) => `${n > 0 ? "+" : ""}${n} bal`,
       tierLabel: "Kateqoriya",
       tiers: {
         exceptional: "F\u00f6vq\u0259lad\u0259",
@@ -349,9 +343,6 @@ export const az: Dictionary = {
         below: "G\u00f6zl\u0259nil\u0259nd\u0259n a\u015fa\u011f\u0131",
         "needs-support": "D\u0259st\u0259k laz\u0131md\u0131r",
       },
-      tierNote:
-        "Kateqoriyalar n\u00f6vb\u0259nin normas\u0131na g\u00f6r\u0259 n\u0259tic\u0259ni g\u00f6st\u0259rir. \u201cG\u00f6zl\u0259nil\u0259nd\u0259n a\u015fa\u011f\u0131\u201d s\u0259y haqq\u0131nda h\u00f6km deyil \u2014 s\u0259b\u0259bini soru\u015fmaq \u00fc\u00e7\u00fcn i\u015far\u0259dir: s\u0131nm\u0131\u015f nasos, yeni i\u015f\u00e7i v\u0259 ya s\u0259hv g\u00f6zl\u0259nti.",
-      rawNote: "\u00dcmumi g\u0259lir yaln\u0131z kontekst \u00fc\u00e7\u00fcnd\u00fcr. S\u0131ralamaya t\u0259sir etmir.",
     },
   },
 
@@ -367,9 +358,6 @@ export const az: Dictionary = {
     monitor: "nəzarətdə",
     intervention: "müdaxilə tövsiyə olunur",
     bestStation: "Ən yaxşı işləyən stansiya",
-    bestStationDesc: "Cari kəsimdə ən yüksək gəlir",
-    viewOperators: "Operatorlara bax",
-    onDutyCount: (n: number) => `${n} operator növbədə`,
     operatorsTransactions: (ops: number, tx: number) =>
       `${ops} operator · ${tx} əməliyyat`,
     alertsCount: (n: number) => `${n} xəbərdarlıq`,
@@ -468,34 +456,40 @@ export const az: Dictionary = {
   },
 
   staffing: {
+    busierBy: (x: number) => `adi haldan ${x}× yüklü`,
+    quieterBy: (x: number) => `adi haldan ${x}× sakit`,
     title: "\u0130\u015f\u00e7i say\u0131 v\u0259 y\u00fckl\u0259nm\u0259",
-    description:
-      "\u018fhat\u0259 il\u0259 t\u0259l\u0259bin uy\u011fun g\u0259ldiyi v\u0259 g\u0259lm\u0259diyi yerl\u0259r. H\u0259ft\u0259nin saatlar\u0131 \u00fczr\u0259 operator-saat\u0131na d\u00fc\u015f\u0259n g\u0259lir.",
-    heatmap: "Operator-saat\u0131na t\u0259l\u0259b",
-    heatmapDesc:
-      "Daha t\u00fcnd r\u0259ng n\u00f6vb\u0259d\u0259ki h\u0259r operatorun daha \u00e7ox i\u015f g\u00f6rd\u00fcy\u00fcn\u00fc bildirir. Bu, n\u0259 q\u0259d\u0259r m\u00fc\u015ft\u0259ri g\u0259ldiyini \u0259ks etdirir, kimins\u0259 n\u0259 q\u0259d\u0259r \u00e7al\u0131\u015fd\u0131\u011f\u0131n\u0131 yox.",
+    description: "N\u00f6vb\u0259d\u0259ki h\u0259r n\u0259f\u0259r\u0259 g\u00f6r\u0259 saatl\u0131q y\u00fckl\u0259nm\u0259.",
+    heatmap: "H\u0259ft\u0259nin saatlar\u0131 \u00fczr\u0259",
+    legendLow: "Sakit",
+    legendHigh: "Y\u00fckl\u00fc",
+    legendNote: "M\u00fc\u015ft\u0259ri ax\u0131n\u0131 \u2014 s\u0259y deyil.",
     networkLabel: "B\u00fct\u00fcn \u015f\u0259b\u0259k\u0259",
     perOperatorHour: "operator-saat\u0131na",
     onShift: "n\u00f6vb\u0259d\u0259",
     noData: "Profil qurmaq \u00fc\u00e7\u00fcn kifay\u0259t q\u0259d\u0259r m\u0259lumat yoxdur.",
     suggestions: "Diqq\u0259t\u0259 layiq",
-    suggestionsDesc:
-      "Ba\u015fqa g\u00fcnl\u0259rd\u0259ki EYN\u0130 saatdan k\u0259skin f\u0259rql\u0259n\u0259n saatlar. H\u0259ft\u0259lik ortalama il\u0259 m\u00fcqayis\u0259 sad\u0259c\u0259 \u201cgec\u0259l\u0259r sakitdir\u201d dey\u0259rdi \u2014 do\u011frudur, lakin 24 saatl\u0131q stansiya bununla ba\u011fl\u0131 he\u00e7 n\u0259 ed\u0259 bilm\u0259z.",
+    suggestionsDesc: "Ba\u015fqa g\u00fcnl\u0259rd\u0259ki eyni saatla m\u00fcqayis\u0259d\u0259.",
     noSuggestions: "\u018fhat\u0259 t\u0259l\u0259b\u0259 uy\u011fundur. D\u0259yi\u015fiklik laz\u0131m deyil.",
     stretched: "Y\u00fckl\u0259nib",
     idle: "Art\u0131q \u0259hat\u0259",
-    stretchedDesc: (x: number) => `bu saat \u00fc\u00e7\u00fcn adi s\u0259viyy\u0259nin ${x} misli`,
-    idleDesc: (x: number) => `bu saat \u00fc\u00e7\u00fcn adi s\u0259viyy\u0259nin ${x} misli`,
-    usualAt: (v: number) => `ad\u0259t\u0259n ${v}`,
     busiest: "\u018fn y\u00fckl\u00fc saat",
     quietest: "\u018fn sakit saat",
     median: "Adi s\u0259viyy\u0259",
-    caveat:
-      "\u018fhat\u0259 yaln\u0131z g\u0259lirl\u0259 ba\u011fl\u0131 deyil. Gec\u0259 n\u00f6vb\u0259l\u0259ri t\u0259hl\u00fck\u0259sizlik v\u0259 t\u0259k i\u015fl\u0259m\u0259 qaydalar\u0131na g\u00f6r\u0259 m\u00f6vcuddur v\u0259 bu g\u00f6r\u00fcn\u00fc\u015f onlar haqq\u0131nda he\u00e7 n\u0259 bilmir.",
+    caveat: "Gec\u0259 n\u00f6vb\u0259si t\u0259hl\u00fck\u0259sizlik qaydalar\u0131 il\u0259 m\u00fc\u0259yy\u0259n olunur.",
     weekdays: ["B.", "B.e.", "\u00c7.a.", "\u00c7.", "C.a.", "C.", "\u015e."],
   },
 
   boardPack: {
+    colMetric: "Göstərici",
+    colValue: "Dəyər",
+    colStatus: "Status",
+    colCases: "Hallar",
+    colResult: "Gözlənilənə nisbətən %",
+    colOperator: "Operator",
+    colDays: "İşarələnmiş günlər",
+    colOwner: "Məsul şəxs",
+    improvedFromTo: "İrəliləyiş",
     title: "Ayl\u0131q idar\u0259 hey\u0259ti hesabat\u0131",
     description: "Ay \u00fczr\u0259 bir s\u0259hif\u0259 \u2014 \u00e7ap etm\u0259y\u0259 v\u0259 ya PDF kimi saxlamağa haz\u0131rd\u0131r.",
     print: "\u00c7ap et / PDF kimi saxla",
@@ -525,9 +519,6 @@ export const az: Dictionary = {
     topPerformersDesc:
       "\u00d6z stansiyas\u0131n\u0131n v\u0259 n\u00f6vb\u0259sinin adi g\u00f6st\u0259ricisi il\u0259 m\u00fcqayis\u0259 olunur \u2014 yəni r\u0259q\u0259m i\u015f yerini deyil, i\u015fi \u0259ks etdirir.",
     improved: "\u018fn \u00e7ox ir\u0259lil\u0259y\u0259nl\u0259r",
-    rota: "N\u00f6vb\u0259 c\u0259dv\u0259li",
-    rotaDesc: "Ba\u015fqa g\u00fcnl\u0259rd\u0259ki eyni saatdan f\u0259rql\u0259n\u0259n saatlar.",
-    noRota: "\u018fhat\u0259 t\u0259l\u0259b\u0259 uy\u011fun olub.",
     dataHealth: "M\u0259lumat keyfiyy\u0259ti",
     dataHealthDesc:
       "Yuxar\u0131dak\u0131 r\u0259q\u0259ml\u0259ri d\u00fczg\u00fcn qiym\u0259tl\u0259ndirm\u0259k \u00fc\u00e7\u00fcn g\u00f6st\u0259rilir. Taml\u0131\u011f\u0131 bildirilm\u0259y\u0259n r\u0259q\u0259ml\u0259r yoxlan\u0131lmam\u0131\u015f q\u0259rarlara aparır.",

@@ -52,6 +52,15 @@ export type Scorecard = {
    * one — otherwise "most improved" just finds the busiest forecourt again.
    */
   improvement: number
+  /**
+   * The two halves the improvement is the difference between. Stored so the
+   * UI can say "104% -> 132%" rather than "+28 points" — a point is a unit
+   * nobody outside this codebase should have to learn, and writing it as a
+   * percentage instead would be wrong: a rise from 80 to 108 is 28 points but
+   * a 35% increase.
+   */
+  improvedFrom: number
+  improvedTo: number
   /** Null when the window is too short to split in two honestly. */
   hasImprovement: boolean
   tier: Tier
@@ -151,9 +160,13 @@ export function buildScorecards(
     // Improvement needs enough days on both sides to mean anything.
     const hasImprovement = sorted.length >= 8
     let improvement = 0
+    let improvedFrom = 0
+    let improvedTo = 0
     if (hasImprovement) {
       const split = Math.floor(ratios.length / 2)
-      improvement = mean(ratios.slice(split)) - mean(ratios.slice(0, split))
+      improvedFrom = mean(ratios.slice(0, split))
+      improvedTo = mean(ratios.slice(split))
+      improvement = improvedTo - improvedFrom
     }
 
     const percentOfExpected = Math.round(mean(ratios) * 10) / 10
@@ -172,6 +185,8 @@ export function buildScorecards(
       attendanceAvg: Math.round(mean(sorted.map((d) => d.attendanceScore)) * 10) / 10,
       productivityAvg: Math.round(mean(sorted.map((d) => d.productivity)) * 10) / 10,
       improvement: Math.round(improvement * 10) / 10,
+      improvedFrom: Math.round(improvedFrom),
+      improvedTo: Math.round(improvedTo),
       hasImprovement,
       tier: tierFor(percentOfExpected),
     })

@@ -1,19 +1,17 @@
-import Link from "next/link"
 import {
   IconBuildingStore,
   IconCoin,
-  IconGasStation,
   IconGauge,
   IconHeartbeat,
 } from "@tabler/icons-react"
 
-import { RevenueRankChart } from "@/components/charts"
+import { RevenueColumnChart } from "@/components/charts"
 import { Meter } from "@/components/meter"
 import { PageShell } from "@/components/page-shell"
-import { StatTile } from "@/components/stat-tile"
+import { PeriodPicker } from "@/components/period-picker"
+import { MiniStat } from "@/components/mini-stat"
 import { NoMatches, StatusLine } from "@/components/status"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import {
   Card,
   CardAction,
@@ -32,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { groupRevenue, stationReports, summarise } from "@/lib/analytics"
-import { getSlice, type SearchParams } from "@/lib/data"
+import { getPeriodSlice, type SearchParams } from "@/lib/data"
 import { getT } from "@/lib/i18n/server"
 import { bandFor, money } from "@/lib/format"
 
@@ -42,8 +40,11 @@ export default async function StationsPage(props: {
   searchParams: Promise<SearchParams>
 }) {
   const t = await getT()
-  const { reports, options, target } = await getSlice(await props.searchParams)
-  const stations = stationReports(reports)
+  const { reports, options, target, period, availableDates, days } =
+    await getPeriodSlice(await props.searchParams)
+  // `days` matters: without it a month of data reports 224 staff at a station
+  // and 0% health everywhere.
+  const stations = stationReports(reports, days)
   const summary = summarise(reports, target)
 
   const avgHealth =
@@ -59,6 +60,17 @@ export default async function StationsPage(props: {
       options={options}
       title={t.stations.title}
       description={t.stations.description}
+      actions={
+        // Picking the same date on both sides gives a single day, which is why
+        // there is no separate single-day mode.
+        availableDates.length > 0 ? (
+          <PeriodPicker
+            from={period.from}
+            to={period.to}
+            available={availableDates}
+          />
+        ) : null
+      }
     >
       {stations.length === 0 ? (
         <NoMatches
@@ -67,112 +79,45 @@ export default async function StationsPage(props: {
         />
       ) : (
         <>
+          {/* Same tile as the overview and operators pages: one blue glyph,
+              a label and a big number. The captions are gone with the old
+              StatTile — "in the current slice" under a station count, and
+              "per operator working hour" under a figure already labelled
+              per-hour, were restating their own labels. */}
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-            <StatTile
+            <MiniStat
+              icon={IconBuildingStore}
               label={t.common.stations}
               value={stations.length}
-              icon={IconBuildingStore}
-              caption={t.stations.inSlice}
             />
-            <StatTile
+            <MiniStat
+              icon={IconCoin}
               label={t.stations.regionalRevenue}
               value={money(summary.revenue)}
-              unit="AZN"
-              icon={IconCoin}
-              caption={t.operators.transactionsCount(summary.transactions)}
+              unit="₼"
             />
-            <StatTile
+            <MiniStat
+              icon={IconGauge}
               label={t.dashboard.avgProductivity}
               value={money(summary.avgProductivity)}
-              unit="AZN/h"
-              icon={IconGauge}
-              caption={t.stations.perOperatorHour}
+              unit="₼/h"
             />
-            <StatTile
+            <MiniStat
+              icon={IconHeartbeat}
               label={t.stations.avgHealth}
               value={avgHealth}
               unit="%"
-              icon={IconHeartbeat}
-              caption={
-                <StatusLine band={bandFor(avgHealth)}>
-                  {avgHealth >= 90
-                    ? t.stations.stable
-                    : avgHealth >= 75
-                      ? t.stations.monitor
-                      : t.stations.intervention}
-                </StatusLine>
-              }
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t.dashboard.revenueByStation}</CardTitle>
-                <CardDescription>{t.dashboard.totalPerStation}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <RevenueRankChart
-                  data={groupRevenue(reports, "station")}
-                  className="aspect-auto h-72 w-full"
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>{t.stations.bestStation}</CardTitle>
-                <CardDescription>
-                  {t.stations.bestStationDesc}
-                </CardDescription>
-                <CardAction>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    nativeButton={false}
-                    render={
-                      <Link
-                        href={`/operators?station=${encodeURIComponent(stations[0].name)}`}
-                      />
-                    }
-                  >
-                    {t.stations.viewOperators}
-                  </Button>
-                </CardAction>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="flex items-center gap-3">
-                  <span className="btn-3d flex size-11 items-center justify-center rounded-2xl border">
-                    <IconGasStation className="size-5" />
-                  </span>
-                  <div className="flex flex-col">
-                    <span className="text-base font-semibold">
-                      {stations[0].name}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {t.stations.onDutyCount(stations[0].employees)}
-                    </span>
-                  </div>
-                </div>
-                <dl className="flex flex-col gap-2.5">
-                  <Row label={t.common.revenue}>{money(stations[0].revenue)} AZN</Row>
-                  <Row label={t.common.transactions}>{stations[0].transactions}</Row>
-                  <Row label={t.dashboard.avgProductivity}>
-                    {money(stations[0].productivity)} AZN/h
-                  </Row>
-                  <Row label={t.operators.avgAttendance}>{stations[0].attendance}%</Row>
-                </dl>
-                <Meter
-                  label={
-                    <span className="font-medium text-foreground">{t.common.health}</span>
-                  }
-                  value={stations[0].health}
-                  display={`${stations[0].health}%`}
-                  band={bandFor(stations[0].health)}
-                />
-              </CardContent>
-            </Card>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t.dashboard.revenueByStation}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RevenueColumnChart data={groupRevenue(reports, "station")} />
+            </CardContent>
+          </Card>
 
           {/* ------------------------------------ per-station cards */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

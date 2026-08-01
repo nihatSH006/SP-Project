@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button"
 import { useT } from "@/components/i18n-provider"
 
 /**
- * Hands the page to the browser's own print dialogue, which every desktop
- * browser can save as a PDF.
+ * Hands the pack to the browser's print dialog, which also saves it as a PDF.
  *
- * Deliberately not a server-rendered PDF: that would mean shipping a headless
- * browser into production to reproduce a layout the app can already draw. The
- * print stylesheet does the work instead, and the output honours the reader's
- * own paper size and language.
+ * One button, because there is only one thing here: a browser cannot write a
+ * file to disk from a page, so a second "download" button would open this same
+ * dialog and promise something it does not do. The dialog's own destination
+ * picker is where PDF-versus-paper is chosen, and it produces a real,
+ * text-selectable PDF from the print stylesheet.
  */
 export function PrintButton() {
   const t = useT()

@@ -24,6 +24,11 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group"
+import {
+  PageSizeSelect,
+  TablePagination,
+  usePaging,
+} from "@/components/table-pager"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import {
   Table,
@@ -69,6 +74,9 @@ type SortKey =
 
 type Column = { key: SortKey | null; label: string; numeric?: boolean }
 
+const PAGE_SIZES = [50, 100, 150] as const
+
+
 function columnsFor(t: ReturnType<typeof useT>): Column[] {
   return [
     { key: "name", label: t.common.operator },
@@ -89,6 +97,7 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
     key: "revenue",
     desc: true,
   })
+
 
   const visible = React.useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -111,6 +120,9 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
     })
   }, [rows, query, sort])
 
+  const paging = usePaging(visible.length, PAGE_SIZES)
+  const pageRows = visible.slice(paging.start, paging.start + paging.pageSize)
+
   const toggleSort = (key: SortKey) =>
     setSort((current) =>
       current.key === key
@@ -125,29 +137,43 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
           {t.operators.countLabel(visible.length, rows.length)} ·{" "}
           {t.operators.profileHint}
         </p>
-        <InputGroup className="w-full sm:w-72">
-          <InputGroupAddon>
-            <IconSearch />
-          </InputGroupAddon>
-          <InputGroupInput
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t.operators.searchPlaceholder}
-            aria-label={t.common.search}
+        {/* Both controls sit together on the right: they act on the same
+            table, and splitting them across the row made the page-size look
+            like a caption on the count text beside it. */}
+        <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+          <PageSizeSelect
+            value={paging.pageSize}
+            sizes={PAGE_SIZES}
+            onChange={paging.setPageSize}
           />
-          {query ? (
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton
-                size="icon-xs"
-                variant="ghost"
-                aria-label={t.operators.clearSearch}
-                onClick={() => setQuery("")}
-              >
-                <IconX />
-              </InputGroupButton>
+
+          <InputGroup className="w-full sm:w-64">
+            <InputGroupAddon>
+              <IconSearch />
             </InputGroupAddon>
-          ) : null}
-        </InputGroup>
+            <InputGroupInput
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value)
+                paging.reset()
+              }}
+              placeholder={t.operators.searchPlaceholder}
+              aria-label={t.common.search}
+            />
+            {query ? (
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  size="icon-xs"
+                  variant="ghost"
+                  aria-label={t.operators.clearSearch}
+                  onClick={() => setQuery("")}
+                >
+                  <IconX />
+                </InputGroupButton>
+              </InputGroupAddon>
+            ) : null}
+          </InputGroup>
+        </div>
       </div>
 
       {visible.length === 0 ? (
@@ -192,10 +218,10 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visible.map((row, index) => (
+              {pageRows.map((row, index) => (
                 <TableRow key={row.id}>
                   <TableCell className="pl-5 font-mono text-muted-foreground">
-                    {index + 1}
+                    {paging.start + index + 1}
                   </TableCell>
                   <TableCell>
                     <Link
@@ -233,6 +259,15 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       )}
+
+      <TablePagination
+        page={paging.page}
+        totalPages={paging.totalPages}
+        total={visible.length}
+        start={paging.start}
+        pageSize={paging.pageSize}
+        onPage={paging.setPage}
+      />
     </div>
   )
 }
