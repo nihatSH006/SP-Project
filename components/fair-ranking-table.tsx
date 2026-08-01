@@ -69,16 +69,16 @@ const PODIUM_ROW = [
   "bg-zinc-300/[0.05] hover:bg-zinc-300/[0.08]",
   "bg-orange-700/[0.07] hover:bg-orange-700/[0.1]",
 ]
-const MEDAL_TINT = ["text-amber-400", "text-zinc-300", "text-orange-600"]
+const MEDAL_TINT = ["text-amber-600 dark:text-amber-400", "text-zinc-300", "text-orange-600"]
 
 const TIER_STYLE: Record<Tier, string> = {
-  exceptional: "border-emerald-500/35 bg-emerald-500/10 text-emerald-300",
-  strong: "border-sky-500/35 bg-sky-500/10 text-sky-300",
+  exceptional: "border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  strong: "border-sky-500/35 bg-sky-500/10 text-sky-700 dark:text-sky-300",
   expected: "border-border bg-muted/40 text-muted-foreground",
-  below: "border-amber-500/35 bg-amber-500/10 text-amber-300",
+  below: "border-amber-500/35 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   // Not red. This band is a prompt to go and ask why, and colouring it like a
   // fraud alert would tell every manager to read it as one.
-  "needs-support": "border-orange-500/35 bg-orange-500/10 text-orange-300",
+  "needs-support": "border-orange-500/35 bg-orange-500/10 text-orange-700 dark:text-orange-300",
 }
 
 function TierBadge({ tier, t }: { tier: Tier; t: Dictionary }) {
@@ -322,9 +322,9 @@ export function FairRankingTable({ cards }: { cards: Scorecard[] }) {
                       <span
                         className={
                           card.improvement > 0
-                            ? "text-emerald-400"
+                            ? "text-emerald-600 dark:text-emerald-400"
                             : card.improvement < 0
-                              ? "text-amber-400"
+                              ? "text-amber-600 dark:text-amber-400"
                               : ""
                         }
                       >

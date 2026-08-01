@@ -132,7 +132,7 @@ export default async function StationsPage(props: {
                     {station.alerts === 0 ? (
                       <Badge
                         variant="outline"
-                        className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                        className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                       >
                         {t.stations.alertsCount(0)}
                       </Badge>
@@ -145,9 +145,9 @@ export default async function StationsPage(props: {
                 </CardHeader>
                 <CardContent className="flex flex-col gap-3">
                   <dl className="flex flex-col gap-2">
-                    <Row label={t.common.revenue}>{money(station.revenue)} AZN</Row>
+                    <Row label={t.common.revenue}>{money(station.revenue)} ₼</Row>
                     <Row label={t.common.productivity}>
-                      {money(station.productivity)} AZN/h
+                      {money(station.productivity)} ₼/h
                     </Row>
                     <Row label={t.common.attendance}>{station.attendance}%</Row>
                   </dl>
@@ -190,7 +190,7 @@ export default async function StationsPage(props: {
                         {t.operators.revenueAzn}
                       </TableHead>
                       <TableHead className="text-right">{t.common.transactions}</TableHead>
-                      <TableHead className="text-right">AZN/h</TableHead>
+                      <TableHead className="text-right">₼/h</TableHead>
                       <TableHead className="text-right">{t.common.attendance}</TableHead>
                       <TableHead className="text-right">{t.nav.alerts}</TableHead>
                       <TableHead className="w-44 pr-5">{t.common.health}</TableHead>

@@ -338,7 +338,7 @@ export function SettingsForm({
                   min={LIMITS.target.min}
                   max={LIMITS.target.max}
                   step={500}
-                  suffix="AZN"
+                  suffix="₼"
                 />
                 <FieldSeparator />
                 {stations.map((station) => (
@@ -358,7 +358,7 @@ export function SettingsForm({
                     min={LIMITS.target.min}
                     max={LIMITS.target.max}
                     step={500}
-                    suffix="AZN"
+                    suffix="₼"
                   />
                 ))}
               </>
@@ -413,12 +413,12 @@ export function SettingsForm({
       {/* ---------------------------------------------- save bar */}
       <div className="sticky bottom-4 z-10 flex flex-wrap items-center gap-3 rounded-2xl border border-border/60 bg-card/80 p-3 backdrop-blur-xl">
         {dirty ? (
-          <Badge variant="outline" className="gap-1.5 border-amber-500/30 bg-amber-500/10 text-amber-400">
+          <Badge variant="outline" className="gap-1.5 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
             <IconAlertTriangle className="size-3.5" />
             {t.settings.unsaved}
           </Badge>
         ) : (
-          <Badge variant="outline" className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+          <Badge variant="outline" className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
             <IconCheck className="size-3.5" />
             {t.settings.saved}
           </Badge>

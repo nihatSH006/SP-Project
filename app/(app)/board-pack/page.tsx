@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { canCompareStations } from "@/lib/auth"
 import { getBoardPack } from "@/lib/board-pack"
 import { fullTimestamp, money } from "@/lib/format"
 import { getT } from "@/lib/i18n/server"
@@ -43,6 +44,7 @@ export default async function BoardPackPage(props: {
 
   const t = await getT()
   const pack = await getBoardPack(one(params.from), one(params.to))
+  const multiStation = await canCompareStations()
 
   if (!pack) {
     return (
@@ -99,7 +101,7 @@ export default async function BoardPackPage(props: {
         <div className="hidden print:block">
           {/* The wordmark is `currentColor`, so this same asset prints black
               and renders white on the dark screen. */}
-          <SocarLogo className="mb-3 h-10 w-auto text-black" />
+          <SocarLogo className="mb-3 h-10 text-black" />
           <div className="text-xl font-semibold">
             {t.boardPack.title} · {pack.fromDate} → {pack.toDate} ·{" "}
             {pack.scope || t.boardPack.scopeNetwork}
@@ -173,45 +175,49 @@ export default async function BoardPackPage(props: {
           </CardContent>
         </Card>
 
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>{t.boardPack.perStation}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t.boardPack.station}</TableHead>
-                  <TableHead className="text-right">
-                    {t.boardPack.revenue}
-                  </TableHead>
-                  <TableHead className="text-right">{t.boardPack.days}</TableHead>
-                  <TableHead className="text-right">
-                    {t.boardPack.dailyAverage}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pack.stations.map((s) => (
-                  <TableRow key={s.station}>
-                    <TableCell className="capitalize">
-                      {s.station.replace(/-/g, " ")}
-                    </TableCell>
-                    <TableCell className="text-right font-mono tabular-nums">
-                      {money(s.revenue)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono tabular-nums">
-                      {s.days}
-                    </TableCell>
-                    <TableCell className="text-right font-mono tabular-nums">
-                      {money(s.dailyAverage)}
-                    </TableCell>
+        {/* One row per site. A station manager sees only their own, so the
+            comparison has nothing to compare. */}
+        {multiStation ? (
+          <Card className="break-inside-avoid">
+            <CardHeader>
+              <CardTitle>{t.boardPack.perStation}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t.boardPack.station}</TableHead>
+                    <TableHead className="text-right">
+                      {t.boardPack.revenue}
+                    </TableHead>
+                    <TableHead className="text-right">{t.boardPack.days}</TableHead>
+                    <TableHead className="text-right">
+                      {t.boardPack.dailyAverage}
+                    </TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                </TableHeader>
+                <TableBody>
+                  {pack.stations.map((s) => (
+                    <TableRow key={s.station}>
+                      <TableCell className="capitalize">
+                        {s.station.replace(/-/g, " ")}
+                      </TableCell>
+                      <TableCell className="text-right font-mono tabular-nums">
+                        {money(s.revenue)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono tabular-nums">
+                        {s.days}
+                      </TableCell>
+                      <TableCell className="text-right font-mono tabular-nums">
+                        {money(s.dailyAverage)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Card className="break-inside-avoid">
           <CardHeader>
@@ -375,7 +381,7 @@ export default async function BoardPackPage(props: {
                             {c.improvedFrom}%
                           </span>
                           <span className="mx-1 text-muted-foreground">→</span>
-                          <span className="text-emerald-400">
+                          <span className="text-emerald-600 dark:text-emerald-400">
                             {c.improvedTo}%
                           </span>
                         </span>
@@ -422,7 +428,7 @@ export default async function BoardPackPage(props: {
           <Card className="break-inside-avoid border-amber-500/30 bg-amber-500/[0.06]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <IconAlertTriangle className="size-5 text-amber-400" />
+                <IconAlertTriangle className="size-5 text-amber-600 dark:text-amber-400" />
                 {t.boardPack.dataHealth}
               </CardTitle>
               <CardDescription className="print:hidden">{t.boardPack.dataHealthDesc}</CardDescription>

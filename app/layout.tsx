@@ -25,8 +25,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
-  colorScheme: "dark",
+  // Both, so the browser's own chrome follows whichever the visitor picked
+  // rather than staying black behind a light page.
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+  ],
+  colorScheme: "dark light",
 };
 
 export default async function RootLayout({
@@ -39,19 +44,16 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={cn(
-        "dark h-full antialiased font-sans",
-        inter.variable,
-        geistMono.variable
-      )}
+      // No hardcoded `dark` here: next-themes owns the class now, and a
+      // literal one would win over a visitor's choice of light.
+      className={cn("h-full antialiased font-sans", inter.variable, geistMono.variable)}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background">
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
-          forcedTheme="dark"
-          enableSystem={false}
+          enableSystem
           disableTransitionOnChange
         >
           <I18nProvider locale={locale}>

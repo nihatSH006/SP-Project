@@ -198,6 +198,11 @@ async function main() {
   // it really was, so a night shift's small hours land on the next day.
   const staffingShifts: StaffingDay[] = []
   const staffingSales: StaffingSale[] = []
+  // Alert totals, per station and overall. The nav badge needs "how many
+  // alerts are there"; scanning every day's reports on each page load to
+  // answer it would cost ~1,800 documents for one number in a pill.
+  const alertsByStation: Record<string, number> = {}
+  let alertsTotal = 0
   let reportCount = 0
   let saleCount = 0
   const reportWrites: Write[] = []
@@ -254,6 +259,11 @@ async function main() {
             })),
           }
         : null
+
+      alertsTotal += report.suspicious
+      const stationKey = stationId(report.station)
+      alertsByStation[stationKey] =
+        (alertsByStation[stationKey] ?? 0) + report.suspicious
 
       scorecardRows.push({
         date: day.date,
@@ -446,6 +456,13 @@ async function main() {
 
   await commitInBatches(db, scorecardWrites, "scorecards")
   console.log(`  scorecards: ${scorecards.length}`)
+
+  await db.collection(COLLECTIONS.meta).doc("alerts").set({
+    total: alertsTotal,
+    byStation: alertsByStation,
+    updatedAt: Timestamp.now(),
+  })
+  console.log(`  alerts:    ${alertsTotal} across ${days.length} days`)
 
   await commitInBatches(db, staffingWrites, "staffing")
   console.log(`  staffing:  ${staffingProfiles.length} station profiles`)

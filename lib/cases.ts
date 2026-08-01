@@ -52,7 +52,12 @@ export type CaseRecord = {
 
 export type CaseEvent = {
   at: number
+  /** The account that made the change — an email or uid. */
   by: string
+  /** Their display name, resolved for the timeline. */
+  byName: string | null
+  /** Their role, so a reader knows who had the authority. */
+  byRole: string | null
   action: string
   from: string | null
   to: string | null
@@ -137,31 +142,68 @@ export async function getCaseTimeline(
     .limit(50)
     .get()
 
-  return snapshot.docs.map((doc) => {
+  const events = snapshot.docs.map((doc) => {
     const d = doc.data()
     return {
       at: d.at?.toMillis?.() ?? 0,
-      by: d.by ?? "",
-      action: d.action ?? "",
-      from: d.from ?? null,
-      to: d.to ?? null,
-      note: d.note ?? "",
+      by: (d.by ?? "") as string,
+      byName: null as string | null,
+      byRole: null as string | null,
+      action: (d.action ?? "") as string,
+      from: (d.from ?? null) as string | null,
+      to: (d.to ?? null) as string | null,
+      note: (d.note ?? "") as string,
     }
   })
+
+  // Resolve the actors to names and roles. "manager@sasis.test changed this"
+  // tells a reader nothing about who decided or whether they could; a name and
+  // a job title does, and this timeline is the record of an accusation.
+  const emails = [...new Set(events.map((e) => e.by).filter(Boolean))]
+  if (emails.length > 0) {
+    try {
+      const users = await adminDb()
+        .collection(COLLECTIONS.users)
+        .where("email", "in", emails.slice(0, 30))
+        .get()
+      const byEmail = new Map(
+        users.docs.map((d) => [d.data().email as string, d.data()])
+      )
+      for (const event of events) {
+        const profile = byEmail.get(event.by)
+        if (!profile) continue
+        event.byName = (profile.displayName as string) ?? null
+        event.byRole = (profile.role as string) ?? null
+      }
+    } catch {
+      // Fall back to the raw identifier rather than losing the history.
+    }
+  }
+
+  return events
 }
 
 /**
  * Who may change a case.
  *
- * Deliberately NOT the operator's own station staff: a person must not be able
- * to close a case that names them, or one that names a colleague they work
- * beside every day. Managers can triage their own station; only supervisors
- * and admins can record a conclusion.
+ * Operators are excluded outright: a person must not be able to close a case
+ * that names them, or one that names a colleague they work beside every day.
+ *
+ * Station managers CAN conclude, at the client's instruction. The earlier rule
+ * reserved that for supervisors and admins, on the reasoning that a manager
+ * judging their own team has a conflict of interest. That concern is real and
+ * unchanged — what protects against it now is the record rather than the
+ * permission: every conclusion is attributed by name and role in an
+ * append-only timeline, and confirming still requires written reasoning.
  */
 export function canTriageCase(user: SessionUser): boolean {
-  return user.role === "admin" || user.role === "supervisor" || user.role === "manager"
+  return (
+    user.role === "admin" ||
+    user.role === "supervisor" ||
+    user.role === "manager"
+  )
 }
 
 export function canConcludeCase(user: SessionUser): boolean {
-  return user.role === "admin" || user.role === "supervisor"
+  return canTriageCase(user)
 }

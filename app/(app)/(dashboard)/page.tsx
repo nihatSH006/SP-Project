@@ -27,6 +27,7 @@ import {
   summarise,
   toChartSeries,
 } from "@/lib/analytics"
+import { canCompareStations } from "@/lib/auth"
 import { deriveStatus } from "@/lib/dashboard-status"
 import { getSlice, type SearchParams } from "@/lib/data"
 import { getT } from "@/lib/i18n/server"
@@ -51,7 +52,10 @@ export default async function OverviewPage(props: {
   })
 
   const hourlySeries = toChartSeries(mergeHourly(reports.map((r) => r.hourly)))
-  const stationRevenue = groupRevenue(reports, "station")
+  const multiStation = await canCompareStations()
+  const stationRevenue = multiStation
+    ? groupRevenue(reports, "station")
+    : []
 
   return (
     <PageShell
@@ -124,25 +128,29 @@ export default async function OverviewPage(props: {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{t.overview.byStation}</CardTitle>
-              <CardAction>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  nativeButton={false}
-                  render={<Link href="/stations" />}
-                >
-                  {t.overview.seeAll}
-                  <IconArrowRight data-icon="inline-end" />
-                </Button>
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              <RevenueRankChart data={stationRevenue} />
-            </CardContent>
-          </Card>
+          {/* Ranking sites against each other only means something to a
+              regional role; a station manager's chart would be one bar. */}
+          {multiStation ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t.overview.byStation}</CardTitle>
+                <CardAction>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    nativeButton={false}
+                    render={<Link href="/stations" />}
+                  >
+                    {t.overview.seeAll}
+                    <IconArrowRight data-icon="inline-end" />
+                  </Button>
+                </CardAction>
+              </CardHeader>
+              <CardContent>
+                <RevenueRankChart data={stationRevenue} />
+              </CardContent>
+            </Card>
+          ) : null}
         </>
       )}
     </PageShell>

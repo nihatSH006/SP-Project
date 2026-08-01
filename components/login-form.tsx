@@ -6,7 +6,6 @@ import {
   IconAlertTriangle,
   IconEye,
   IconEyeOff,
-  IconGasStation,
   IconLock,
   IconMail,
 } from "@tabler/icons-react"
@@ -14,6 +13,7 @@ import { signInWithEmailAndPassword, signOut } from "firebase/auth"
 
 import { useT } from "@/components/i18n-provider"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { SocarLogo } from "@/components/socar-logo"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -123,11 +123,8 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
     <Card className="w-full max-w-sm">
       <CardHeader>
         <div className="mb-1 flex items-center gap-3">
-          <span className="btn-3d flex size-10 items-center justify-center rounded-xl border">
-            <IconGasStation className="size-5" />
-          </span>
-          <div className="flex flex-col">
-            <span className="font-semibold tracking-tight">{t.brand.name}</span>
+          <div className="flex flex-col gap-1">
+            <SocarLogo className="h-9" />
             <span className="text-xs text-muted-foreground">
               {t.brand.tagline}
             </span>
@@ -200,7 +197,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
             {error ? (
               <div
                 role="alert"
-                className="flex items-start gap-2 rounded-xl border border-red-500/25 bg-red-500/[0.07] px-3 py-2.5 text-sm text-red-400"
+                className="flex items-start gap-2 rounded-xl border border-red-500/25 bg-red-500/[0.07] px-3 py-2.5 text-sm text-red-600 dark:text-red-400"
               >
                 <IconAlertTriangle className="mt-0.5 size-4 shrink-0" />
                 {error}

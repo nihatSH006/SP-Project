@@ -13,7 +13,11 @@ import {
   type Shift,
   SHIFTS,
 } from "@/lib/analytics"
-import { getSessionUser, stationScopeFor } from "@/lib/auth"
+import {
+  canCompareStations,
+  getSessionUser,
+  stationScopeFor,
+} from "@/lib/auth"
 import { adminDb } from "@/lib/firebase/admin"
 import { resolvePeriod } from "@/lib/period"
 import { getSettings } from "@/lib/settings-server"
@@ -352,7 +356,13 @@ async function resolveFilters(
   const stations = new Set(reports.map((r) => r.station))
   const departments = new Set(reports.map((r) => r.department))
 
-  const station = single(searchParams.station)
+  // A pinned account has exactly one station, so `?station=` can only ever
+  // restate the scope it already has or name one it cannot see. Dropping it
+  // outright keeps a hand-edited URL from producing a view the UI never
+  // offers.
+  const station = (await canCompareStations())
+    ? single(searchParams.station)
+    : undefined
   const department = single(searchParams.department)
   const shift = single(searchParams.shift) as Shift | undefined
   const risk = single(searchParams.risk) as RiskLevel | undefined
@@ -364,6 +374,32 @@ async function resolveFilters(
     risk: risk && RISK_LEVELS.includes(risk) ? risk : null,
   }
 }
+
+/**
+ * Total flagged sales the caller can see, across every imported day.
+ *
+ * Read from a single aggregate written at import time. The nav badge used to
+ * show only the latest day's count, which made a month of alerts look like
+ * whatever happened to land on the last date imported — and computing the real
+ * total per request would mean reading every report for a number in a pill.
+ */
+export const getTotalAlerts = cache(async (): Promise<number> => {
+  const user = await getSessionUser()
+  if (!user) return 0
+
+  try {
+    const doc = await adminDb().collection(COLLECTIONS.meta).doc("alerts").get()
+    const data = doc.data()
+    if (!data) return 0
+
+    const scope = stationScopeFor(user)
+    if (!scope) return Number(data.total ?? 0)
+    const byStation = (data.byStation ?? {}) as Record<string, number>
+    return Number(byStation[stationId(scope)] ?? 0)
+  } catch {
+    return 0
+  }
+})
 
 /**
  * The same slice, but over a chosen period rather than one day.
@@ -403,9 +439,12 @@ export async function getPeriodSlice(searchParams: SearchParams) {
   )
   const all = perDay.flat()
   const filters = await resolveFilters(searchParams, all)
+  const multiStation = await canCompareStations()
 
   const options: FilterOptions = {
-    stations: [...new Set(all.map((r) => r.station))].sort(),
+    stations: multiStation
+      ? [...new Set(all.map((r) => r.station))].sort()
+      : [],
     departments: [...new Set(all.map((r) => r.department))].sort(),
     shifts: SHIFTS.filter((s) => all.some((r) => r.shift === s)),
     dates,
@@ -445,9 +484,12 @@ export async function getSlice(searchParams: SearchParams) {
     getAvailableDates(),
   ])
   const filters = await resolveFilters(searchParams, reports)
+  const multiStation = await canCompareStations()
 
   const options: FilterOptions = {
-    stations: [...new Set(reports.map((r) => r.station))].sort(),
+    stations: multiStation
+      ? [...new Set(reports.map((r) => r.station))].sort()
+      : [],
     departments: [...new Set(reports.map((r) => r.department))].sort(),
     shifts: SHIFTS.filter((s) => reports.some((r) => r.shift === s)),
     dates,

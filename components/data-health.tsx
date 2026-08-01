@@ -106,14 +106,14 @@ export async function DataHealth() {
           ) : warnings > 0 ? (
             <Badge
               variant="outline"
-              className="border-amber-500/30 bg-amber-500/10 text-amber-400"
+              className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
             >
               {t.dataHealth.warnings(warnings)}
             </Badge>
           ) : (
             <Badge
               variant="outline"
-              className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+              className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
             >
               <IconCircleCheck />
               {t.dataHealth.clean}
@@ -168,7 +168,7 @@ export async function DataHealth() {
                 >
                   <span
                     className={`flex items-center gap-2 text-sm font-medium ${
-                      isError ? "text-red-400" : "text-amber-400"
+                      isError ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"
                     }`}
                   >
                     {isError ? (

@@ -2,16 +2,13 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import {
   IconArrowLeft,
-  IconCalendarEvent,
   IconDeviceCctv,
   IconHistory,
-  IconUser,
 } from "@tabler/icons-react"
 
 import { CaseStatusBadge, RiskBadge } from "@/components/case-badges"
 import { CaseTriageForm } from "@/components/case-triage-form"
 import { PageShell } from "@/components/page-shell"
-import { StatTile } from "@/components/stat-tile"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,14 +19,13 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import {
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemSeparator,
-  ItemTitle,
-} from "@/components/ui/item"
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Separator } from "@/components/ui/separator"
 import { getSessionUser } from "@/lib/auth"
 import {
@@ -86,33 +82,44 @@ export default async function CaseDetailPage(props: {
         </Button>
       }
     >
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <StatTile
-          label={t.cases.proposed}
-          value={record.proposedRisk}
-          icon={IconUser}
-          caption={t.cases.proposedNote}
-        />
-        <StatTile label={t.cases.score} value={record.score} />
-        <StatTile
-          label={t.cases.flaggedDays}
-          value={record.flaggedDays}
-          icon={IconCalendarEvent}
-        />
-        <StatTile
-          label={t.cases.assignedTo}
-          value={record.assignedTo ?? t.cases.unassigned}
-        />
-      </div>
-
-      <Card className="border-amber-500/25 bg-amber-500/[0.05]">
-        <CardHeader>
-          <CardTitle className="text-amber-300">
-            {t.cases.fairnessTitle}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          {t.cases.fairnessBody}
+      {/* One sentence in plain words. The four tiles this replaces —
+          proposed risk, weighted score, flagged days, owner — were four
+          numbers to assemble into the sentence yourself, and "score 76.8"
+          means nothing to the person deciding. */}
+      <Card>
+        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-lg">
+              {t.cases.summary(
+                record.flaggedDays,
+                Object.keys(record.repeatsByRule)
+                  .map(
+                    (rule) =>
+                      t.cases.rules[
+                        RULE_LABEL_KEY[
+                          rule as FraudRuleId
+                        ] as keyof typeof t.cases.rules
+                      ] ?? rule
+                  )
+                  .join(", ")
+              )}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              {record.fromDate} → {record.toDate} · {t.cases.assignedTo}:{" "}
+              {record.assignedTo ?? t.cases.unassigned}
+            </span>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2">
+              <CaseStatusBadge status={record.status} t={t} />
+              <RiskBadge risk={record.proposedRisk} />
+            </div>
+            {/* The risk badge is the ENGINE's opinion. Unlabelled next to a
+                person's name it reads as a finding, which it is not. */}
+            <span className="text-xs text-muted-foreground">
+              {t.cases.proposedNote}
+            </span>
+          </div>
         </CardContent>
       </Card>
 
@@ -126,98 +133,76 @@ export default async function CaseDetailPage(props: {
             </CardTitle>
             <CardDescription>{t.cases.evidenceDesc}</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-6">
+          <CardContent className="px-0">
             {evidence.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="px-(--card-spacing) text-sm text-muted-foreground">
                 {t.cases.noEvidence}
               </p>
             ) : (
-              evidence.map((day) => (
-                <div key={day.date} className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-medium">{day.date}</h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      nativeButton={false}
-                      render={
-                        <Link href={`/operators/${employeeId}?date=${day.date}`} />
-                      }
-                    >
-                      {t.cases.viewDay}
-                    </Button>
-                  </div>
-                  <ItemGroup>
-                    {day.hits.map((hit, index) => {
-                      const key = RULE_LABEL_KEY[
-                        hit.rule as FraudRuleId
-                      ] as keyof typeof t.cases.rules
-                      return (
-                        <div key={`${day.date}-${hit.rule}`}>
-                          {index > 0 ? <ItemSeparator /> : null}
-                          <Item size="sm" className="px-0" variant="outline">
-                            <ItemMedia
-                              variant="icon"
-                              className="size-9 rounded-xl bg-red-500/10 text-red-400"
-                            >
-                              <IconDeviceCctv />
-                            </ItemMedia>
-                            <ItemContent className="gap-1.5">
-                              <ItemTitle className="flex flex-wrap items-center gap-2">
+              /* One row per finding, flat. The previous layout nested days
+                 inside the card, rules inside days and windows inside rules —
+                 three levels to walk before reaching the times someone came
+                 here for. A table puts the date, the finding and the CCTV
+                 windows on one line. */
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="pl-5">{t.cases.colWhen}</TableHead>
+                      <TableHead>{t.cases.colWhat}</TableHead>
+                      <TableHead>{t.cases.colTimes}</TableHead>
+                      <TableHead className="pr-5 text-right">
+                        {t.cases.colAmounts}
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {evidence.flatMap((day) =>
+                      day.hits.map((hit) => {
+                        const key = RULE_LABEL_KEY[
+                          hit.rule as FraudRuleId
+                        ] as keyof typeof t.cases.rules
+                        return (
+                          <TableRow key={`${day.date}-${hit.rule}`}>
+                            <TableCell className="pl-5 font-mono whitespace-nowrap tabular-nums">
+                              {day.date}
+                            </TableCell>
+                            <TableCell>
+                              <span className="flex items-center gap-2">
                                 {t.cases.rules[key] ?? hit.rule}
                                 <Badge variant="outline">× {hit.count}</Badge>
-                                {hit.overnight ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="border-indigo-500/35 text-indigo-300"
-                                  >
-                                    22:00–06:00
-                                  </Badge>
-                                ) : null}
-                              </ItemTitle>
-                              <ItemDescription>
-                                {t.cases.ruleHelp[key] ?? ""}
-                              </ItemDescription>
-
-                              {/* The windows ARE the deliverable: an
-                                  investigator should never have to work out
-                                  which minutes of footage to pull. */}
-                              <div className="flex flex-wrap gap-1.5 pt-1">
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {/* The windows ARE the deliverable: nobody
+                                  should have to work out which minutes of
+                                  footage to pull. */}
+                              <span className="flex flex-wrap gap-1.5">
                                 {hit.windows.map((w) => (
                                   <span
                                     key={w.from}
-                                    className="rounded-lg bg-muted/60 px-2 py-1 font-mono text-xs"
-                                    title={t.cases.cctvWindow}
+                                    className="rounded-lg bg-muted/60 px-2 py-0.5 font-mono text-xs whitespace-nowrap"
                                   >
                                     {fullTimestamp(new Date(w.from))} →{" "}
                                     {fullTimestamp(new Date(w.to))}
                                   </span>
                                 ))}
-                              </div>
-
-                              {hit.values && hit.values.length > 0 ? (
-                                <p className="pt-1 text-xs text-muted-foreground">
-                                  {t.cases.amounts}:{" "}
-                                  {hit.values
-                                    .map((v) => `${money2(v)} AZN`)
-                                    .join(", ")}
-                                </p>
-                              ) : null}
-                              {hit.baseline !== undefined &&
-                              hit.observed !== undefined ? (
-                                <p className="pt-1 text-xs text-muted-foreground">
-                                  {t.cases.observed}: {money2(hit.observed)} ·{" "}
-                                  {t.cases.baseline}: {money2(hit.baseline)}
-                                </p>
-                              ) : null}
-                            </ItemContent>
-                          </Item>
-                        </div>
-                      )
-                    })}
-                  </ItemGroup>
-                </div>
-              ))
+                              </span>
+                            </TableCell>
+                            <TableCell className="pr-5 text-right font-mono text-sm tabular-nums">
+                              {hit.values && hit.values.length > 0
+                                ? hit.values.map((v) => money2(v)).join(", ")
+                                : hit.observed !== undefined
+                                  ? `${money2(hit.observed)} · ${t.cases.baseline} ${money2(hit.baseline ?? 0)}`
+                                  : "—"}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -267,8 +252,16 @@ export default async function CaseDetailPage(props: {
                 <ol className="flex flex-col gap-3">
                   {timeline.map((event, index) => (
                     <li key={`${event.at}-${index}`} className="text-sm">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium">{event.by}</span>
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        <span className="font-medium">
+                          {event.byName ?? event.by}
+                        </span>
+                        {event.byRole ? (
+                          <span className="text-xs text-muted-foreground">
+                            {t.roles[event.byRole as keyof typeof t.roles] ??
+                              event.byRole}
+                          </span>
+                        ) : null}
                         <span className="text-muted-foreground">
                           {event.from ?? "—"} → {event.to ?? "—"}
                         </span>
@@ -292,6 +285,11 @@ export default async function CaseDetailPage(props: {
           </Card>
         </div>
       </div>
+      {/* One line rather than the amber card that used to sit above the
+          evidence. It still has to be here: this page names a person as
+          suspected of theft, and the patterns above have innocent
+          explanations. */}
+      <p className="text-xs text-muted-foreground">{t.cases.fairnessBody}</p>
     </PageShell>
   )
 }

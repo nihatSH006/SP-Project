@@ -217,10 +217,14 @@ async function main() {
     note: "forged submission from the verification script",
   })
   const afterManager = await statusOf(STATION, managerCaseId)
+  // Station managers may conclude, at the client's instruction. The conflict
+  // of interest in judging your own team is now controlled by the RECORD
+  // rather than by the permission — so what has to hold is that the act is
+  // attributed, not that it is refused.
   check(
-    "a manager cannot confirm fraud by posting the action directly",
-    afterManager !== "confirmed",
-    `status stayed "${afterManager}"`
+    "a station manager can record a conclusion",
+    afterManager === "confirmed",
+    `status became "${afterManager}"`
   )
 
   // (2) POSITIVE CONTROL. Without this, assertion (1) would also "pass" if the
@@ -295,9 +299,31 @@ async function main() {
     entries.map((e) => e.by).join(", ")
   )
   check(
-    "the rejected attempts left no timeline entry",
-    !entries.some((e) => e.to === "confirmed"),
-    "no forged entry recorded"
+    "a conclusion is attributed to whoever made it",
+    entries.some((e) => e.to === "confirmed" && e.by === ACCOUNTS.manager[0]),
+    "manager's confirmation recorded against them"
+  )
+  check(
+    "the cross-station attempt left no trace",
+    !entries.some((e) => e.note?.includes("cross-station")),
+    "refused before it could be written"
+  )
+
+  // The stored `by` is an email; what a reviewer must SEE is a person and a
+  // job. That resolution happens on read, so assert on the read path rather
+  // than on the raw documents above.
+  const { getCaseTimeline } = await import("@/lib/cases")
+  const resolved = await getCaseTimeline(STATION, Number(managerCaseId))
+  const conclusion = resolved.find((e) => e.to === "confirmed")
+  check(
+    "the timeline shows a name, not an email address",
+    conclusion?.byName === "Test Station Manager",
+    `shown as "${conclusion?.byName ?? "(unresolved)"}"`
+  )
+  check(
+    "the timeline shows what authority the person acted under",
+    conclusion?.byRole === "manager",
+    `role "${conclusion?.byRole ?? "(unresolved)"}"`
   )
 
   // Put the case back so the app is left as it was found.

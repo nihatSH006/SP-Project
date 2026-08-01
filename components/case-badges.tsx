@@ -3,12 +3,12 @@ import type { CaseStatus } from "@/lib/case-status"
 import type { Dictionary } from "@/lib/i18n"
 
 const STATUS_STYLE: Record<CaseStatus, string> = {
-  open: "border-amber-500/35 bg-amber-500/10 text-amber-300",
-  investigating: "border-sky-500/35 bg-sky-500/10 text-sky-300",
-  confirmed: "border-red-500/35 bg-red-500/10 text-red-300",
+  open: "border-amber-500/35 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  investigating: "border-sky-500/35 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+  confirmed: "border-red-500/35 bg-red-500/10 text-red-700 dark:text-red-300",
   // Deliberately the same green as a clean result: a case that was explained
   // is a person cleared, and it should read that way at a glance.
-  explained: "border-emerald-500/35 bg-emerald-500/10 text-emerald-300",
+  explained: "border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   dismissed: "border-border bg-muted/40 text-muted-foreground",
 }
 
@@ -42,9 +42,9 @@ export function CaseStatusBadge({
 export function RiskBadge({ risk }: { risk: "LOW" | "MEDIUM" | "HIGH" }) {
   const style =
     risk === "HIGH"
-      ? "border-red-500/35 text-red-300"
+      ? "border-red-500/35 text-red-700 dark:text-red-300"
       : risk === "MEDIUM"
-        ? "border-amber-500/35 text-amber-300"
+        ? "border-amber-500/35 text-amber-700 dark:text-amber-300"
         : "border-border text-muted-foreground"
   return (
     <Badge variant="outline" className={style}>

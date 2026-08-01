@@ -11,7 +11,6 @@ import {
   IconFileText,
   IconFolders,
   IconBuildingStore,
-  IconGasStation,
   IconLayoutDashboard,
   IconSettings,
   IconTrophy,
@@ -19,6 +18,7 @@ import {
 } from "@tabler/icons-react"
 
 import { useT } from "@/components/i18n-provider"
+import { SocarLogo } from "@/components/socar-logo"
 import { Badge } from "@/components/ui/badge"
 import {
   Sidebar,
@@ -76,12 +76,15 @@ export function AppSidebar({
   alertCount,
   isAdmin = false,
   canSeeCases = false,
+  canCompareStations = false,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   alertCount: number
   isAdmin?: boolean
   /** Operators never see the case queue — it names their colleagues. */
   canSeeCases?: boolean
+  /** Station-pinned accounts have one site; there is nothing to compare. */
+  canCompareStations?: boolean
 }) {
   const pathname = usePathname()
   const t = useT()
@@ -91,19 +94,32 @@ export function AppSidebar({
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
+            {/* No bordered tile behind the mark: the flame is already the
+                left third of the wordmark, so boxing a second copy of it
+                beside the first read as two logos fighting.
+
+                The sizes carry `!` because SidebarMenuButton sets
+                `[&_svg]:size-4` on every descendant svg — an element+class
+                selector that out-specifies a plain `h-5 w-auto`, which was
+                squashing a 504x119 wordmark into a 16x16 square. */}
             <SidebarMenuButton
               size="lg"
               tooltip={t.brand.name}
               render={<Link href="/" />}
+              className="h-auto! gap-2.5 py-2.5 hover:bg-transparent active:bg-transparent group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center"
             >
-              <span className="btn-3d flex aspect-square size-8 items-center justify-center rounded-xl border">
-                <IconGasStation className="size-4" />
-              </span>
-              <div className="grid flex-1 text-left leading-tight">
-                <span className="truncate font-semibold tracking-tight">
-                  {t.brand.name}
-                </span>
-                <span className="truncate text-xs text-muted-foreground">
+              {/* Collapsed rail: the flame alone, all that fits. */}
+              <SocarLogo
+                mark
+                className="hidden h-7! shrink-0 group-data-[collapsible=icon]:block"
+              />
+              {/* Expanded: the real wordmark, lettering on `currentColor` so
+                  it is white on the dark theme and dark on the light one. */}
+              {/* `items-start` so the wordmark hugs the left edge instead of
+                  stretching across the column. */}
+              <div className="flex min-w-0 flex-1 flex-col items-start gap-1 group-data-[collapsible=icon]:hidden">
+                <SocarLogo className="h-8!" />
+                <span className="truncate text-[11px] text-muted-foreground">
                   {t.brand.tagline}
                 </span>
               </div>
@@ -119,10 +135,16 @@ export function AppSidebar({
           // Both are gated on the same predicate: an operator has no business
           // knowing a case queue exists, and no reason to put a network board
           // on a wall.
-          const items = section.items.filter(
-            (item) =>
-              (item.href !== "/cases" && item.href !== "/wall") || canSeeCases
-          )
+          const items = section.items.filter((item) => {
+            if (item.href === "/cases" || item.href === "/wall") {
+              return canSeeCases
+            }
+            // The Stations page exists to rank sites against each other. For
+            // a station manager it is a league table of one, so it is not
+            // offered at all rather than shown empty.
+            if (item.href === "/stations") return canCompareStations
+            return true
+          })
           if (items.length === 0) return null
 
           return (
@@ -160,7 +182,9 @@ export function AppSidebar({
                           <span>{t.nav[item.key]}</span>
                         </SidebarMenuButton>
                         {item.href === "/alerts" && alertCount > 0 ? (
-                          <SidebarMenuBadge>
+                          // Readable without parsing nested markup — the
+                          // count is a fact worth being able to check.
+                          <SidebarMenuBadge data-alert-count={alertCount}>
                             <Badge variant="destructive">{alertCount}</Badge>
                           </SidebarMenuBadge>
                         ) : null}
@@ -194,8 +218,21 @@ export function AppSidebar({
         ) : null}
 
         <SidebarGroup className="mt-auto">
-          <SidebarGroupContent>
-            <div className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+          <SidebarGroupContent className="group-data-[collapsible=icon]:hidden">
+            {/* Above the status line, and quieter than it: a credit should be
+                findable, not competing with whether the system is up. */}
+            <a
+              href="https://www.linkedin.com/in/nihat-shikhizada-6062a8333/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-xl px-3 pt-2 text-[11px] text-muted-foreground/70 transition-colors hover:text-foreground"
+            >
+              {t.credit.developedBy}{" "}
+              <span className="font-medium underline-offset-2 hover:underline">
+                {t.credit.author}
+              </span>
+            </a>
+            <div className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-muted-foreground">
               <span className="relative flex size-2">
                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500/70" />
                 <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />

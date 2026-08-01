@@ -209,7 +209,7 @@ export function validateImport(input: {
       continue
     }
     if (sale.amount > MAX_PLAUSIBLE_SALE) {
-      hugeAmounts.push(`${sale.employee} ${sale.amount} AZN`)
+      hugeAmounts.push(`${sale.employee} ${sale.amount} ₼`)
     }
     totalRevenue += sale.amount
 
@@ -278,7 +278,7 @@ export function validateImport(input: {
       issue(
         "warning",
         "implausible-amount",
-        `Single sales above ${MAX_PLAUSIBLE_SALE} AZN.`,
+        `Single sales above ${MAX_PLAUSIBLE_SALE} ₼.`,
         hugeAmounts
       )
     )

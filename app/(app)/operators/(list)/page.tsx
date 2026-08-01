@@ -10,6 +10,7 @@ import {
   summarise,
   type RiskLevel,
 } from "@/lib/analytics"
+import { canCompareStations } from "@/lib/auth"
 import { getSlice, type SearchParams } from "@/lib/data"
 import { getT } from "@/lib/i18n/server"
 import { money } from "@/lib/format"
@@ -22,6 +23,7 @@ export default async function OperatorsPage(props: {
   const t = await getT()
   const params = await props.searchParams
   const { reports, options, target, filters } = await getSlice(params)
+  const multiStation = await canCompareStations()
   const summary = summarise(reports, target)
 
   // Risk counts come from the slice WITHOUT the risk filter, so the chips keep
@@ -72,12 +74,12 @@ export default async function OperatorsPage(props: {
             <MiniStat
               label={t.common.revenue}
               value={money(summary.revenue)}
-              unit="AZN"
+              unit="₼"
             />
             <MiniStat
               label={t.operators.perHour}
               value={money(summary.avgProductivity)}
-              unit="AZN"
+              unit="₼"
             />
             <MiniStat
               label={t.common.attendance}
@@ -88,7 +90,7 @@ export default async function OperatorsPage(props: {
 
           <Card>
             <CardContent className="px-0">
-              <OperatorsTable rows={rows} />
+              <OperatorsTable rows={rows} showStation={multiStation} />
             </CardContent>
           </Card>
         </>

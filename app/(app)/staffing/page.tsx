@@ -179,7 +179,7 @@ export default async function StaffingPage(props: {
                       <Icon
                         className={cn(
                           "size-7 shrink-0",
-                          stretched ? "text-amber-400" : "text-sky-400"
+                          stretched ? "text-amber-600 dark:text-amber-400" : "text-sky-600 dark:text-sky-400"
                         )}
                       />
                       <div className="flex min-w-0 flex-col">
@@ -189,7 +189,7 @@ export default async function StaffingPage(props: {
                         <span
                           className={cn(
                             "text-sm",
-                            stretched ? "text-amber-300" : "text-sky-300"
+                            stretched ? "text-amber-700 dark:text-amber-300" : "text-sky-700 dark:text-sky-300"
                           )}
                         >
                           {stretched

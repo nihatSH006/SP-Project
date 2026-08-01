@@ -44,7 +44,7 @@ export default async function WallPage(props: {
           no navigation: a stray touch should not be able to take the screen
           somewhere else, and there is nobody standing at it to bring it back. */}
       <header className="flex items-center gap-8 border-b wall-rule px-8 py-4 lg:px-12">
-        <SocarLogo className="h-8 w-auto text-foreground lg:h-10" />
+        <SocarLogo className="h-8 text-foreground lg:h-10" />
         <div className="ml-auto">
           <WallClock
             date={board.date ? formatDayLabel(board.date, locale) : null}
@@ -129,7 +129,7 @@ function Stat({
     <span
       className={cn(
         "flex items-center gap-2.5",
-        critical ? "text-red-400" : "text-muted-foreground"
+        critical ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
       )}
       title={label}
     >
@@ -137,7 +137,7 @@ function Stat({
       <span
         className={cn(
           "text-3xl font-semibold tabular-nums lg:text-4xl",
-          critical ? "text-red-400" : "text-foreground"
+          critical ? "text-red-600 dark:text-red-400" : "text-foreground"
         )}
       >
         {value}
@@ -214,7 +214,7 @@ function StationCard({
       <div className="flex items-baseline justify-between gap-3">
         <span className="truncate text-lg font-medium">{station.station}</span>
         {station.alerts > 0 ? (
-          <span className="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 font-mono text-xs text-red-300 tabular-nums">
+          <span className="shrink-0 rounded-full bg-red-500/15 px-2 py-0.5 font-mono text-xs text-red-700 dark:text-red-300 tabular-nums">
             {station.alerts}
           </span>
         ) : null}
@@ -230,9 +230,9 @@ function StationCard({
           height={24}
           className={cn(
             met
-              ? "text-emerald-400/70"
+              ? "text-emerald-600 dark:text-emerald-400/70"
               : behind
-                ? "text-amber-400/70"
+                ? "text-amber-600 dark:text-amber-400/70"
                 : "text-primary/70"
           )}
         />
@@ -249,9 +249,9 @@ function StationCard({
               className={cn(
                 "text-xl font-semibold tabular-nums",
                 met
-                  ? "text-emerald-400"
+                  ? "text-emerald-600 dark:text-emerald-400"
                   : behind
-                    ? "text-amber-400"
+                    ? "text-amber-600 dark:text-amber-400"
                     : "text-foreground"
               )}
             >

@@ -12,11 +12,34 @@ import { cn } from "@/lib/utils"
  * viewBox, so it clipped nothing; it is dropped rather than carried around,
  * along with the id it would have had to keep unique on a page.
  */
-export function SocarLogo({ className }: { className?: string }) {
+export function SocarLogo({
+  className,
+  mark = false,
+}: {
+  className?: string
+  /**
+   * Flame only, no lettering — for square slots like the collapsed sidebar
+   * rail, where the full wordmark would either overflow or shrink to an
+   * illegible smear.
+   */
+  mark?: boolean
+}) {
   return (
     <svg
-      viewBox="0 0 504 119"
-      className={cn("h-9 w-auto", className)}
+      viewBox={mark ? "-2 0 78 119" : "0 0 504 119"}
+      // `w-auto!` is not optional. A parent that sets `[&_svg]:size-4` — the
+      // sidebar does — matches on element+class and so out-specifies a plain
+      // `w-auto`, pinning the box to 16px wide. The height override then makes
+      // it TALL and narrow, and `preserveAspectRatio` dutifully shrinks a
+      // 504x119 wordmark to fit that 16px, which reads as a big empty area
+      // with a tiny logo floating in it. Width is never something a caller
+      // should set, so it is forced here rather than remembered per call site.
+      //
+      // Height deliberately has no default: with only one height class in play
+      // there is nothing for `cn` to reconcile, which it could not do anyway —
+      // Tailwind v4 moved the important marker to a suffix (`h-8!`) and
+      // tailwind-merge does not recognise it there.
+      className={cn("w-auto!", className)}
       role="img"
       aria-label="SOCAR"
     >
@@ -32,10 +55,12 @@ export function SocarLogo({ className }: { className?: string }) {
         fill="#00b5e2"
         d="M8.8,10.36c0,0 1.73,3.11 1.73,6.58c0,11.15 -10.53,15.4 -10.53,26.73c0,5.35 2.91,9.74 7.02,12.29c0.11,-0.97 0.21,-1.88 0.46,-2.64c2.46,-7.87 14,-16.58 14,-28.93c0,-7.4 -6.14,-13.49 -12.68,-14.03z"
       />
+      {mark ? null : (
       <path
         fill="currentColor"
         d="M123.12,75.12c6.81,6.14 13.27,9.75 22.59,9.75c5.17,0 14.59,-2.18 14.59,-8.98c0,-3.93 -2.96,-5.92 -8.75,-6.9l-16.25,-2.64c-14.46,-2.29 -22.37,-9.97 -22.37,-21.48c0,-18.84 15.25,-26.64 31.92,-26.64c12.94,0 25.67,5.26 34.43,15.02l-14.81,10.63c-5.16,-6.25 -12.73,-9.88 -20.95,-9.88c-4.47,0 -11.07,2.85 -11.07,7.9c0,4.16 3.41,6.25 10.85,7.46l7.48,1.2c15.56,2.52 28.4,7.34 28.4,22.24c0,23.47 -21.18,27.87 -35.75,27.87c-13.26,0 -25.71,-4.29 -36.36,-15.9zM227.19,100.68c-24.91,0 -39.49,-19.31 -39.49,-41.25c0,-21.9 14.58,-41.2 39.49,-41.2c24.88,0 39.45,19.3 39.45,41.2c0,21.93 -14.58,41.25 -39.45,41.25zM227.19,34.66c-11.42,0 -19.96,7.25 -19.96,24.77c0,11.42 4.61,24.8 19.96,24.8c14.46,0 19.95,-12.73 19.95,-24.8c0,-12.27 -5.49,-24.77 -19.95,-24.77zM330.47,46.41c-2.75,-7.25 -9.44,-11.76 -16.26,-11.76c-10.72,0 -19.26,7.27 -19.26,24.79c0,11.41 4.6,24.79 19.96,24.79c5.26,0 12.94,-3.94 16,-10.97l15.46,7.46c-6.69,12.17 -18.31,19.95 -31.46,19.95c-24.91,0 -39.5,-19.3 -39.5,-41.23c0,-21.9 13.61,-41.2 37.95,-41.2c15.34,0 25.42,7.45 32.67,20.37zM376.75,20.44h20.17l29.5,78.03h-20.96l-3.94,-12.27h-28.82l-3.96,12.27h-20.81zM396.8,71.72l-9.63,-32.22h-0.21l-9.66,32.22zM434.16,20.43h39.03c17.55,0 28.31,8.12 28.31,25.64c0,10.1 -6.37,18.19 -16.14,21.05l17.9,31.35h-21.84l-15.35,-28.06h-12.38v28.06h-19.53zM453.69,55.91h17.87c6.25,-0.09 10.42,-3.25 10.42,-10.5c0,-7.25 -4.17,-10.42 -10.42,-10.53h-17.87z"
       />
+      )}
     </svg>
   )
 }

@@ -27,7 +27,7 @@ import {
 import { money } from "@/lib/format"
 
 const revenueConfig = {
-  revenue: { label: "Revenue (AZN)", color: "var(--chart-3)" },
+  revenue: { label: "Revenue (₼)", color: "var(--chart-3)" },
 } satisfies ChartConfig
 
 /** Hourly revenue through the operational day. */
@@ -78,7 +78,7 @@ export function HourlyRevenueChart({
           content={
             <ChartTooltipContent
               indicator="dot"
-              formatter={(value) => `${money(Number(value))} AZN`}
+              formatter={(value) => `${money(Number(value))} ₼`}
             />
           }
         />
@@ -139,7 +139,7 @@ export function RevenueRankChart({
           cursor={false}
           content={
             <ChartTooltipContent
-              formatter={(value) => `${money(Number(value))} AZN`}
+              formatter={(value) => `${money(Number(value))} ₼`}
             />
           }
         />

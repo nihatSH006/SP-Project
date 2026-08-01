@@ -62,3 +62,18 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
 export function stationScopeFor(user: SessionUser): string | null {
   return user.role === "staff" || user.role === "manager" ? user.station : null
 }
+
+/**
+ * Whether the caller can see more than one station.
+ *
+ * A station manager's every query is already pinned to their own site, so
+ * anything that compares stations — a filter dropdown, a "revenue by station"
+ * chart, a station column, the Stations page itself — is a control with one
+ * possible answer or a ranking with one entry. This is the single predicate
+ * the UI branches on, so those affordances appear and disappear together
+ * rather than each page deciding for itself.
+ */
+export async function canCompareStations(): Promise<boolean> {
+  const user = await getSessionUser()
+  return user ? stationScopeFor(user) === null : false
+}

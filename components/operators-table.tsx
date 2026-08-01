@@ -89,7 +89,14 @@ function columnsFor(t: ReturnType<typeof useT>): Column[] {
   ]
 }
 
-export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
+export function OperatorsTable({
+  rows,
+  showStation = true,
+}: {
+  rows: OperatorRow[]
+  /** False for station-pinned accounts: every row names the same site. */
+  showStation?: boolean
+}) {
   const t = useT()
   const columns = columnsFor(t)
   const [query, setQuery] = React.useState("")
@@ -103,7 +110,10 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
     const needle = query.trim().toLowerCase()
     const filtered = needle
       ? rows.filter((row) =>
-          `${row.name} ${row.station} ${row.shift}`
+          (showStation
+            ? `${row.name} ${row.station} ${row.shift}`
+            : `${row.name} ${row.shift}`
+          )
             .toLowerCase()
             .includes(needle)
         )
@@ -118,7 +128,7 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
           : Number(av) - Number(bv)
       return sort.desc ? -cmp : cmp
     })
-  }, [rows, query, sort])
+  }, [rows, query, sort, showStation])
 
   const paging = usePaging(visible.length, PAGE_SIZES)
   const pageRows = visible.slice(paging.start, paging.start + paging.pageSize)
@@ -234,7 +244,9 @@ export function OperatorsTable({ rows }: { rows: OperatorRow[] }) {
                         columns: they identify the person, they are not figures
                         anyone compares down a column. */}
                     <div className="text-xs text-muted-foreground">
-                      {row.station} · {t.shifts[row.shift]}
+                      {showStation
+                        ? `${row.station} · ${t.shifts[row.shift]}`
+                        : t.shifts[row.shift]}
                     </div>
                   </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">

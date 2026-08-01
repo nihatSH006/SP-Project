@@ -31,7 +31,7 @@ export default function AppError({
     <main className="flex min-h-svh flex-1 items-center justify-center bg-background p-6">
       <Empty className="max-w-md">
         <EmptyMedia variant="icon">
-          <IconDatabaseOff className="text-amber-400" />
+          <IconDatabaseOff className="text-amber-600 dark:text-amber-400" />
         </EmptyMedia>
         <EmptyTitle>{t.errors.dataTitle}</EmptyTitle>
         <EmptyDescription>{t.errors.dataDesc}</EmptyDescription>

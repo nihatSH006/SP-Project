@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { useActionState } from "react"
 
 import { updateCase, type CaseActionResult } from "@/app/(app)/cases/actions"
@@ -7,7 +8,13 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field"
 import { Label } from "@/components/ui/label"
-import { NativeSelect } from "@/components/ui/native-select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { CASE_STATUSES, type CaseStatus } from "@/lib/case-status"
 import { useT } from "@/components/i18n-provider"
@@ -34,6 +41,7 @@ export function CaseTriageForm({
   closedStatuses: CaseStatus[]
 }) {
   const t = useT()
+  const [choice, setChoice] = React.useState<CaseStatus>(status)
   const [state, formAction, pending] = useActionState<
     CaseActionResult | null,
     FormData
@@ -58,13 +66,30 @@ export function CaseTriageForm({
 
       <Field>
         <FieldLabel htmlFor="case-status">{t.cases.statusLabel}</FieldLabel>
-        <NativeSelect id="case-status" name="status" defaultValue={status}>
-          {available.map((value) => (
-            <option key={value} value={value}>
-              {statusLabel[value]}
-            </option>
-          ))}
-        </NativeSelect>
+        {/* Controlled, with a hidden input carrying the value: the shadcn
+            Select is a button-and-listbox, not a native <select>, so a plain
+            form POST would send nothing without it. That matters here because
+            this form must keep working with JavaScript disabled. */}
+        <input type="hidden" name="status" value={choice} />
+        <Select
+          value={choice}
+          onValueChange={(value) => setChoice(value as CaseStatus)}
+          items={available.map((value) => ({
+            value,
+            label: statusLabel[value],
+          }))}
+        >
+          <SelectTrigger id="case-status" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {available.map((value) => (
+              <SelectItem key={value} value={value}>
+                {statusLabel[value]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {!canConclude ? (
           <FieldDescription>{t.cases.needsSupervisorHint}</FieldDescription>
         ) : null}
@@ -91,13 +116,13 @@ export function CaseTriageForm({
       </div>
 
       {state && !state.ok ? (
-        <p className="text-sm text-red-400">
+        <p className="text-sm text-red-600 dark:text-red-400">
           {t.cases.errors[state.error as keyof typeof t.cases.errors] ??
             state.error}
         </p>
       ) : null}
       {state?.ok ? (
-        <p className="text-sm text-emerald-400">{t.cases.saved}</p>
+        <p className="text-sm text-emerald-600 dark:text-emerald-400">{t.cases.saved}</p>
       ) : null}
 
       <Button type="submit" disabled={pending} className="btn-3d self-start">

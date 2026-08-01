@@ -16,6 +16,7 @@ import {
 
 import { useT } from "@/components/i18n-provider"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { ThemeSwitcher } from "@/components/theme-switcher"
 import {
   Command,
   CommandDialog,
@@ -128,6 +129,7 @@ export function SiteHeader({
           </InputGroupAddon>
         </InputGroup>
 
+        <ThemeSwitcher />
         <LanguageSwitcher />
 
         {user ? (

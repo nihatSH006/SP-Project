@@ -68,10 +68,6 @@ export function FilterBar({ options }: { options: FilterOptions }) {
     shift: searchParams.get("shift") ?? ALL,
   }
 
-  const activeCount = (["station", "department", "shift"] as const).filter(
-    (key) => current[key] !== ALL
-  ).length
-
   const setFilter = (key: FilterKey, value: string) => {
     const next = new URLSearchParams(searchParams.toString())
     if (value === ALL) next.delete(key)
@@ -106,7 +102,7 @@ export function FilterBar({ options }: { options: FilterOptions }) {
 
   const fmtDay = (iso: string) => formatDayLabel(iso, locale)
 
-  const groups: {
+  const allGroups: {
     key: FilterKey
     label: string
     allLabel: string
@@ -134,6 +130,18 @@ export function FilterBar({ options }: { options: FilterOptions }) {
       translate: true,
     },
   ]
+
+  // A dropdown offering one choice cannot change what you are looking at. The
+  // server sends no stations at all for a station-pinned account, which drops
+  // that control here without this component needing to know about roles.
+  const groups = allGroups.filter((group) => group.values.length > 1)
+
+  // Counted over the groups actually shown: a leftover `?station=` in a
+  // pasted URL is ignored by the server, so badging it as an active filter
+  // would claim a narrowing that isn't happening.
+  const activeCount = groups.filter(
+    (group) => current[group.key] !== ALL
+  ).length
 
   return (
     <div

@@ -53,8 +53,8 @@ export const az: Dictionary = {
     controller: "Nəzarətçi",
     all: "Hamısı",
     none: "yoxdur",
-    perHour: "AZN/saat",
-    azn: "AZN",
+    perHour: "₼/saat",
+    azn: "₼",
     of: "/",
     loading: "Yüklənir…",
     tryAgain: "Yenidən cəhd edin",
@@ -122,8 +122,8 @@ export const az: Dictionary = {
     needsAttention: "Diqq\u0259t t\u0259l\u0259b edir",
     target: "Hədəf",
     noTarget: "H\u0259d\u0259f t\u0259yin edilm\u0259yib",
-    toGo: (amount: string) => `${amount} AZN qal\u0131b`,
-    over: (amount: string) => `${amount} AZN art\u0131q`,
+    toGo: (amount: string) => `${amount} ₼ qal\u0131b`,
+    over: (amount: string) => `${amount} ₼ art\u0131q`,
     health: "V\u0259ziyy\u0259t",
     sales: "Sat\u0131\u015flar",
     onDuty: "N\u00f6vb\u0259d\u0259",
@@ -162,7 +162,7 @@ export const az: Dictionary = {
     reviewAlerts: "Xəbərdarlıqlara bax",
     totalRevenue: "Ümumi gəlir",
     targetProgress: (pct: number, target: string) =>
-      `Günlük ${target} AZN hədəfinin ${pct}%-i`,
+      `Günlük ${target} ₼ hədəfinin ${pct}%-i`,
     noTarget: "Gəlir hədəfi təyin edilməyib",
     completedSales: "tamamlanmış yanacaq satışı",
     operatorsOnDuty: "Növbədə olan operatorlar",
@@ -177,12 +177,12 @@ export const az: Dictionary = {
     needsReview: "baxılmalıdır",
 
     dailyTarget: "Günlük gəlir hədəfi",
-    progressToward: (target: string) => `${target} AZN hədəfinə doğru`,
+    progressToward: (target: string) => `${target} ₼ hədəfinə doğru`,
     setTargetsPrompt:
       "İrəliləyişi izləmək üçün Parametrlərdə hədəf təyin edin",
     targetExceeded: "Hədəf aşıldı.",
     remainingToTarget: (amount: string) =>
-      `Bugünkü hədəfə çatmaq üçün ${amount} AZN qalıb.`,
+      `Bugünkü hədəfə çatmaq üçün ${amount} ₼ qalıb.`,
     noTargetLong:
       "Hədəf təyin edilməyib — administrator Parametrlərdə hər stansiya üçün hədəf qoya bilər.",
     operationalHealth: "Əməliyyat vəziyyəti",
@@ -203,11 +203,11 @@ export const az: Dictionary = {
     highRiskOperators: "Yüksək riskli operatorlar",
 
     revenueThroughDay: "Gün ərzində gəlir",
-    hourlyRevenue: "Saatlıq yanacaq satışı gəliri, AZN",
+    hourlyRevenue: "Saatlıq yanacaq satışı gəliri, ₼",
     revenueByStation: "Stansiyalar üzrə gəlir",
-    totalPerStation: "Stansiya üzrə ümumi AZN",
+    totalPerStation: "Stansiya üzrə ümumi ₼",
     revenueByDepartment: "Şöbələr üzrə gəlir",
-    totalPerDepartment: "Şöbə üzrə ümumi AZN",
+    totalPerDepartment: "Şöbə üzrə ümumi ₼",
     shiftCoverage: "Növbə əhatəsi",
     operatorsPerShift: "Növbə üzrə operatorlar",
     onDuty: "növbədə",
@@ -219,7 +219,7 @@ export const az: Dictionary = {
     executiveBrief: "Rəhbərlik üçün icmal",
     executiveBriefDesc: "Bugünkü məlumatlar əsasında avtomatik hazırlanıb",
     briefLine1: (revenue: string, transactions: number) =>
-      `Bu gün şəbəkə ${transactions} əməliyyat üzrə ${revenue} AZN gəlir əldə etdi`,
+      `Bu gün şəbəkə ${transactions} əməliyyat üzrə ${revenue} ₼ gəlir əldə etdi`,
     briefTargetPart: (pct: number) =>
       ` — günlük gəlir hədəfinin ${pct}%-i.`,
     briefNoTargetPart: ", gəlir hədəfi təyin edilməyib.",
@@ -229,9 +229,9 @@ export const az: Dictionary = {
       station: string,
       department: string
     ) =>
-      `${leader} ${amount} AZN ilə öndədir; ${station} ən güclü stansiya, ${department} isə ən güclü şöbədir.`,
+      `${leader} ${amount} ₼ ilə öndədir; ${station} ən güclü stansiya, ${department} isə ən güclü şöbədir.`,
     briefLine3: (productivity: string, attendance: number) =>
-      `Orta məhsuldarlıq saatda ${productivity} AZN, davamiyyət ${attendance}%-dir.`,
+      `Orta məhsuldarlıq saatda ${productivity} ₼, davamiyyət ${attendance}%-dir.`,
     briefNoAlerts: "Şübhəli fəaliyyət aşkar edilmədi.",
     briefAlerts: (n: number) =>
       `${n} şübhəli əməliyyat növbə bitməzdən əvvəl yoxlanılmalıdır.`,
@@ -273,7 +273,7 @@ export const az: Dictionary = {
     clearSearch: "Axtarışı təmizlə",
     noMatch: (query: string) => `"${query}" üzrə operator tapılmadı`,
     noMatchDesc: "Başqa ad, stansiya və ya şöbə yoxlayın.",
-    revenueAzn: "Gəlir (AZN)",
+    revenueAzn: "Gəlir (₼)",
   },
 
   operatorDetail: {
@@ -292,7 +292,7 @@ export const az: Dictionary = {
     ofScheduled: (n: number) => `${n} saatdan`,
     revenueThroughShift: "Növbə ərzində gəlir",
     hourlyBy: (name: string) =>
-      `${name} tərəfindən qeydə alınan saatlıq gəlir, AZN`,
+      `${name} tərəfindən qeydə alınan saatlıq gəlir, ₼`,
     assessment: "Qiymətləndirmə",
     assessmentDesc: "Avtomatik hazırlanmış tövsiyə",
     topTier: "Ən yüksək səviyyəli performans",
@@ -316,6 +316,11 @@ export const az: Dictionary = {
     flagged: "İşarələnmiş əməliyyatlar",
     flaggedDesc: (window: string) =>
       `Bu operatorun ${window} iş pəncərəsindən kənar qeydə alınan satışlar`,
+    comparison: "Növbədəki hamı ilə müqayisə",
+    colMeasure: "Göstərici",
+    colThisOperator: "Bu işçi",
+    colFleetAverage: "Digərləri",
+    colDifference: "Fərq",
   },
 
   leaderboard: {
@@ -369,6 +374,16 @@ export const az: Dictionary = {
   },
 
   cases: {
+    colWhat: "Səbəb",
+    colWhen: "Vaxt",
+    colTimes: "Kamerada baxılacaq vaxtlar",
+    colAmounts: "Məbləğlər",
+    summary: (days: number, rules: string) =>
+      `${rules} — ${days} ayrı gündə.`,
+    whatNow: "Nə etməli",
+    step1: "Aşağıdakı vaxtlar üzrə kamera yazısına baxın.",
+    step2: "Nəticə yazmadan əvvəl operatorla danışın.",
+    step3: "Status seçin. Təsdiq üçün yazılı əsas lazımdır.",
     title: "Fırıldaq halları",
     description:
       "Aşkarlama qaydalarının baxış üçün təklif etdiyi hallar. Qaydanın işə düşməsi baxmaq üçün səbəbdir, nəticə deyil.",
@@ -554,6 +569,13 @@ export const az: Dictionary = {
   },
 
   alerts: {
+    colWhen: "Vaxt",
+    colAmount: "Məbləğ",
+    colWhy: "Səbəb",
+    totalFlagged: "İşarələnmiş satışlar",
+    operatorsAffected: "Operatorlar",
+    worstDay: "Ən pis gün",
+    searchPlaceholder: "Operator və ya stansiya…",
     title: "Xəbərdarlıq mərkəzi",
     description:
       "Şübhəli əməliyyatlar — operatorun iş saatlarından kənar qeydə alınan satışlar.",
@@ -609,7 +631,7 @@ export const az: Dictionary = {
       "Davamiyyət balının məxrəci. Hazırda hamı tam bu qədər işləyir, buna görə davamiyyət 100%-ə yaxındır.",
     productivityTarget: "Məhsuldarlıq hədəfi",
     productivityTargetDesc:
-      "Tam bal qazandıran saatlıq AZN. Köhnə sabit 15 dəyəri işlək Bakı stansiyaları üçün nəzərdə tutulmuşdu — artırmaq sakit stansiyalara, azaltmaq isə işlək stansiyalara qarşı ədalətsizdir.",
+      "Tam bal qazandıran saatlıq ₼. Köhnə sabit 15 dəyəri işlək Bakı stansiyaları üçün nəzərdə tutulmuşdu — artırmaq sakit stansiyalara, azaltmaq isə işlək stansiyalara qarşı ədalətsizdir.",
     graceMinutes: "Gecikməyə güzəşt",
     graceMinutesDesc:
       "Davamiyyət balına təsir etməzdən əvvəl bağışlanan gecikmə.",
@@ -664,11 +686,11 @@ export const az: Dictionary = {
 
     units: {
       hours: "saat",
-      aznPerHour: "AZN/saat",
+      aznPerHour: "₼/saat",
       min: "dəq",
       sales: "satış",
       pts: "bal",
-      azn: "AZN",
+      azn: "₼",
       times: "×",
     },
   },
@@ -728,6 +750,16 @@ export const az: Dictionary = {
     operators: "Operatorlar",
   },
 
+  theme: {
+    switch: "Görünüş",
+    light: "İşıqlı",
+    dark: "Qaranlıq",
+    system: "Sistem",
+  },
+  credit: {
+    developedBy: "Hazırlayan",
+    author: "Nihat Shikhizada",
+  },
   languages: {
     az: "Azərbaycanca",
     ru: "Русский",

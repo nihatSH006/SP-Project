@@ -41,7 +41,7 @@ export function RevenueHero({
           >
             {money(revenue)}
             <span className="ml-2 text-lg font-normal text-muted-foreground">
-              AZN
+              ₼
             </span>
           </span>
         </div>
@@ -69,7 +69,7 @@ export function RevenueHero({
               <span
                 className={cn(
                   "font-medium tabular-nums",
-                  met ? "text-emerald-400" : "text-foreground"
+                  met ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
                 )}
               >
                 {targetPct}%

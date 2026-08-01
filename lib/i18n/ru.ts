@@ -53,8 +53,8 @@ export const ru: Dictionary = {
     controller: "Контролёр",
     all: "Все",
     none: "нет",
-    perHour: "AZN/ч",
-    azn: "AZN",
+    perHour: "₼/ч",
+    azn: "₼",
     of: "из",
     loading: "Загрузка…",
     tryAgain: "Повторить",
@@ -122,8 +122,8 @@ export const ru: Dictionary = {
     needsAttention: "\u0422\u0440\u0435\u0431\u0443\u0435\u0442 \u0432\u043d\u0438\u043c\u0430\u043d\u0438\u044f",
     target: "\u0426\u0435\u043b\u044c",
     noTarget: "\u0426\u0435\u043b\u044c \u043d\u0435 \u0437\u0430\u0434\u0430\u043d\u0430",
-    toGo: (amount: string) => `\u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c ${amount} AZN`,
-    over: (amount: string) => `+${amount} AZN`,
+    toGo: (amount: string) => `\u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c ${amount} ₼`,
+    over: (amount: string) => `+${amount} ₼`,
     health: "\u0421\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435",
     sales: "\u041f\u0440\u043e\u0434\u0430\u0436\u0438",
     onDuty: "\u041d\u0430 \u0441\u043c\u0435\u043d\u0435",
@@ -162,7 +162,7 @@ export const ru: Dictionary = {
     reviewAlerts: "Просмотреть оповещения",
     totalRevenue: "Общая выручка",
     targetProgress: (pct: number, target: string) =>
-      `${pct}% от дневной цели в ${target} AZN`,
+      `${pct}% от дневной цели в ${target} ₼`,
     noTarget: "Цель по выручке не задана",
     completedSales: "завершённых продаж топлива",
     operatorsOnDuty: "Операторов на смене",
@@ -177,11 +177,11 @@ export const ru: Dictionary = {
     needsReview: "требует проверки",
 
     dailyTarget: "Дневная цель по выручке",
-    progressToward: (target: string) => `Прогресс к ${target} AZN`,
+    progressToward: (target: string) => `Прогресс к ${target} ₼`,
     setTargetsPrompt: "Задайте цели в Настройках, чтобы отслеживать прогресс",
     targetExceeded: "Цель превышена.",
     remainingToTarget: (amount: string) =>
-      `До сегодняшней цели осталось ${amount} AZN.`,
+      `До сегодняшней цели осталось ${amount} ₼.`,
     noTargetLong:
       "Цель не задана — администратор может установить её для каждой станции в Настройках.",
     operationalHealth: "Операционное состояние",
@@ -202,11 +202,11 @@ export const ru: Dictionary = {
     highRiskOperators: "Операторы высокого риска",
 
     revenueThroughDay: "Выручка в течение дня",
-    hourlyRevenue: "Почасовая выручка от продаж топлива, AZN",
+    hourlyRevenue: "Почасовая выручка от продаж топлива, ₼",
     revenueByStation: "Выручка по станциям",
-    totalPerStation: "Всего AZN по станции",
+    totalPerStation: "Всего ₼ по станции",
     revenueByDepartment: "Выручка по отделам",
-    totalPerDepartment: "Всего AZN по отделу",
+    totalPerDepartment: "Всего ₼ по отделу",
     shiftCoverage: "Покрытие смен",
     operatorsPerShift: "Операторов в смену",
     onDuty: "на смене",
@@ -218,7 +218,7 @@ export const ru: Dictionary = {
     executiveBrief: "Сводка для руководства",
     executiveBriefDesc: "Сформирована автоматически по данным дня",
     briefLine1: (revenue: string, transactions: number) =>
-      `Сегодня сеть принесла ${revenue} AZN за ${transactions} транзакций`,
+      `Сегодня сеть принесла ${revenue} ₼ за ${transactions} транзакций`,
     briefTargetPart: (pct: number) => ` — ${pct}% от дневной цели по выручке.`,
     briefNoTargetPart: ", цель по выручке не задана.",
     briefLine2: (
@@ -227,9 +227,9 @@ export const ru: Dictionary = {
       station: string,
       department: string
     ) =>
-      `${leader} лидирует с ${amount} AZN; ${station} — сильнейшая станция, ${department} — сильнейший отдел.`,
+      `${leader} лидирует с ${amount} ₼; ${station} — сильнейшая станция, ${department} — сильнейший отдел.`,
     briefLine3: (productivity: string, attendance: number) =>
-      `Средняя производительность — ${productivity} AZN в час, посещаемость — ${attendance}%.`,
+      `Средняя производительность — ${productivity} ₼ в час, посещаемость — ${attendance}%.`,
     briefNoAlerts: "Подозрительной активности не обнаружено.",
     briefAlerts: (n: number) =>
       `${n} подозрительных транзакций требуют проверки до закрытия смены.`,
@@ -271,7 +271,7 @@ export const ru: Dictionary = {
     clearSearch: "Очистить поиск",
     noMatch: (query: string) => `Операторы по запросу «${query}» не найдены`,
     noMatchDesc: "Попробуйте другое имя, станцию или отдел.",
-    revenueAzn: "Выручка (AZN)",
+    revenueAzn: "Выручка (₼)",
   },
 
   operatorDetail: {
@@ -290,7 +290,7 @@ export const ru: Dictionary = {
     ofScheduled: (n: number) => `из ${n} по графику`,
     revenueThroughShift: "Выручка в течение смены",
     hourlyBy: (name: string) =>
-      `Почасовая выручка, зафиксированная ${name}, AZN`,
+      `Почасовая выручка, зафиксированная ${name}, ₼`,
     assessment: "Оценка",
     assessmentDesc: "Автоматическая рекомендация",
     topTier: "Высочайшая эффективность",
@@ -314,6 +314,11 @@ export const ru: Dictionary = {
     flagged: "Отмеченные транзакции",
     flaggedDesc: (window: string) =>
       `Продажи вне рабочего окна оператора ${window}`,
+    comparison: "Сравнение со всеми в смене",
+    colMeasure: "Показатель",
+    colThisOperator: "Этот сотрудник",
+    colFleetAverage: "Остальные",
+    colDifference: "Разница",
   },
 
   leaderboard: {
@@ -367,6 +372,16 @@ export const ru: Dictionary = {
   },
 
   cases: {
+    colWhat: "Причина",
+    colWhen: "Когда",
+    colTimes: "Время для просмотра",
+    colAmounts: "Суммы",
+    summary: (days: number, rules: string) =>
+      `${rules} — в ${days} разных днях.`,
+    whatNow: "Что делать",
+    step1: "Посмотрите запись в указанное время.",
+    step2: "Поговорите с оператором до выводов.",
+    step3: "Выберите статус. Подтверждение требует обоснования.",
     title: "Дела о мошенничестве",
     description:
       "Дела, предложенные правилами для проверки. Срабатывание правила — повод посмотреть, а не вывод.",
@@ -552,6 +567,13 @@ export const ru: Dictionary = {
   },
 
   alerts: {
+    colWhen: "Когда",
+    colAmount: "Сумма",
+    colWhy: "Причина",
+    totalFlagged: "Помеченные продажи",
+    operatorsAffected: "Операторы",
+    worstDay: "Худший день",
+    searchPlaceholder: "Оператор или станция…",
     title: "Центр оповещений",
     description:
       "Подозрительные транзакции — продажи вне рабочих часов оператора.",
@@ -607,7 +629,7 @@ export const ru: Dictionary = {
       "Знаменатель балла посещаемости. Сейчас все работают ровно столько, поэтому посещаемость близка к 100%.",
     productivityTarget: "Цель по производительности",
     productivityTargetDesc:
-      "AZN в час для полного балла. Прежнее жёстко заданное значение 15 было рассчитано на загруженные бакинские станции — повышение несправедливо к тихим станциям, понижение — к загруженным.",
+      "₼ в час для полного балла. Прежнее жёстко заданное значение 15 было рассчитано на загруженные бакинские станции — повышение несправедливо к тихим станциям, понижение — к загруженным.",
     graceMinutes: "Допустимое опоздание",
     graceMinutesDesc:
       "Опоздание, которое прощается до влияния на балл посещаемости.",
@@ -662,11 +684,11 @@ export const ru: Dictionary = {
 
     units: {
       hours: "часов",
-      aznPerHour: "AZN/ч",
+      aznPerHour: "₼/ч",
       min: "мин",
       sales: "продаж",
       pts: "балл",
-      azn: "AZN",
+      azn: "₼",
       times: "×",
     },
   },
@@ -726,6 +748,16 @@ export const ru: Dictionary = {
     operators: "Операторы",
   },
 
+  theme: {
+    switch: "Оформление",
+    light: "Светлая",
+    dark: "Тёмная",
+    system: "Системная",
+  },
+  credit: {
+    developedBy: "Разработчик",
+    author: "Nihat Shikhizada",
+  },
   languages: {
     az: "Azərbaycanca",
     ru: "Русский",

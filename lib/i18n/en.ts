@@ -59,8 +59,8 @@ export const en = {
     controller: "Controller",
     all: "All",
     none: "none",
-    perHour: "AZN/h",
-    azn: "AZN",
+    perHour: "₼/h",
+    azn: "₼",
     of: "of",
     loading: "Loading…",
     tryAgain: "Try again",
@@ -128,8 +128,8 @@ export const en = {
     needsAttention: "Needs attention",
     target: "Target",
     noTarget: "No target set",
-    toGo: (amount: string) => `${amount} AZN to go`,
-    over: (amount: string) => `${amount} AZN over`,
+    toGo: (amount: string) => `${amount} ₼ to go`,
+    over: (amount: string) => `${amount} ₼ over`,
     health: "Health",
     sales: "Sales",
     onDuty: "On duty",
@@ -168,7 +168,7 @@ export const en = {
     reviewAlerts: "Review alerts",
     totalRevenue: "Total revenue",
     targetProgress: (pct: number, target: string) =>
-      `${pct}% of the ${target} AZN daily target`,
+      `${pct}% of the ${target} ₼ daily target`,
     noTarget: "No revenue target configured",
     completedSales: "completed fuel sales",
     operatorsOnDuty: "Operators on duty",
@@ -183,11 +183,11 @@ export const en = {
     needsReview: "needs review",
 
     dailyTarget: "Daily revenue target",
-    progressToward: (target: string) => `Progress toward ${target} AZN`,
+    progressToward: (target: string) => `Progress toward ${target} ₼`,
     setTargetsPrompt: "Set targets in Settings to track progress",
     targetExceeded: "Target exceeded.",
     remainingToTarget: (amount: string) =>
-      `${amount} AZN remaining to reach today's target.`,
+      `${amount} ₼ remaining to reach today's target.`,
     noTargetLong:
       "No target configured — an administrator can set one per station in Settings.",
     operationalHealth: "Operational health",
@@ -208,11 +208,11 @@ export const en = {
     highRiskOperators: "High-risk operators",
 
     revenueThroughDay: "Revenue through the day",
-    hourlyRevenue: "Hourly fuel-sale revenue, AZN",
+    hourlyRevenue: "Hourly fuel-sale revenue, ₼",
     revenueByStation: "Revenue by station",
-    totalPerStation: "Total AZN per station",
+    totalPerStation: "Total ₼ per station",
     revenueByDepartment: "Revenue by department",
-    totalPerDepartment: "Total AZN per department",
+    totalPerDepartment: "Total ₼ per department",
     shiftCoverage: "Shift coverage",
     operatorsPerShift: "Operators per shift",
     onDuty: "on duty",
@@ -224,7 +224,7 @@ export const en = {
     executiveBrief: "Executive brief",
     executiveBriefDesc: "Auto-generated from today's data",
     briefLine1: (revenue: string, transactions: number) =>
-      `Today the fleet generated ${revenue} AZN across ${transactions} transactions`,
+      `Today the fleet generated ${revenue} ₼ across ${transactions} transactions`,
     briefTargetPart: (pct: number) => ` — ${pct}% of the daily revenue target.`,
     briefNoTargetPart: " with no revenue target configured.",
     briefLine2: (
@@ -233,9 +233,9 @@ export const en = {
       station: string,
       department: string
     ) =>
-      `${leader} leads with ${amount} AZN; ${station} is the strongest station and ${department} the strongest department.`,
+      `${leader} leads with ${amount} ₼; ${station} is the strongest station and ${department} the strongest department.`,
     briefLine3: (productivity: string, attendance: number) =>
-      `Average productivity is ${productivity} AZN/hour with attendance at ${attendance}%.`,
+      `Average productivity is ${productivity} ₼/hour with attendance at ${attendance}%.`,
     briefNoAlerts: "No suspicious activity was detected.",
     briefAlerts: (n: number) =>
       `${n} suspicious transaction${n === 1 ? "" : "s"} require review before shift close.`,
@@ -276,7 +276,7 @@ export const en = {
     clearSearch: "Clear search",
     noMatch: (query: string) => `No operators match "${query}"`,
     noMatchDesc: "Try a different name, station or department.",
-    revenueAzn: "Revenue (AZN)",
+    revenueAzn: "Revenue (₼)",
   },
 
   operatorDetail: {
@@ -294,7 +294,7 @@ export const en = {
     workingHours: "Working hours",
     ofScheduled: (n: number) => `of ${n} scheduled`,
     revenueThroughShift: "Revenue through the shift",
-    hourlyBy: (name: string) => `Hourly revenue recorded by ${name}, AZN`,
+    hourlyBy: (name: string) => `Hourly revenue recorded by ${name}, ₼`,
     assessment: "Assessment",
     assessmentDesc: "Auto-generated recommendation",
     topTier: "Top-tier performance",
@@ -318,6 +318,11 @@ export const en = {
     flagged: "Flagged transactions",
     flaggedDesc: (window: string) =>
       `Sales recorded outside this operator's ${window} working window`,
+    comparison: "Compared with everyone on shift",
+    colMeasure: "Measure",
+    colThisOperator: "This operator",
+    colFleetAverage: "Everyone else",
+    colDifference: "Difference",
   },
 
   leaderboard: {
@@ -371,6 +376,16 @@ export const en = {
   },
 
   cases: {
+    colWhat: "What triggered it",
+    colWhen: "When",
+    colTimes: "Times to check on CCTV",
+    colAmounts: "Amounts",
+    summary: (days: number, rules: string) =>
+      `${rules} on ${days} separate ${days === 1 ? "day" : "days"}.`,
+    whatNow: "What to do",
+    step1: "Pull the CCTV for the times listed below.",
+    step2: "Talk to the operator before recording anything.",
+    step3: "Set a status. Confirming needs a written reason.",
     title: "Fraud cases",
     description:
       "Cases the detection rules proposed for review. A rule firing is a reason to look, not a finding.",
@@ -556,9 +571,15 @@ export const en = {
   },
 
   alerts: {
+    colWhen: "When",
+    colAmount: "Amount",
+    colWhy: "Why flagged",
+    totalFlagged: "Flagged sales",
+    operatorsAffected: "Operators",
+    worstDay: "Worst day",
+    searchPlaceholder: "Search operator or station…",
     title: "Alert center",
-    description:
-      "Suspicious transactions — sales recorded outside an operator's working hours.",
+    description: "Sales recorded outside an operator's working hours.",
     flaggedTransactions: "Flagged transactions",
     inSlice: "in the current slice",
     highPriority: "High priority",
@@ -609,7 +630,7 @@ export const en = {
       "The denominator of the attendance score. Everyone currently works exactly this, which is why attendance sits near 100%.",
     productivityTarget: "Productivity target",
     productivityTargetDesc:
-      "AZN per hour that earns full marks. The old hardcoded 15 was tuned for busy Baku stations — raising it is unfair to quiet stations, lowering it is unfair to busy ones.",
+      "₼ per hour that earns full marks. The old hardcoded 15 was tuned for busy Baku stations — raising it is unfair to quiet stations, lowering it is unfair to busy ones.",
     graceMinutes: "Late-arrival grace",
     graceMinutesDesc:
       "Lateness forgiven before it dents the attendance score.",
@@ -660,7 +681,7 @@ export const en = {
     auditNote:
       "Every change is recorded with who made it, so grade and risk decisions stay auditable.",
 
-    units: { hours: "hours", aznPerHour: "AZN/h", min: "min", sales: "sales", pts: "pts", azn: "AZN", times: "×" },
+    units: { hours: "hours", aznPerHour: "₼/h", min: "min", sales: "sales", pts: "pts", azn: "₼", times: "×" },
   },
 
   dataHealth: {
@@ -717,6 +738,16 @@ export const en = {
     operators: "Operators",
   },
 
+  theme: {
+    switch: "Appearance",
+    light: "Light",
+    dark: "Dark",
+    system: "System",
+  },
+  credit: {
+    developedBy: "Developed by",
+    author: "Nihat Shikhizada",
+  },
   languages: {
     az: "Azərbaycanca",
     ru: "Русский",

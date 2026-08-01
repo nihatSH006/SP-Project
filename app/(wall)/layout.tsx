@@ -19,5 +19,10 @@ export default async function WallLayout({
   const user = await getSessionUser()
   if (!user) redirect("/login")
 
-  return <div className="min-h-svh bg-background">{children}</div>
+  // Pinned dark, whatever the viewer picked in the app. This is a board on a
+  // wall, read from across a room: the palette is part of the design, and it
+  // follows a preference set by whoever last signed in on a laptop — not by
+  // the room the screen is in. `.dark` re-declares the tokens for this subtree,
+  // so nothing here has to know it is the exception.
+  return <div className="dark min-h-svh bg-background">{children}</div>
 }

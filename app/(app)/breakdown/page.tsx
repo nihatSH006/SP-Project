@@ -35,9 +35,11 @@ import {
   shiftDistribution,
   summarise,
 } from "@/lib/analytics"
+import { canCompareStations } from "@/lib/auth"
 import { getSlice, type SearchParams } from "@/lib/data"
 import { getT } from "@/lib/i18n/server"
 import { money } from "@/lib/format"
+import { cn } from "@/lib/utils"
 
 export const metadata = { title: "Breakdown" }
 
@@ -55,6 +57,7 @@ export default async function BreakdownPage(props: {
   const { reports, options, target } = await getSlice(await props.searchParams)
   const summary = summarise(reports, target)
   const top5 = rankOperators(reports).slice(0, 5)
+  const multiStation = await canCompareStations()
 
   return (
     <PageShell
@@ -79,18 +82,26 @@ export default async function BreakdownPage(props: {
         />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div
+            className={cn(
+              "grid grid-cols-1 gap-4",
+              multiStation ? "sm:grid-cols-3" : "sm:grid-cols-2"
+            )}
+          >
             <MiniStat
               icon={IconCoin}
               label={t.breakdown.perOperator}
               value={money(summary.revenue / summary.operators)}
               unit="₼"
             />
-            <MiniStat
-              icon={IconBuildingStore}
-              label={t.breakdown.bestStation}
-              value={summary.bestStation ?? "—"}
-            />
+            {/* "Best station" out of one is just the station's own name. */}
+            {multiStation ? (
+              <MiniStat
+                icon={IconBuildingStore}
+                label={t.breakdown.bestStation}
+                value={summary.bestStation ?? "—"}
+              />
+            ) : null}
             <MiniStat
               icon={IconCategory}
               label={t.breakdown.bestDepartment}
@@ -101,14 +112,16 @@ export default async function BreakdownPage(props: {
           {/* Four equal cells: the composition questions carry the same
               weight, and a 2x2 reads as one block rather than a hierarchy. */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t.overview.byStation}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RevenueRankChart data={groupRevenue(reports, "station")} />
-              </CardContent>
-            </Card>
+            {multiStation ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t.overview.byStation}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RevenueRankChart data={groupRevenue(reports, "station")} />
+                </CardContent>
+              </Card>
+            ) : null}
 
             <Card>
               <CardHeader>
@@ -172,7 +185,9 @@ export default async function BreakdownPage(props: {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="pl-5">{t.common.operator}</TableHead>
-                    <TableHead>{t.common.station}</TableHead>
+                    {multiStation ? (
+                      <TableHead>{t.common.station}</TableHead>
+                    ) : null}
                     <TableHead className="text-right">{t.common.revenue}</TableHead>
                     <TableHead className="pr-5 text-right">
                       {t.common.risk}
@@ -190,9 +205,11 @@ export default async function BreakdownPage(props: {
                           {r.name}
                         </Link>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {r.station}
-                      </TableCell>
+                      {multiStation ? (
+                        <TableCell className="text-muted-foreground">
+                          {r.station}
+                        </TableCell>
+                      ) : null}
                       <TableCell className="text-right tabular-nums">
                         {money(r.revenue)}
                       </TableCell>

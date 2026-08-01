@@ -3,10 +3,9 @@ import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { collectAlerts } from "@/lib/analytics"
-import { getSessionUser } from "@/lib/auth"
+import { canCompareStations, getSessionUser } from "@/lib/auth"
 import { canTriageCase } from "@/lib/cases"
-import { getOperatorReports } from "@/lib/data"
+import { getOperatorReports, getTotalAlerts } from "@/lib/data"
 
 /**
  * Authoritative auth boundary AND the persistent chrome for every signed-in
@@ -40,7 +39,10 @@ export default async function AppLayout({
   // Sidebar badge + command palette always reflect the LATEST day, regardless
   // of which historical day the page itself is showing.
   const latestReports = await getOperatorReports()
-  const alertCount = collectAlerts(latestReports).length
+  // Every alert on record, not just the latest day's — a badge that resets
+  // each morning tells nobody how much is outstanding.
+  const alertCount = await getTotalAlerts()
+  const multiStation = await canCompareStations()
   const operators = latestReports.map((r) => ({
     id: r.id,
     name: r.name,
@@ -53,6 +55,7 @@ export default async function AppLayout({
         alertCount={alertCount}
         isAdmin={user.role === "admin"}
         canSeeCases={canTriageCase(user)}
+        canCompareStations={multiStation}
       />
       <SidebarInset className="overflow-hidden ring-1 ring-border/60">
         {/* Account lives in the header, not as a sidebar banner. */}

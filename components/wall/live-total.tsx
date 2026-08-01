@@ -171,7 +171,7 @@ function TargetBlock({
       <span
         className={cn(
           "wall-figure text-7xl font-semibold lg:text-[9rem]",
-          met ? "text-emerald-400" : "text-foreground"
+          met ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
         )}
       >
         <RollingNumber text={String(pct)} />

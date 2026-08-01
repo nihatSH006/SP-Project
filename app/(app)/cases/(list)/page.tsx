@@ -7,13 +7,11 @@ import {
 } from "@tabler/icons-react"
 
 import { CaseStatusBadge, RiskBadge } from "@/components/case-badges"
+import { MiniStat } from "@/components/mini-stat"
 import { PageShell } from "@/components/page-shell"
-import { StatTile } from "@/components/stat-tile"
-import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -24,133 +22,154 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemSeparator,
-  ItemTitle,
-} from "@/components/ui/item"
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { canCompareStations } from "@/lib/auth"
 import { getCases, CLOSED_STATUSES, RULE_LABEL_KEY } from "@/lib/cases"
 import { getT } from "@/lib/i18n/server"
 import type { FraudRuleId } from "@/lib/fraud-rules"
 
 export const metadata = { title: "Cases" }
 
+/**
+ * The review queue, as a table.
+ *
+ * It used to be a list of stacked badges — a status pill, a risk pill and one
+ * pill per rule tripped, wrapped under each name. Reading it meant decoding a
+ * row of coloured chips before knowing whether a case mattered. A table puts
+ * the same facts in columns you can run an eye down: who, where, what set it
+ * off, how many days, and where it has got to.
+ *
+ * The role gate is in `cases/layout.tsx`, above the streaming boundary, so an
+ * unauthorised request gets a real 404 rather than a 200 carrying this page.
+ */
 export default async function CasesPage() {
   const t = await getT()
-  // The role gate runs in `cases/layout.tsx`, above the streaming boundary,
-  // so an unauthorised request gets a real 404 rather than a 200 carrying the
-  // not-found page.
   const cases = await getCases()
+  const multiStation = await canCompareStations()
 
   const open = cases.filter((c) => c.status === "open")
   const investigating = cases.filter((c) => c.status === "investigating")
   const closed = cases.filter((c) => CLOSED_STATUSES.includes(c.status))
 
+  /** Rule ids as words, most-repeated first. */
+  const triggers = (repeats: Record<string, number>) =>
+    Object.entries(repeats)
+      .sort((a, b) => b[1] - a[1])
+      .map(
+        ([rule]) =>
+          t.cases.rules[
+            RULE_LABEL_KEY[rule as FraudRuleId] as keyof typeof t.cases.rules
+          ] ?? rule
+      )
+
   return (
     <PageShell title={t.cases.title} description={t.cases.description}>
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
-        <StatTile
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <MiniStat
+          icon={IconFolderOpen}
           label={t.cases.openCases}
           value={open.length}
-          icon={IconFolderOpen}
-          caption={t.cases.queueDesc}
         />
-        <StatTile
+        <MiniStat
+          icon={IconSearch}
           label={t.cases.investigating}
           value={investigating.length}
-          icon={IconSearch}
         />
-        <StatTile
+        <MiniStat
+          icon={IconShieldCheck}
           label={t.cases.closed}
           value={closed.length}
-          icon={IconShieldCheck}
         />
       </div>
-
-      {/* The engine's opinion is framed as a proposal everywhere it appears.
-          A queue that reads like a list of thieves invites people to treat it
-          as one. */}
-      <Card className="border-amber-500/25 bg-amber-500/[0.05]">
-        <CardHeader>
-          <CardTitle className="text-amber-300">
-            {t.cases.fairnessTitle}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          {t.cases.fairnessBody}
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>{t.cases.queue}</CardTitle>
-          <CardDescription>{t.cases.queueDesc}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0">
           {cases.length === 0 ? (
             <Empty className="py-10">
               <EmptyMedia variant="icon">
-                <IconShieldCheck className="text-emerald-400" />
+                <IconShieldCheck className="text-emerald-600 dark:text-emerald-400" />
               </EmptyMedia>
               <EmptyTitle>{t.cases.noCases}</EmptyTitle>
               <EmptyDescription>{t.cases.noCasesDesc}</EmptyDescription>
             </Empty>
           ) : (
-            <ItemGroup>
-              {cases.map((record, index) => {
-                const rules = Object.entries(record.repeatsByRule).sort(
-                  (a, b) => b[1] - a[1]
-                )
-                return (
-                  <div key={`${record.station}-${record.employeeId}`}>
-                    {index > 0 ? <ItemSeparator /> : null}
-                    <Item
-                      size="sm"
-                      className="px-0"
-                      render={<Link href={`/cases/${record.employeeId}`} />}
-                    >
-                      <ItemContent>
-                        <ItemTitle className="flex items-center gap-2">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-5">
+                      {t.boardPack.colOperator}
+                    </TableHead>
+                    {multiStation ? (
+                      <TableHead>{t.common.station}</TableHead>
+                    ) : null}
+                    <TableHead>{t.cases.colWhat}</TableHead>
+                    <TableHead className="text-right">
+                      {t.cases.flaggedDays}
+                    </TableHead>
+                    <TableHead>{t.cases.statusLabel}</TableHead>
+                    <TableHead className="pr-5" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cases.map((record) => (
+                    <TableRow key={`${record.station}-${record.employeeId}`}>
+                      <TableCell className="pl-5">
+                        <Link
+                          href={`/cases/${record.employeeId}`}
+                          className="font-medium underline-offset-4 hover:underline"
+                        >
                           {record.employeeName}
+                        </Link>
+                      </TableCell>
+                      {multiStation ? (
+                        <TableCell className="text-muted-foreground">
+                          {record.station}
+                        </TableCell>
+                      ) : null}
+                      {/* Words, not a row of rule chips. */}
+                      <TableCell className="text-muted-foreground">
+                        {triggers(record.repeatsByRule).join(", ")}
+                      </TableCell>
+                      <TableCell className="text-right font-mono tabular-nums">
+                        {record.flaggedDays}
+                      </TableCell>
+                      <TableCell>
+                        <span className="flex items-center gap-2">
                           <CaseStatusBadge status={record.status} t={t} />
-                        </ItemTitle>
-                        <ItemDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span>{record.station}</span>
-                          <span>·</span>
-                          <span>
-                            {t.cases.daysCount(record.flaggedDays)}
-                          </span>
-                          {rules.map(([rule, days]) => (
-                            <Badge
-                              key={rule}
-                              variant="outline"
-                              className="font-normal"
-                            >
-                              {t.cases.rules[
-                                RULE_LABEL_KEY[
-                                  rule as FraudRuleId
-                                ] as keyof typeof t.cases.rules
-                              ] ?? rule}{" "}
-                              × {days}
-                            </Badge>
-                          ))}
-                        </ItemDescription>
-                      </ItemContent>
-                      <ItemActions className="gap-2">
-                        <RiskBadge risk={record.proposedRisk} />
-                        <IconChevronRight className="size-4 text-muted-foreground" />
-                      </ItemActions>
-                    </Item>
-                  </div>
-                )
-              })}
-            </ItemGroup>
+                          <RiskBadge risk={record.proposedRisk} />
+                        </span>
+                      </TableCell>
+                      <TableCell className="pr-5 text-right">
+                        <Link
+                          href={`/cases/${record.employeeId}`}
+                          aria-label={t.cases.openCase}
+                        >
+                          <IconChevronRight className="size-4 text-muted-foreground" />
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
+
+      {/* One line, at the bottom. The paragraph that used to sit above the
+          queue said this at ten times the length, and a warning read before
+          any case is open is a warning read once. */}
+      <p className="text-xs text-muted-foreground">{t.cases.fairnessBody}</p>
     </PageShell>
   )
 }

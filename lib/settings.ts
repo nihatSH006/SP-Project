@@ -21,7 +21,7 @@ export type Settings = {
   /** Hours in a full shift — the denominator of the attendance score. */
   scheduledHours: number
   /**
-   * AZN/hour that earns full marks on the productivity half of the score.
+   * ₼/hour that earns full marks on the productivity half of the score.
    * The old hardcoded 15 was tuned for busy Baku stations, which is why quiet
    * regional stations graded D no matter how well their staff worked.
    */
@@ -41,7 +41,7 @@ export type Settings = {
 
   /** Revenue targets (idea #3 — replaces the self-referential formula). */
   targetMode: "manual" | "baseline"
-  /** Manual mode: AZN per day, per station id. Missing = fall back below. */
+  /** Manual mode: ₼ per day, per station id. Missing = fall back below. */
   stationDailyTargets: Record<string, number>
   /** Manual mode fallback for any station without an explicit target. */
   defaultStationDailyTarget: number

@@ -15,9 +15,9 @@ import { cn } from "@/lib/utils"
 import type { Band } from "@/lib/format"
 
 const tones: Record<Band, string> = {
-  good: "text-emerald-400",
-  warn: "text-amber-400",
-  crit: "text-red-400",
+  good: "text-emerald-600 dark:text-emerald-400",
+  warn: "text-amber-600 dark:text-amber-400",
+  crit: "text-red-600 dark:text-red-400",
 }
 
 /** Inline good/warn/crit verdict line — the ✓ / ▲ / ⚠ lines from SASIS. */

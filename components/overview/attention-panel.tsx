@@ -22,9 +22,9 @@ const VERDICT_STYLE: Record<Verdict, string> = {
 }
 
 const VERDICT_TEXT: Record<Verdict, string> = {
-  "on-track": "text-emerald-300",
-  watch: "text-amber-300",
-  action: "text-red-300",
+  "on-track": "text-emerald-700 dark:text-emerald-300",
+  watch: "text-amber-700 dark:text-amber-300",
+  action: "text-red-700 dark:text-red-300",
 }
 
 /** Where each item sends someone who wants to do something about it. */

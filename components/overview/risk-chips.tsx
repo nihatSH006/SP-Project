@@ -13,9 +13,9 @@ const CHIP: Record<RiskLevel | "ALL", string> = {
 
 const ACTIVE: Record<RiskLevel | "ALL", string> = {
   ALL: "bg-foreground/10 text-foreground",
-  LOW: "bg-emerald-500/15 text-emerald-300",
-  MEDIUM: "bg-amber-500/15 text-amber-300",
-  HIGH: "bg-red-500/15 text-red-300",
+  LOW: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  MEDIUM: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+  HIGH: "bg-red-500/15 text-red-700 dark:text-red-300",
 }
 
 /**

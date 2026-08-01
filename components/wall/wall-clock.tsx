@@ -106,7 +106,7 @@ export function WallClock({
       {staleLabel ? (
         <span
           data-stale="true"
-          className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-sm font-medium text-amber-300"
+          className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-sm font-medium text-amber-700 dark:text-amber-300"
         >
           {t.wall.stale} · {staleLabel}
         </span>

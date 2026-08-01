@@ -60,7 +60,7 @@ export type OperatorMetrics = {
   workingHours: number
   salesCount: number
   revenue: number
-  /** AZN per working hour. */
+  /** ₼ per working hour. */
   productivity: number
   salesPerHour: number
   /** 0-100. */
