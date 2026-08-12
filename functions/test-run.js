@@ -132,8 +132,8 @@ console.log("\nAlert rates over 64 workers × 120 days (7680 worker-days)")
   )
 
   check(
-    "most worker-days are CLEAN (< 25% of days raise anything)",
-    flaggedDays / workerDays < 0.25,
+    "alerts are common but not universal (25–75% of days flagged)",
+    flaggedDays / workerDays > 0.25 && flaggedDays / workerDays < 0.75,
     `${flaggedDays} flagged / ${workerDays} days`
   )
   check(

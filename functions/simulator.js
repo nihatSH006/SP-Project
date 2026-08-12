@@ -60,19 +60,19 @@ const LIVE_PACE = 15
  */
 const ALERT_CHANCES = {
   /** No show at all (not an alert by itself — no worker-day document). */
-  absent: 0.05,
+  absent: 0.08,
   /** GIVEN absent: the fob sells anyway → "no-taps-sales" (high). */
-  phantomWhenAbsent: 0.25,
+  phantomWhenAbsent: 0.5,
   /** OUT tap with no IN before it → "missing-in" (medium). */
-  missingIn: 0.025,
+  missingIn: 0.1,
   /** IN tap, never an OUT → "missing-out" (medium). */
-  missingOut: 0.04,
+  missingOut: 0.12,
   /** Card read twice on the way in → "double-tap-in" (low). */
-  doubleTapIn: 0.03,
+  doubleTapIn: 0.12,
   /** Card read twice on the way out → "double-tap-out" (low). */
-  doubleTapOut: 0.03,
+  doubleTapOut: 0.12,
   /** 1-3 sales 15-60 min AFTER the OUT tap → "sale-off-clock" (high). */
-  saleOffClock: 0.04,
+  saleOffClock: 0.15,
 }
 
 /** Tap-shape alerts are judged only after the shift is truly over. */
