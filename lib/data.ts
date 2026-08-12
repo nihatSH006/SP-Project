@@ -2,58 +2,36 @@ import "server-only"
 
 import { cache } from "react"
 
-import {
-  applyFilters,
-  deriveScores,
-  type Filters,
-  type HourlyPoint,
-  type OperatorMetrics,
-  type RiskLevel,
-  RISK_LEVELS,
-  type Shift,
-  SHIFTS,
-} from "@/lib/analytics"
-import {
-  canCompareStations,
-  getSessionUser,
-  stationScopeFor,
-} from "@/lib/auth"
+import { getSessionUser, stationScopeFor } from "@/lib/auth"
 import { adminDb } from "@/lib/firebase/admin"
 import { resolvePeriod } from "@/lib/period"
-import { getSettings } from "@/lib/settings-server"
-import type { Settings } from "@/lib/settings"
-import { COLLECTIONS, stationId } from "@/lib/firebase/schema"
-import type { ReportDoc } from "@/lib/firebase/schema"
+import {
+  COLLECTIONS,
+  stationId,
+  type SaleDoc,
+  type StoredAlert,
+  type WorkerDayDoc,
+} from "@/lib/firebase/schema"
 
 /**
  * All reads go through the Admin SDK on the server; the browser never holds a
- * Firestore handle, so `firestore.rules` is a backstop rather than the only
- * thing between a visitor and the data.
- *
- * Reports are precomputed per operational day by the seeder/importer, so one
- * page load reads one day's report documents (~60), never the raw sales.
+ * Firestore handle. Worker-days are precomputed per operational day by the
+ * seeder/importer, so one page load reads one day's documents (~60), never
+ * the raw taps and sales.
  */
 
-/** A stored daily report: metrics + the day's hourly series, no raw sales. */
-export type StoredReport = OperatorMetrics & {
-  date: string
-  hourly: HourlyPoint[]
-}
+export type { StoredAlert }
 
-/**
- * Cross-request cache, pinned to `globalThis` (module-scoped Maps are
- * duplicated per route bundle and reset by HMR — see the quota incident).
- * Keyed by scope AND date so a staff slice is never served to a regional
- * user and one day's data never masquerades as another's.
- */
+/** A computed worker-day, exactly as stored — already client-safe numbers. */
+export type WorkerDay = WorkerDayDoc
+
 const TTL_MS = 5 * 60 * 1000
 
-type ReportsCache = Map<string, { at: number; reports: StoredReport[] }>
-type DatesCache = { at: number; dates: string[] } | null
+type ReportsCache = Map<string, { at: number; reports: WorkerDay[] }>
 
 const g = globalThis as typeof globalThis & {
   __sasisReports?: ReportsCache
-  __sasisDates?: DatesCache
+  __sasisDates?: { at: number; dates: string[] } | null
 }
 g.__sasisReports ??= new Map()
 const reportsCache = g.__sasisReports
@@ -79,54 +57,6 @@ function isQuotaError(error: unknown): boolean {
 }
 
 /**
- * Rehydrate a stored report, re-deriving every policy-dependent value from the
- * admin's current settings. The stored `attendanceScore` / `risk` / `score` /
- * `grade` are snapshots from import time and are deliberately ignored — that is
- * what makes a settings change take effect instantly across all 28 days without
- * recomputing a single document.
- */
-function docToReport(data: ReportDoc, settings: Settings): StoredReport {
-  const derived = deriveScores(
-    {
-      workingHours: data.workingHours,
-      productivity: data.productivity,
-      suspicious: data.suspicious,
-    },
-    settings
-  )
-
-  return {
-    id: data.employeeId,
-    date: data.date,
-    name: data.name,
-    department: data.department,
-    station: data.station,
-    shift: data.shift as Shift,
-    entry: data.entry.toDate(),
-    exit: data.exit.toDate(),
-    workingHours: data.workingHours,
-    salesCount: data.salesCount,
-    revenue: data.revenue,
-    productivity: data.productivity,
-    salesPerHour: data.salesPerHour,
-    suspicious: data.suspicious,
-    attendanceScore: derived.attendanceScore,
-    risk: derived.risk,
-    score: derived.score,
-    grade: derived.grade,
-    alerts: (data.alerts ?? []).map((alert) => ({
-      operatorId: data.employeeId,
-      operator: data.name,
-      station: data.station,
-      time: alert.time.toDate(),
-      amount: alert.amount,
-      reason: alert.reason,
-    })),
-    hourly: data.hourly ?? [],
-  }
-}
-
-/**
  * Operational days available, ascending. Sourced from the import manifest —
  * one tiny document instead of an aggregation over thousands of reports.
  */
@@ -146,39 +76,24 @@ export const getLatestDate = cache(async (): Promise<string | null> => {
 })
 
 /**
- * Load one operational day's reports, scoped to what the caller may see.
+ * Load one operational day's worker-days, scoped to what the caller may see.
  * Station scoping is applied at the query — a station-pinned request never
  * pulls another station's documents into the server process at all.
  */
-export const getOperatorReports = cache(
-  async (date?: string): Promise<StoredReport[]> => {
+export const getWorkerDays = cache(
+  async (date?: string): Promise<WorkerDay[]> => {
     const user = await getSessionUser()
     if (!user) return []
 
     const day = date ?? (await getLatestDate())
     if (!day) return []
 
-    const settings = await getSettings()
     const scope = stationScopeFor(user)
-    const key = `${scope ?? "__all__"}:${day}`
-
-    // Settings are part of the cache key: changing a threshold must not serve
-    // scores computed under the old policy.
-    const policyKey = JSON.stringify([
-      settings.scheduledHours,
-      settings.productivityTarget,
-      settings.riskHighSuspicious,
-      settings.riskMediumAttendance,
-      settings.riskHighAttendance,
-      settings.gradeBounds,
-    ])
-    const cacheKey = `${key}|${policyKey}`
-
+    const cacheKey = `${scope ?? "__all__"}:${day}`
     const hit = reportsCache.get(cacheKey)
     if (hit && Date.now() - hit.at < TTL_MS) return hit.reports
 
     const db = adminDb()
-
     try {
       const snapshot = scope
         ? await db
@@ -193,27 +108,15 @@ export const getOperatorReports = cache(
             .get()
 
       const reports = snapshot.docs
-        .map((doc) => docToReport(doc.data() as ReportDoc, settings))
-        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((doc) => doc.data() as WorkerDay)
+        .sort((a, b) => a.adSoyad.localeCompare(b.adSoyad))
 
       reportsCache.set(cacheKey, { at: Date.now(), reports })
       return reports
     } catch (error) {
       // Stale-if-error: an expired copy beats an error page.
-      if (hit) {
-        console.warn(
-          `[data] Firestore read failed; serving cached reports from ${new Date(hit.at).toISOString()}`
-        )
-        return hit.reports
-      }
-
+      if (hit) return hit.reports
       const quota = isQuotaError(error)
-      console.error(
-        quota
-          ? "[data] Firestore daily read quota exhausted."
-          : "[data] Firestore read failed:",
-        quota ? "" : error
-      )
       throw new DataUnavailableError(
         quota
           ? "Firestore's daily read quota is exhausted."
@@ -224,174 +127,17 @@ export const getOperatorReports = cache(
   }
 )
 
-/** Station x day revenue totals, written by the seeder for baseline targets. */
-type Rollups = Record<string, Record<string, number>>
-
-const gr = globalThis as typeof globalThis & {
-  __sasisRollups?: { at: number; rollups: Rollups } | null
-}
-
-const getRollups = cache(async (): Promise<Rollups> => {
-  if (gr.__sasisRollups && Date.now() - gr.__sasisRollups.at < TTL_MS) {
-    return gr.__sasisRollups.rollups
-  }
-  try {
-    const doc = await adminDb().collection(COLLECTIONS.meta).doc("rollups").get()
-    const rollups = (doc.data()?.stationDaily as Rollups | undefined) ?? {}
-    gr.__sasisRollups = { at: Date.now(), rollups }
-    return rollups
-  } catch {
-    return gr.__sasisRollups?.rollups ?? {}
-  }
-})
-
 /**
- * The revenue target for this slice.
- *
- * Manual: the admin's per-station numbers, summed over the stations present.
- * Baseline: each station's own trailing average (from the rollup document)
- * times the configured uplift — so a quiet station is measured against itself.
- * Returns null when nothing is configured, so the UI can say so honestly
- * rather than inventing the old self-referential 87%.
- */
-/**
- * The daily revenue target for each named station.
- *
- * Exported because the wallboard needs targets PER station while the pages
- * need one total. Deriving both from this single map means the office screen
- * and the dashboard can never disagree about the same number — the fastest way
- * to lose a room's trust in a wallboard is for it to contradict the report
- * someone is holding.
- *
- * Manual: the admin's per-station figure, falling back to the default.
- * Baseline: that station's own trailing average times the configured uplift,
- * so a quiet station is measured against itself.
- */
-export async function stationTargetMap(
-  stations: string[],
-  settings: Settings,
-  date: string | null
-): Promise<Map<string, number>> {
-  const out = new Map<string, number>()
-  if (stations.length === 0) return out
-
-  if (settings.targetMode === "manual") {
-    for (const name of stations) {
-      out.set(
-        name,
-        settings.stationDailyTargets[stationId(name)] ??
-          settings.defaultStationDailyTarget
-      )
-    }
-    return out
-  }
-
-  const rollups = await getRollups()
-  const BASELINE_DAYS = 14
-
-  for (const name of stations) {
-    const byDate = rollups[stationId(name)] ?? {}
-    const past = Object.entries(byDate)
-      .filter(([d]) => (date ? d < date : true))
-      .sort(([a], [b]) => (a < b ? 1 : -1))
-      .slice(0, BASELINE_DAYS)
-      .map(([, revenue]) => revenue)
-    if (past.length === 0) continue
-    const average = past.reduce((sum, v) => sum + v, 0) / past.length
-    out.set(name, average * settings.baselineUplift)
-  }
-
-  return out
-}
-
-async function targetFor(
-  reports: StoredReport[],
-  settings: Settings,
-  date: string | null
-): Promise<number | null> {
-  if (reports.length === 0) return null
-
-  const stations = [...new Set(reports.map((r) => r.station))]
-  const targets = await stationTargetMap(stations, settings, date)
-
-  let total = 0
-  for (const value of targets.values()) total += value
-  return total > 0 ? total : null
-}
-
-export type FilterOptions = {
-  stations: string[]
-  departments: string[]
-  shifts: Shift[]
-  /** All operational days, ascending. */
-  dates: string[]
-  /** The day this render is showing. */
-  selectedDate: string | null
-}
-
-export type SearchParams = Record<string, string | string[] | undefined>
-
-const single = (value: string | string[] | undefined) =>
-  Array.isArray(value) ? value[0] : value
-
-/** The `?date=` param, validated against real days; latest otherwise. */
-export async function resolveDate(
-  searchParams: SearchParams
-): Promise<string | null> {
-  const dates = await getAvailableDates()
-  const requested = single(searchParams.date)
-  if (requested && dates.includes(requested)) return requested
-  return dates.at(-1) ?? null
-}
-
-/**
- * Validate filters against the options the caller actually has. Anything
- * unrecognised is dropped, so a hand-edited URL cannot widen the slice
- * beyond what their role allows.
- */
-async function resolveFilters(
-  searchParams: SearchParams,
-  reports: StoredReport[]
-): Promise<Filters> {
-  const stations = new Set(reports.map((r) => r.station))
-  const departments = new Set(reports.map((r) => r.department))
-
-  // A pinned account has exactly one station, so `?station=` can only ever
-  // restate the scope it already has or name one it cannot see. Dropping it
-  // outright keeps a hand-edited URL from producing a view the UI never
-  // offers.
-  const station = (await canCompareStations())
-    ? single(searchParams.station)
-    : undefined
-  const department = single(searchParams.department)
-  const shift = single(searchParams.shift) as Shift | undefined
-  const risk = single(searchParams.risk) as RiskLevel | undefined
-
-  return {
-    station: station && stations.has(station) ? station : null,
-    department: department && departments.has(department) ? department : null,
-    shift: shift && SHIFTS.includes(shift) ? shift : null,
-    risk: risk && RISK_LEVELS.includes(risk) ? risk : null,
-  }
-}
-
-/**
- * Total flagged sales the caller can see, across every imported day.
- *
- * Read from a single aggregate written at import time. The nav badge used to
- * show only the latest day's count, which made a month of alerts look like
- * whatever happened to land on the last date imported — and computing the real
- * total per request would mean reading every report for a number in a pill.
+ * Total alerts the caller can see, across every imported day — the nav
+ * badge. Read from one aggregate written at import time.
  */
 export const getTotalAlerts = cache(async (): Promise<number> => {
   const user = await getSessionUser()
   if (!user) return 0
-
   try {
     const doc = await adminDb().collection(COLLECTIONS.meta).doc("alerts").get()
     const data = doc.data()
     if (!data) return 0
-
     const scope = stationScopeFor(user)
     if (!scope) return Number(data.total ?? 0)
     const byStation = (data.byStation ?? {}) as Record<string, number>
@@ -401,13 +147,80 @@ export const getTotalAlerts = cache(async (): Promise<number> => {
   }
 })
 
-/**
- * The same slice, but over a chosen period rather than one day.
- *
- * Pages that aggregate across days need every day's reports; `getSlice` only
- * ever loads one. Filters and options are resolved exactly as they are there,
- * so a station or shift chosen in the filter bar narrows the whole period.
- */
+// ---------------------------------------------------------------- slicing
+
+export type SearchParams = Record<string, string | string[] | undefined>
+
+const single = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] : value
+
+export type FilterOptions = {
+  stations: string[]
+  /** Always empty — one department; the filter bar hides single-value groups. */
+  departments: string[]
+  shifts: string[]
+  dates: string[]
+  selectedDate: string | null
+}
+
+const SHIFTS = ["Morning", "Evening", "Night"]
+
+async function optionsFor(
+  reports: WorkerDay[],
+  dates: string[],
+  selectedDate: string | null,
+  multiStation: boolean
+): Promise<FilterOptions> {
+  return {
+    stations: multiStation
+      ? [...new Set(reports.map((r) => r.station))].sort()
+      : [],
+    departments: [],
+    shifts: SHIFTS.filter((s) => reports.some((r) => r.shift === s)),
+    dates,
+    selectedDate,
+  }
+}
+
+function applyFilters(
+  reports: WorkerDay[],
+  station: string | null,
+  shift: string | null
+): WorkerDay[] {
+  let out = reports
+  if (station) out = out.filter((r) => r.station === station)
+  if (shift) out = out.filter((r) => r.shift === shift)
+  return out
+}
+
+/** One chosen day — the workers page's unit. */
+export async function getSlice(searchParams: SearchParams) {
+  const user = await getSessionUser()
+  const dates = await getAvailableDates()
+  const requested = single(searchParams.date)
+  const date =
+    requested && dates.includes(requested) ? requested : (dates.at(-1) ?? null)
+
+  const reports = await getWorkerDays(date ?? undefined)
+  const multiStation = user ? stationScopeFor(user) === null : false
+
+  const station = multiStation ? (single(searchParams.station) ?? null) : null
+  const shift = single(searchParams.shift) ?? null
+  const filtered = applyFilters(
+    reports,
+    station && reports.some((r) => r.station === station) ? station : null,
+    shift && SHIFTS.includes(shift) ? shift : null
+  )
+
+  return {
+    date,
+    reports: filtered,
+    options: await optionsFor(reports, dates, date, multiStation),
+    multiStation,
+  }
+}
+
+/** A chosen period — the alerts page's unit. */
 export async function getPeriodSlice(searchParams: SearchParams) {
   const dates = await getAvailableDates()
   const period = resolvePeriod(
@@ -418,7 +231,7 @@ export async function getPeriodSlice(searchParams: SearchParams) {
 
   if (!period) {
     return {
-      reports: [] as StoredReport[],
+      reports: [] as WorkerDay[],
       options: {
         stations: [],
         departments: [],
@@ -428,77 +241,129 @@ export async function getPeriodSlice(searchParams: SearchParams) {
       } as FilterOptions,
       period: { from: "", to: "", dates: [] },
       availableDates: dates,
-      target: null as number | null,
-      days: 0,
     }
   }
 
-  // One cached read per day.
+  const user = await getSessionUser()
+  const multiStation = user ? stationScopeFor(user) === null : false
+
   const perDay = await Promise.all(
-    period.dates.map((date) => getOperatorReports(date))
+    period.dates.map((date) => getWorkerDays(date))
   )
   const all = perDay.flat()
-  const filters = await resolveFilters(searchParams, all)
-  const multiStation = await canCompareStations()
 
-  const options: FilterOptions = {
-    stations: multiStation
-      ? [...new Set(all.map((r) => r.station))].sort()
-      : [],
-    departments: [...new Set(all.map((r) => r.department))].sort(),
-    shifts: SHIFTS.filter((s) => all.some((r) => r.shift === s)),
-    dates,
-    selectedDate: null,
-  }
-
-  const filtered = applyFilters(all, filters)
-  const settings = await getSettings()
-
-  // Daily targets scaled by the days each station actually traded, so a
-  // partial period is not measured against a whole one.
-  const names = [...new Set(filtered.map((r) => r.station))]
-  const targets = await stationTargetMap(names, settings, null)
-  let total = 0
-  for (const name of names) {
-    const traded = new Set(
-      filtered.filter((r) => r.station === name).map((r) => r.date)
-    ).size
-    total += (targets.get(name) ?? 0) * traded
-  }
+  const station = multiStation ? (single(searchParams.station) ?? null) : null
+  const shift = single(searchParams.shift) ?? null
+  const filtered = applyFilters(
+    all,
+    station && all.some((r) => r.station === station) ? station : null,
+    shift && SHIFTS.includes(shift) ? shift : null
+  )
 
   return {
     reports: filtered,
-    options,
+    options: await optionsFor(all, dates, null, multiStation),
     period,
     availableDates: dates,
-    target: total > 0 ? total : null,
-    days: period.dates.length,
   }
 }
 
-/** The filtered slice every page is scoped to, plus how it was selected. */
-export async function getSlice(searchParams: SearchParams) {
-  const date = await resolveDate(searchParams)
-  const [reports, dates] = await Promise.all([
-    getOperatorReports(date ?? undefined),
-    getAvailableDates(),
-  ])
-  const filters = await resolveFilters(searchParams, reports)
-  const multiStation = await canCompareStations()
+/**
+ * A worker's roster identity, scoped. The detail page falls back to this on
+ * days the worker was ABSENT: no worker-day document exists then, and "you
+ * were not here that day" is information, not a missing page.
+ */
+export async function getRosterWorker(
+  station: string,
+  userid: string
+): Promise<{ userid: string; adSoyad: string; kartNo: string } | null> {
+  const user = await getSessionUser()
+  if (!user) return null
+  const scope = stationScopeFor(user)
+  if (scope && stationId(scope) !== stationId(station)) return null
 
-  const options: FilterOptions = {
-    stations: multiStation
-      ? [...new Set(reports.map((r) => r.station))].sort()
-      : [],
-    departments: [...new Set(reports.map((r) => r.department))].sort(),
-    shifts: SHIFTS.filter((s) => reports.some((r) => r.shift === s)),
-    dates,
-    selectedDate: date,
+  const doc = await adminDb()
+    .collection(COLLECTIONS.stations)
+    .doc(stationId(station))
+    .collection(COLLECTIONS.roster)
+    .doc(userid)
+    .get()
+  if (!doc.exists) return null
+  const data = doc.data()!
+  return {
+    userid: data.userid as string,
+    adSoyad: data.adSoyad as string,
+    kartNo: data.kartNo as string,
   }
+}
 
-  const filtered = applyFilters(reports, filters)
-  const settings = await getSettings()
-  const target = await targetFor(filtered, settings, date)
+/** One sale row, already client-safe — a db3_satislar row plus the db1 join. */
+export type SaleRow = {
+  at: number
+  db1Id: string
+  vNo: string
+  litres: number
+  grade: string
+  amount: number
+}
 
-  return { filters, options, reports: filtered, target, settings }
+/**
+ * One worker-day's raw sale rows, straight from THE sales table. This is the
+ * join the report aggregates were computed from — kart_no + operational day —
+ * so the detail page shows rows an official can find in db3_satislar itself.
+ *
+ * Two equality filters need no composite index; Firestore merges the
+ * single-field ones.
+ */
+export async function getWorkerDaySales(
+  station: string,
+  kartNo: string,
+  date: string
+): Promise<SaleRow[]> {
+  const user = await getSessionUser()
+  if (!user) return []
+  const scope = stationScopeFor(user)
+  if (scope && stationId(scope) !== stationId(station)) return []
+
+  const snapshot = await adminDb()
+    .collection(COLLECTIONS.sales)
+    .where("kartNo", "==", kartNo)
+    .where("opDate", "==", date)
+    .get()
+
+  return snapshot.docs
+    .map((doc) => {
+      const sale = doc.data() as SaleDoc
+      return {
+        at: sale.satisZamani.toMillis(),
+        db1Id: sale.db1Id,
+        vNo: sale.vNo,
+        litres: sale.litres,
+        grade: sale.grade,
+        amount: sale.amount,
+      }
+    })
+    .sort((a, b) => a.at - b.at)
+}
+
+/** One worker's one day, by direct path — for the detail page. */
+export async function getWorkerDay(
+  station: string,
+  userid: string,
+  date: string
+): Promise<WorkerDay | null> {
+  const user = await getSessionUser()
+  if (!user) return null
+  // A pinned account may only reach its own station, whatever the URL says.
+  const scope = stationScopeFor(user)
+  if (scope && stationId(scope) !== stationId(station)) return null
+
+  const doc = await adminDb()
+    .collection(COLLECTIONS.stations)
+    .doc(stationId(station))
+    .collection(COLLECTIONS.reports)
+    .doc(`${date}_${userid}`)
+    .get()
+
+  return doc.exists ? (doc.data() as WorkerDay) : null
 }

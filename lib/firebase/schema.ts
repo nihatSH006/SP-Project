@@ -1,210 +1,153 @@
 /**
- * Firestore layout (multi-day).
+ * Firestore layout (v4 — one sales table, exactly like the source).
  *
+ *   /sales/{db1Id}                              — THE sales table: one top-level
+ *                                                 collection mirroring
+ *                                                 public.db3_satislar row for row
+ *                                                 (istasyon is a COLUMN, like the
+ *                                                 real table — not a path segment)
  *   /stations/{stationId}                       — station registry
- *   /stations/{stationId}/roster/{employeeId}   — who works there (person registry)
- *   /stations/{stationId}/reports/{date}_{employeeId}
- *                                               — one computed report per person per day
- *   /stations/{stationId}/sales/{saleId}        — raw transactions (audit only)
+ *   /stations/{stationId}/roster/{userid}       — workers: userid, kart_no, name
+ *   /stations/{stationId}/logs/{logId}          — raw attendance taps (db3_loglar shape)
+ *   /stations/{stationId}/reports/{date}_{userid}
+ *                                               — one computed worker-day: taps,
+ *                                                 sale AGGREGATES + OBVIOUS alerts
+ *                                                 (never sale rows — those live in
+ *                                                 /sales only, joined by kartNo +
+ *                                                 opDate)
  *   /users/{uid}                                — account profiles (mirror of auth)
- *   /settings/global                            — admin-tunable business rules
+ *   /settings/global                            — admin-tunable defaults (language)
  *   /meta/import                                — import bookkeeping + list of dates
+ *   /meta/alerts                                — alert totals for the nav badge
  *
- * Two structural rules, both load-bearing:
+ * Three structural rules, all load-bearing:
  *
- * 1. Everything station-scoped nests under /stations/{stationId} because
+ * 1. Sale ROWS exist in exactly one place: /sales/{db1Id}, shaped like the
+ *    real db3_satislar (unique db1_id → document id). Every other collection
+ *    only LINKS to it — reports via (kartNo, opDate), stations via istasyon.
+ *    The live-feed simulator and the seeder both write sales here and nowhere
+ *    else.
+ *
+ * 2. Everything station-scoped nests under /stations/{stationId} because
  *    security rules authorise reads from the document PATH — rules cannot
- *    inspect a query's `where` clauses, so a flat layout could not safely
- *    support station-pinned `list` access for staff/manager roles.
+ *    inspect a query's `where` clauses. (The top-level sales table is
+ *    server-only; clients never query it directly.)
  *
- * 2. Reports are aggregated on WRITE (by the seeder/importer), never on read.
- *    A page load reads one day's report docs (~60), not the raw sales
- *    (~45,000). The first design aggregated on read and burned Firestore's
- *    free-tier daily quota in ~90 page views.
+ * 3. Reports are aggregated on WRITE (by the seeder and the live-feed
+ *    function), never on read. A page load reads one day's worker-day docs
+ *    (~60), not the raw taps and sales (~45,000). The worker DETAIL page is
+ *    the one deliberate exception: it reads that worker-day's raw rows from
+ *    /sales, proving the aggregates against the table of record.
  *
  * Dates are `YYYY-MM-DD` strings (operational day, Asia/Baku). A night shift
- * belongs to the day it STARTED: entry 22:00 on the 14th → date "…-14", even
- * though exit is 06:00 on the 15th.
+ * belongs to the day it STARTED.
  */
 
 import type { Timestamp } from "firebase-admin/firestore"
 
 export type StationDoc = {
   name: string
-  /** Display grouping: "Baku", "Ganja", … */
   region: string
-  /** Rough demand profile, used by generators and later by baselines. */
   profile: "city" | "highway" | "regional"
   employeeCount: number
   updatedAt: Timestamp
 }
 
-/** A person on a station's roster — exists independent of any day. */
+/** A person on a station's roster — db3_loglar identity fields. */
 export type RosterDoc = {
-  employeeId: number
-  name: string
-  department: string
-  station: string
+  userid: string
+  adSoyad: string
+  deptid: number
+  /** deptname in the source — here the station's display name. */
+  deptname: string
+  kartNo: string
+  /** The shift this worker is rostered on — the live feed simulates from it. */
+  shift: "Morning" | "Evening" | "Night"
   /** False once someone leaves; roster rows are never deleted. */
   active: boolean
   hiredAt: Timestamp
 }
 
-/**
- * One operator's computed report for one operational day.
- * Document id: `${date}_${employeeId}` (e.g. "2026-07-30_17").
- */
-export type ReportDoc = {
-  date: string
-  employeeId: number
-  name: string
-  department: string
-  station: string
-  entry: Timestamp
-  exit: Timestamp
-
-  shift: "Morning" | "Evening" | "Night"
-  workingHours: number
-  salesCount: number
-  revenue: number
-  productivity: number
-  salesPerHour: number
-  attendanceScore: number
-  suspicious: number
-  risk: "LOW" | "MEDIUM" | "HIGH"
-  score: number
-  grade: string
-  /** Flagged sales, embedded so alert pages need no raw-sale reads. */
-  alerts: {
-    time: Timestamp
-    amount: number
-    reason: string
-  }[]
-  /** Hourly revenue buckets: epoch-ms hour -> revenue. */
-  hourly: { hour: number; revenue: number }[]
-
-  /**
-   * Named fraud-rule output for this operator-day, computed at import time
-   * (ideas #6/#7/#13). Stored rather than recomputed so the alerts pages never
-   * touch raw sales, and so a case always shows the evidence as it stood when
-   * it was raised.
-   */
-  fraud?: {
-    score: number
-    proposed: "LOW" | "MEDIUM" | "HIGH"
-    hits: {
-      rule: string
-      severity: "low" | "medium" | "high"
-      category: "integrity" | "operational" | "corroborating"
-      count: number
-      score: number
-      overnight: boolean
-      /** CCTV pointers — the evidence pack (idea #9). */
-      windows: { from: number; to: number }[]
-      values?: number[]
-      baseline?: number
-      observed?: number
-    }[]
-  }
+/** One raw attendance tap — db3_loglar. */
+export type LogDoc = {
+  userid: string
+  adSoyad: string
+  deptid: number
+  deptname: string
+  kartNo: string
+  checkTime: Timestamp
+  /** Raw check_type value; semantics configured in lib/pos.ts. */
+  checkType: number
 }
 
 /**
- * A fraud case (idea #8). Path: /stations/{stationId}/cases/{employeeId}
+ * One row of THE sales table — /sales/{db1Id}, top level.
  *
- * The case is opened against a PERSON over a window, not against a single day.
- * One odd day is a forgotten clock-out or a late customer; the same rule firing
- * across many days is a pattern. Keying cases per day would have produced a
- * queue of one-off noise and buried the real repeat offenders in it.
- */
-export type CaseDoc = {
-  employeeId: number
-  employeeName: string
-  station: string
-  /** Window the evidence was drawn from. */
-  fromDate: string
-  toDate: string
-  /** What the ENGINE proposed. A human still decides — see `status`. */
-  proposedRisk: "LOW" | "MEDIUM" | "HIGH"
-  /** Score after the persistence multiplier. */
-  score: number
-  /** Days on which at least one rule fired. */
-  flaggedDays: number
-  /** Rule id -> number of separate days it fired on. */
-  repeatsByRule: Record<string, number>
-  /** The days to look at, newest first — each links to its evidence. */
-  dates: string[]
-  /**
-   * `open` until someone picks it up. Nothing here is a finding of guilt:
-   * `confirmed` and `explained` are both human conclusions, and the engine can
-   * write neither.
-   */
-  status: "open" | "investigating" | "confirmed" | "explained" | "dismissed"
-  assignedTo: string | null
-  note: string
-  createdAt: Timestamp
-  updatedAt: Timestamp
-  updatedBy: string | null
-}
-
-/**
- * Window performance for one operator (idea #11).
- * Path: /stations/{stationId}/scorecards/{employeeId}
+ * Field for field this is public.db3_satislar (db1_id, istasyon,
+ * satis_zamani, db1_personel, kart_no, v_no, analiz_edildi; the serial `id`
+ * becomes the document id via the unique db1_id index). Two demo-side
+ * extensions, both clearly not source columns:
  *
- * Computed at import time because the peer expectations it is scored against
- * span every day in the window — far too much to read per page view.
+ *   litres/grade/amount — the simulated db1 join (the real values live on
+ *                         the db1 record that db1_id points to)
+ *   opDate              — the operational day (shift-start day, Asia/Baku)
+ *                         the row belongs to; the join key reports use.
  */
-export type ScorecardDoc = {
-  employeeId: number
-  name: string
-  station: string
-  shift: string
-  fromDate: string
-  toDate: string
-  days: number
-  totalRevenue: number
-  expectedRevenue: number
-  percentOfExpected: number
-  attendanceAvg: number
-  productivityAvg: number
-  improvement: number
-  improvedFrom: number
-  improvedTo: number
-  hasImprovement: boolean
-  tier: string
-  updatedAt: Timestamp
-}
-
-/**
- * Coverage-vs-demand grid for one station (idea #12).
- * Path: /stations/{stationId}/staffing/profile
- *
- * 168 cells — one per weekday x hour — computed at import time from every
- * shift and sale in the window.
- */
-export type StaffingDoc = {
-  station: string
-  fromDate: string
-  toDate: string
-  median: number
-  cells: {
-    weekday: number
-    hour: number
-    revenue: number
-    operatorHours: number
-    perOperatorHour: number
-    avgOperators: number
-  }[]
-  updatedAt: Timestamp
-}
-
 export type SaleDoc = {
-  date: string
-  employeeId: number
-  employeeName: string
-  /** Denormalised so a sale can be authorised without a join. */
-  station: string
-  soldAt: Timestamp
+  db1Id: string
+  istasyon: string
+  satisZamani: Timestamp
+  db1Personel: string | null
+  kartNo: string | null
+  /** Carried verbatim; meaning unconfirmed. */
+  vNo: string
+  analizEdildi: number
+  /** The db1 join — what the worker keyed at the pump. */
+  litres: number
+  grade: string
   amount: number
+  /** Operational-day link: `YYYY-MM-DD`, the day whose worker-day owns this sale. */
+  opDate: string
+}
+
+/** A stored obvious alert — plain epoch numbers, straight to the client. */
+export type StoredAlert = {
+  type: string
+  severity: "low" | "medium" | "high"
+  at: number
+  from: number
+  to: number
+  amount?: number
+  kartNo?: string
+}
+
+/**
+ * One worker's computed day. Document id: `${date}_${userid}`.
+ * Everything the workers and alerts pages render — taps, sale AGGREGATES and
+ * the alerts the two source tables prove — with no raw-collection reads.
+ *
+ * Sale ROWS are deliberately absent: they live in /sales only. This document
+ * links to them by (kartNo, opDate == date); salesCount/litres/revenue are
+ * the write-time aggregation of exactly that query.
+ */
+export type WorkerDayDoc = {
+  date: string
+  userid: string
+  adSoyad: string
+  kartNo: string
+  station: string
+  shift: "Morning" | "Evening" | "Night"
+  /** Epoch ms; null when the corresponding tap never happened. */
+  checkIn: number | null
+  checkOut: number | null
+  /** Hours between first IN and last OUT, when both exist. */
+  workedHours: number | null
+  /** Every tap that day, in order. */
+  taps: { at: number; type: number }[]
+  salesCount: number
+  litres: number
+  revenue: number
+  alerts: StoredAlert[]
 }
 
 export type UserDoc = {
@@ -212,25 +155,12 @@ export type UserDoc = {
   displayName: string
   role: "admin" | "supervisor" | "manager" | "staff"
   station: string | null
-  /** Links a staff account to their roster row (future "my performance"). */
   employeeId: number | null
   createdAt: Timestamp
 }
 
-/**
- * Admin-tunable business rules (idea #16). Seeded with defaults matching the
- * historical constants; the settings UI will edit this document.
- */
+/** Minimal admin defaults — the core app configures only the language. */
 export type SettingsDoc = {
-  scheduledHours: number
-  /** suspicious-sale count that forces HIGH risk */
-  riskHighSuspicious: number
-  /** attendance % below which risk is at least MEDIUM / HIGH */
-  riskMediumAttendance: number
-  riskHighAttendance: number
-  gradeBounds: { aPlus: number; a: number; b: number; c: number }
-  /** minutes of clock-in lateness forgiven before scores are affected */
-  graceMinutes: number
   defaultLanguage: "az" | "ru" | "en"
   updatedAt: Timestamp
 }
@@ -238,11 +168,9 @@ export type SettingsDoc = {
 export const COLLECTIONS = {
   stations: "stations",
   roster: "roster",
-  reports: "reports",
-  cases: "cases",
-  scorecards: "scorecards",
-  staffing: "staffing",
+  logs: "logs",
   sales: "sales",
+  reports: "reports",
   users: "users",
   settings: "settings",
   meta: "meta",

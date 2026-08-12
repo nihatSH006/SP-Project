@@ -1,0 +1,16 @@
+{
+  "name": "socar-petrolium-functions",
+  "description": "Simulated live sales feed for the SOCAR SASIS demo",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "test": "node test-run.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.1.0"
+  }
+}
