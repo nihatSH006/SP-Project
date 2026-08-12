@@ -1,21 +1,22 @@
 /**
- * Synthetic test-data generator: 8 stations, 64 workers, 28 operational days.
+ * Synthetic test data in the REAL schema's shape (docs: db3_loglar +
+ * db3_satislar): 8 stations, 64 workers, 28 operational days of attendance
+ * TAPS and fob SALES.
  *
- * Everything is DETERMINISTIC — a seeded RNG means every re-run produces the
- * identical dataset, so document ids stay stable and re-seeding overwrites
- * instead of duplicating.
+ *  - Every worker has a userid and a kart_no; they tap IN when they arrive,
+ *    OUT when they leave (check_type per lib/pos.ts).
+ *  - A sale = the fob pressed at the pump: timestamp, station, card, v_no
+ *    (carried opaque), plus the simulated db1 join — litres, grade, amount
+ *    at the state price.
  *
- * All people are invented. Diversity is deliberate, so upcoming features have
- * something real to bite on:
- *  - performance archetypes from star to struggling
- *  - punctuality spread: lateness, early exits, absences
- *  - one mid-period hire, one leaver
- *  - station demand curves (city rush-hour vs highway midday vs quiet regional)
- *    and weekday/weekend factors
- *  - PLANTED fraud patterns, documented in `FRAUD_PLANTS` below, to test the
- *    alert engine: repeated after-hours sales, occasional after-hours sales,
- *    duplicate-amount bursts, abnormal round-amount share
+ * PLANTED anomalies (the answer key) are exactly the OBVIOUS kind the alert
+ * engine detects — missing taps, sales off the clock, phantom sellers.
+ * Deterministic RNG: every run produces the identical dataset, so ids stay
+ * stable and re-seeding overwrites.
  */
+
+import { CHECK_TYPE_IN, CHECK_TYPE_OUT } from "@/lib/pos"
+import { DEFAULT_TARIFFS, type FuelGrade } from "@/lib/settings"
 
 // ------------------------------------------------------------------ rng
 
@@ -33,6 +34,8 @@ function rng(seed: number): () => number {
 
 const pick = <T>(r: () => number, xs: readonly T[]): T =>
   xs[Math.floor(r() * xs.length)]
+
+const round2 = (v: number) => Math.round(v * 100) / 100
 
 // ------------------------------------------------------------------ stations
 
@@ -120,69 +123,67 @@ const SHIFT_HOURS: Record<Shift, { start: number; end: number }> = {
   Night: { start: 22, end: 30 }, // 22:00 → 06:00 next day
 }
 
-const DEPARTMENTS = [
-  "Fuel Sales", "Fuel Sales", "Fuel Sales",
-  "Cashier Operations", "Cashier Operations",
-  "Convenience Store", "Convenience Store",
-  "Customer Service",
-] as const
-
 const SHIFT_PLAN: Shift[] = [
   "Morning", "Morning", "Morning",
   "Evening", "Evening", "Evening",
   "Night", "Night",
 ]
 
-export type FraudPlant =
+/**
+ * The planted anomalies — each one an OBVIOUS, database-provable fact:
+ *
+ *   forgets-out    — taps IN, never taps OUT on many days
+ *   no-in          — the OUT tap is there, the IN is not
+ *   double-tap-in  — the fob reads twice on arrival
+ *   double-tap-out — the fob reads twice on the way out
+ *   late-seller    — sales continue after the OUT tap
+ *   phantom        — sales on days with no taps at all
+ */
+export type AnomalyPlant =
   | "none"
-  | "after-hours-repeat"
-  | "after-hours-occasional"
-  | "duplicate-amounts"
-  | "round-heavy"
+  | "forgets-out"
+  | "no-in"
+  | "double-tap-in"
+  | "double-tap-out"
+  | "late-seller"
+  | "phantom"
+
+export const PLANTED: Record<number, AnomalyPlant> = {
+  7: "forgets-out", // Baku Station 1, night shift
+  13: "late-seller", // Baku Station 2, evening shift
+  20: "double-tap-in", // Absheron Highway Station, evening shift
+  32: "phantom", // Sumqayit Station, night shift
+  38: "double-tap-out", // Ganja Station, evening shift
+  44: "no-in", // Mingachevir Station, evening shift
+}
 
 export type Worker = {
   employeeId: number
+  /** db3_loglar.userid */
+  userid: string
+  /** db3_loglar.ad_soyad */
   name: string
   station: string
-  department: string
+  deptid: number
+  /** db3 kart_no — the fob. */
+  kartNo: string
   shift: Shift
   /** Sales-pace multiplier: 0.6 struggling … 1.5 star. */
   performance: number
-  /** Mean clock-in lateness, minutes. */
+  /** Mean tap-in lateness, minutes. */
   lateness: number
   /** Probability of missing a day entirely. */
   absenteeism: number
-  /** 1-based day the worker starts appearing (mid-period hire). */
   firstDay: number
-  /** Last day the worker appears (leaver), inclusive. */
   lastDay: number
-  /** Occasionally very late in / very early out — attendance-risk archetype. */
-  erratic: boolean
-  fraud: FraudPlant
+  anomaly: AnomalyPlant
 }
 
-/**
- * The planted fraud cases — the answer key for testing the alert engine.
- * Keyed by employeeId (station index * 8 + slot + 1) because names are
- * generated; use `fraudPlantNames()` for the human-readable answer key.
- */
-export const PLANTED_FRAUD: Record<number, FraudPlant> = {
-  // Rings up sales 10-50 min after clock-out on roughly 40% of days.
-  7: "after-hours-repeat", // Baku Station 1, night shift
-  32: "after-hours-repeat", // Sumqayit Station, night shift
-  // Same, but rare (~10% of days) — tests threshold sensitivity.
-  13: "after-hours-occasional", // Baku Station 2, evening shift
-  // Bursts of 4-6 identical amounts within ~40 minutes (fabricated/replayed).
-  35: "duplicate-amounts", // Ganja Station, morning shift
-  // ~90% round amounts vs a station norm near 55% (skimming fingerprint).
-  52: "round-heavy", // Lankaran Station, evening shift
-}
-
-/** Human-readable answer key: name -> planted pattern. */
-export function fraudPlantNames(): Record<string, FraudPlant> {
-  const out: Record<string, FraudPlant> = {}
+/** Human-readable answer key: name -> planted anomaly. */
+export function plantNames(): Record<string, AnomalyPlant> {
+  const out: Record<string, AnomalyPlant> = {}
   for (const worker of generateWorkers()) {
-    if (worker.fraud !== "none") out[worker.name] = worker.fraud
+    if (worker.anomaly !== "none") out[worker.name] = worker.anomaly
   }
   return out
 }
@@ -196,36 +197,32 @@ export function generateWorkers(): Worker[] {
   STATIONS.forEach((station, s) => {
     for (let i = 0; i < 8; i++) {
       const index = s * 8 + i
-      const name = personName(index)
       const r = rng(1000 + index)
-
-      // Performance ladder per station: one star, one struggler, rest spread.
       const performance =
         i === 0 ? 1.35 + r() * 0.25 : i === 7 ? 0.6 + r() * 0.15 : 0.8 + r() * 0.5
 
       workers.push({
         employeeId: id,
-        name,
+        userid: `U${String(id).padStart(4, "0")}`,
+        name: personName(index),
         station: station.name,
-        department: DEPARTMENTS[i],
+        deptid: s + 1,
+        kartNo: `000453${String(9000 + id * 7).padStart(4, "0")}`,
         shift: SHIFT_PLAN[i],
         performance,
         lateness: r() < 0.55 ? r() * 6 : 6 + r() * 14,
         absenteeism: r() < 0.6 ? 0.015 : 0.04 + r() * 0.05,
         firstDay: 1,
         lastDay: TOTAL_DAYS,
-        // A couple of stations get one attendance-problem worker (slot 5),
-        // and the struggler (slot 7) is erratic where the rng says so.
-        erratic: (i === 5 && s % 3 === 1) || (i === 7 && r() < 0.5),
-        fraud: PLANTED_FRAUD[id] ?? "none",
+        anomaly: PLANTED[id] ?? "none",
       })
       id += 1
     }
   })
 
   // One mid-period hire and one leaver, for roster realism.
-  workers[10].firstDay = 12 // joined in week 2
-  workers[45].lastDay = 20 // left after day 20
+  workers[10].firstDay = 12
+  workers[45].lastDay = 20
 
   return workers
 }
@@ -241,26 +238,49 @@ export function generateManagers(): ManagerSpec[] {
 
 // ------------------------------------------------------------------ days
 
+export type GeneratedTap = {
+  employeeId: number
+  at: Date
+  /** Raw check_type. */
+  type: number
+}
+
+export type GeneratedSale = {
+  employeeId: number
+  /** db3_satislar fields. */
+  db1Id: string
+  station: string
+  at: Date
+  kartNo: string
+  vNo: string
+  /** Simulated db1 join. */
+  litres: number
+  grade: FuelGrade
+  amount: number
+}
+
 export type GeneratedDay = {
   /** YYYY-MM-DD, the operational day (shift start day). */
   date: string
-  attendance: {
-    employeeId: number
-    entry: Date
-    exit: Date
-  }[]
-  sales: {
-    employeeId: number
-    soldAt: Date
-    amount: number
-  }[]
+  taps: GeneratedTap[]
+  sales: GeneratedSale[]
 }
 
 const ROUND_AMOUNTS = [20, 30, 40, 50, 70, 100, 150, 200] as const
 
-function saleAmount(r: () => number, roundShare: number): number {
-  if (r() < roundShare) return pick(r, ROUND_AMOUNTS)
-  return Math.round((15 + r() * 285) * 100) / 100
+/** Prepay entries are round-heavy: "fill it for 50 manat" is the culture. */
+function saleAmount(r: () => number): number {
+  if (r() < 0.7) return pick(r, ROUND_AMOUNTS)
+  return round2(15 + r() * 285)
+}
+
+/** Grade mix roughly matching the network: AI-92 dominates. */
+function fuelGrade(r: () => number): FuelGrade {
+  const x = r()
+  if (x < 0.62) return "AI-92"
+  if (x < 0.84) return "AI-95"
+  if (x < 0.96) return "Diesel"
+  return "AI-98"
 }
 
 function fmtDate(d: Date): string {
@@ -270,20 +290,50 @@ function fmtDate(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
+const addMinutes = (d: Date, minutes: number): Date => {
+  const out = new Date(d)
+  out.setMinutes(out.getMinutes() + Math.round(minutes))
+  return out
+}
+
 /**
  * Generate `TOTAL_DAYS` operational days ending on `endDate` (inclusive).
  */
 export function generateDays(workers: Worker[], endDate: Date): GeneratedDay[] {
   const stationByName = new Map(STATIONS.map((s) => [s.name, s]))
   const days: GeneratedDay[] = []
+  let saleSeq = 0
 
   for (let dayIdx = 1; dayIdx <= TOTAL_DAYS; dayIdx++) {
     const dayDate = new Date(endDate)
     dayDate.setDate(endDate.getDate() - (TOTAL_DAYS - dayIdx))
     dayDate.setHours(0, 0, 0, 0)
 
-    const day: GeneratedDay = { date: fmtDate(dayDate), attendance: [], sales: [] }
+    const day: GeneratedDay = { date: fmtDate(dayDate), taps: [], sales: [] }
     const weekday = (dayDate.getDay() + 6) % 7 // 0 = Monday
+
+    const pushSale = (
+      r: () => number,
+      station: string,
+      at: Date,
+      kartNo: string,
+      employeeId: number
+    ) => {
+      const amount = saleAmount(r)
+      const grade = fuelGrade(r)
+      saleSeq += 1
+      day.sales.push({
+        employeeId,
+        db1Id: `S${day.date.replace(/-/g, "")}-${String(saleSeq).padStart(5, "0")}`,
+        station,
+        at,
+        kartNo,
+        vNo: `V${1 + Math.floor(r() * 4)}`,
+        litres: round2(amount / DEFAULT_TARIFFS[grade]),
+        grade,
+        amount,
+      })
+    }
 
     for (const worker of workers) {
       if (dayIdx < worker.firstDay || dayIdx > worker.lastDay) continue
@@ -294,77 +344,108 @@ export function generateDays(workers: Worker[], endDate: Date): GeneratedDay[] {
       const station = stationByName.get(worker.station)!
       const hours = SHIFT_HOURS[worker.shift]
 
-      // ---- attendance: lateness jitter in, early/late exit jitter out
-      const badDay = worker.erratic && r() < 0.28
-      const lateMin = badDay
-        ? 35 + r() * 50 // very late — attendance score dips below 90
-        : Math.max(0, worker.lateness * (0.4 + r() * 1.2))
-      const entry = new Date(dayDate)
-      entry.setHours(hours.start, Math.round(lateMin), Math.round(r() * 59), 0)
+      // ---- the tapped window ---------------------------------------------
+      const lateMin = Math.max(0, worker.lateness * (0.4 + r() * 1.2))
+      const tapIn = new Date(dayDate)
+      tapIn.setHours(hours.start, Math.round(lateMin), Math.round(r() * 59), 0)
+      const tapOut = new Date(dayDate)
+      tapOut.setHours(
+        hours.end,
+        Math.round((r() - 0.35) * 24),
+        Math.round(r() * 59),
+        0
+      )
 
-      const exitJitter = badDay
-        ? -(30 + r() * 45) // leaves early too
-        : (r() - 0.35) * 24 // usually a few minutes late out
-      const exit = new Date(dayDate)
-      exit.setHours(hours.end, Math.round(Math.max(-90, exitJitter)), Math.round(r() * 59), 0)
+      const phantomToday = worker.anomaly === "phantom" && r() < 0.25
+      const forgetsOutToday = worker.anomaly === "forgets-out" && r() < 0.35
+      const noInToday = worker.anomaly === "no-in" && r() < 0.3
+      const doubleTapToday = worker.anomaly === "double-tap-in" && r() < 0.4
+      const doubleTapOutToday =
+        worker.anomaly === "double-tap-out" && r() < 0.4
 
-      day.attendance.push({ employeeId: worker.employeeId, entry, exit })
+      if (!phantomToday) {
+        if (!noInToday) {
+          day.taps.push({
+            employeeId: worker.employeeId,
+            at: tapIn,
+            type: CHECK_TYPE_IN,
+          })
+          if (doubleTapToday) {
+            // The reader catches the card twice on the way in.
+            day.taps.push({
+              employeeId: worker.employeeId,
+              at: addMinutes(tapIn, 0.5 + r()),
+              type: CHECK_TYPE_IN,
+            })
+          }
+        }
+        if (!forgetsOutToday) {
+          day.taps.push({
+            employeeId: worker.employeeId,
+            at: tapOut,
+            type: CHECK_TYPE_OUT,
+          })
+          if (doubleTapOutToday) {
+            // The reader catches the card twice on the way out — the later
+            // tap is the one that counts as the real check-out.
+            day.taps.push({
+              employeeId: worker.employeeId,
+              at: addMinutes(tapOut, 0.5 + r()),
+              type: CHECK_TYPE_OUT,
+            })
+          }
+        }
+      }
 
-      // ---- sales through the shift, following the station's demand curve
-      const roundShare = worker.fraud === "round-heavy" ? 0.9 : 0.55
+      // ---- sales through the shift, following the demand curve ------------
       const dayFactor = WEEKDAY_FACTOR[station.profile][weekday]
-
       for (let h = hours.start; h < hours.end; h++) {
         const hourOfDay = h % 24
         const shape = HOUR_SHAPE[station.profile][hourOfDay]
-        // ~3.2 sales/hour/worker at multiplier 1.0 — scaled by everything.
-        const expected = 3.6 * shape * station.volume * dayFactor * worker.performance
+        const expected =
+          3.6 * shape * station.volume * dayFactor * worker.performance
         const count = Math.max(0, Math.round(expected + (r() - 0.5) * 2.4))
 
         for (let k = 0; k < count; k++) {
-          const soldAt = new Date(dayDate)
-          soldAt.setHours(h, Math.floor(r() * 60), Math.floor(r() * 60), 0)
-          if (soldAt < entry || soldAt > exit) continue // only in-window here
-          day.sales.push({
-            employeeId: worker.employeeId,
-            soldAt,
-            amount: saleAmount(r, roundShare),
-          })
+          const at = new Date(dayDate)
+          at.setHours(h, Math.floor(r() * 60), Math.floor(r() * 60), 0)
+          if (at < tapIn || at > tapOut) continue
+          pushSale(r, worker.station, at, worker.kartNo, worker.employeeId)
         }
       }
 
-      // ---- planted fraud patterns
-      if (
-        (worker.fraud === "after-hours-repeat" && r() < 0.4) ||
-        (worker.fraud === "after-hours-occasional" && r() < 0.1)
-      ) {
-        const n = 1 + Math.floor(r() * 3)
+      // The late seller: the OUT tap is honest, the selling is not over.
+      if (worker.anomaly === "late-seller" && r() < 0.3) {
+        const n = 2 + Math.floor(r() * 2)
         for (let k = 0; k < n; k++) {
-          const soldAt = new Date(exit)
-          soldAt.setMinutes(exit.getMinutes() + 10 + Math.floor(r() * 40))
-          day.sales.push({
-            employeeId: worker.employeeId,
-            soldAt,
-            amount: saleAmount(r, 0.7),
-          })
+          pushSale(
+            r,
+            worker.station,
+            addMinutes(tapOut, 15 + r() * 45),
+            worker.kartNo,
+            worker.employeeId
+          )
         }
       }
 
-      if (worker.fraud === "duplicate-amounts" && r() < 0.3) {
-        const amount = pick(r, ROUND_AMOUNTS)
-        const burstStart = new Date(entry)
-        burstStart.setHours(entry.getHours() + 2 + Math.floor(r() * 4), Math.floor(r() * 40), 0, 0)
-        const n = 4 + Math.floor(r() * 3)
+      // The phantom: no taps today, but the fob sells anyway.
+      if (phantomToday) {
+        const n = 3 + Math.floor(r() * 4)
         for (let k = 0; k < n; k++) {
-          const soldAt = new Date(burstStart)
-          soldAt.setMinutes(burstStart.getMinutes() + k * (4 + Math.floor(r() * 6)))
-          if (soldAt > exit) break
-          day.sales.push({ employeeId: worker.employeeId, soldAt, amount })
+          const at = new Date(dayDate)
+          at.setHours(
+            hours.start + 1 + Math.floor(r() * 6),
+            Math.floor(r() * 60),
+            0,
+            0
+          )
+          pushSale(r, worker.station, at, worker.kartNo, worker.employeeId)
         }
       }
     }
 
-    day.sales.sort((a, b) => a.soldAt.getTime() - b.soldAt.getTime())
+    day.taps.sort((a, b) => a.at.getTime() - b.at.getTime())
+    day.sales.sort((a, b) => a.at.getTime() - b.at.getTime())
     days.push(day)
   }
 
