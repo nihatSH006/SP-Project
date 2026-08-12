@@ -104,6 +104,7 @@ export const en = {
     noneDetected: "No alerts in this period",
     noneDetectedDesc:
       "Every tap is paired and every sale sits inside its worker's tapped window.",
+    liveFeed: "Live feed",
     types: {
       missingOut: "Tapped in, never tapped out",
       missingIn: "Tapped out, never tapped in",

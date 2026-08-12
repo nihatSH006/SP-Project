@@ -102,6 +102,7 @@ export const az: Dictionary = {
     noneDetected: "Bu dövrdə xəbərdarlıq yoxdur",
     noneDetectedDesc:
       "Hər toxunuş cütlənib və hər satış işçinin toxunuş pəncərəsi daxilindədir.",
+    liveFeed: "Canlı axın",
     types: {
       missingOut: "Giriş var, çıxış yoxdur",
       missingIn: "Çıxış var, giriş yoxdur",

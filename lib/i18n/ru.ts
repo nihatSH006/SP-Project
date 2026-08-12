@@ -102,6 +102,7 @@ export const ru: Dictionary = {
     noneDetected: "Сигналов за этот период нет",
     noneDetectedDesc:
       "Каждая отметка парная, и каждая продажа лежит внутри окна присутствия сотрудника.",
+    liveFeed: "Живая лента",
     types: {
       missingOut: "Вошёл, но не отметил выход",
       missingIn: "Вышел, но не отмечал вход",

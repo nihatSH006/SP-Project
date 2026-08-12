@@ -58,9 +58,22 @@ async function getAllChunked(db, refs) {
 }
 
 /**
+ * The master switch — /meta/feed { enabled }. The dashboard toggles it; BOTH
+ * entry points (the 5-minute schedule and the HTTP kick) run through here,
+ * so OFF means the feed does not run at all, from anywhere.
+ */
+async function feedEnabled(db) {
+  const doc = await db.collection("meta").doc("feed").get()
+  return doc.exists && doc.data().enabled === true
+}
+
+/**
  * Run one feed tick at `nowMs`. Returns a summary for the logs.
  */
 async function runFeedTick(db, nowMs) {
+  if (!(await feedEnabled(db))) {
+    return { disabled: true, at: new Date(nowMs).toISOString() }
+  }
   // Two operational days can be live at once: today, and yesterday while its
   // night shift (22:00 → 06:00) is still on the clock.
   const today = bakuDateKey(nowMs)

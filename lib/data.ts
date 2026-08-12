@@ -36,6 +36,16 @@ const g = globalThis as typeof globalThis & {
 g.__sasisReports ??= new Map()
 const reportsCache = g.__sasisReports
 
+/**
+ * Drop every server-side data cache. The live-feed tick calls this after it
+ * writes, so the next render reads what the feed just produced instead of a
+ * copy up to five minutes stale.
+ */
+export function invalidateDataCache(): void {
+  reportsCache.clear()
+  g.__sasisDates = null
+}
+
 /** Thrown when Firestore is unreachable and no cached copy can stand in. */
 export class DataUnavailableError extends Error {
   constructor(

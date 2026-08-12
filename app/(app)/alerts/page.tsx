@@ -2,16 +2,19 @@ import {
   IconCalendarEvent,
   IconCircleCheck,
   IconFlag,
+  IconGasStation,
   IconUsers,
 } from "@tabler/icons-react"
 
 import { AlertsTable, type AlertRow } from "@/components/alerts-table"
+import { LiveFeedSwitch } from "@/components/live-feed-switch"
 import { MiniStat } from "@/components/mini-stat"
 import { PageShell } from "@/components/page-shell"
 import { PeriodPicker } from "@/components/period-picker"
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -21,21 +24,22 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { collectAlerts } from "@/lib/analytics"
-import { canCompareStations } from "@/lib/auth"
 import { getPeriodSlice, type SearchParams } from "@/lib/data"
+import { getSessionUser, stationScopeFor } from "@/lib/auth"
+import { stationId } from "@/lib/firebase/schema"
+import { money } from "@/lib/format"
 import { getT } from "@/lib/i18n/server"
+import { getFeedEnabled } from "@/lib/live-feed"
 
 export const metadata = { title: "Alerts" }
 
 /**
- * Every flagged sale in a chosen period.
+ * The alert center — only what the two source tables can PROVE.
  *
- * This page used to show one day, split across four stat tiles, an incident
- * log, a procedure checklist and three priority tabs — the same alerts three
- * times over, and none of those views answered "what happened, and when". It
- * is now three numbers and one searchable table; the review queue lives on the
- * Cases page rather than in both.
+ * Every row is a database fact: a tap that is missing, a sale outside the
+ * tapped window, a fob that sold with no presence at all. No statistics,
+ * no scores — an official reading this page can walk to the raw tables
+ * and find every line.
  */
 export default async function AlertsPage(props: {
   searchParams: Promise<SearchParams>
@@ -45,25 +49,34 @@ export default async function AlertsPage(props: {
 
   const { reports, options, period, availableDates } =
     await getPeriodSlice(params)
-  const alerts = collectAlerts(reports)
-  const multiStation = await canCompareStations()
+  const user = await getSessionUser()
+  const multiStation = user ? stationScopeFor(user) === null : false
+  const feedEnabled = await getFeedEnabled()
 
-  const rows: AlertRow[] = alerts.map((a) => ({
-    operatorId: a.operatorId,
-    operator: a.operator,
-    station: a.station,
-    at: a.time.getTime(),
-    amount: a.amount,
-    reason: t.alerts.outsideHours,
-  }))
+  const rows: AlertRow[] = [
+    ...reports.flatMap((r) =>
+      r.alerts.map((alert) => ({
+        at: alert.at,
+        date: r.date,
+        type: alert.type,
+        severity: alert.severity,
+        worker: r.adSoyad,
+        kartNo: r.kartNo,
+        station: r.station,
+        amount: alert.amount ?? null,
+        href: `/workers/${r.userid}?date=${r.date}&st=${stationId(r.station)}`,
+      }))
+    ),
+  ].sort((a, b) => b.at - a.at)
 
-  // Which day carried the most — the one fact a period adds that a single day
-  // cannot show.
+  const workersAffected = new Set(
+    rows.filter((r) => r.worker).map((r) => `${r.station}|${r.worker}`)
+  ).size
+  const amountInvolved = rows.reduce((sum, r) => sum + (r.amount ?? 0), 0)
+
   const perDay = new Map<string, number>()
-  for (const r of reports) {
-    if (r.suspicious > 0) {
-      perDay.set(r.date, (perDay.get(r.date) ?? 0) + r.suspicious)
-    }
+  for (const row of rows) {
+    perDay.set(row.date, (perDay.get(row.date) ?? 0) + 1)
   }
   const worst = [...perDay.entries()].sort((a, b) => b[1] - a[1])[0]
 
@@ -73,41 +86,52 @@ export default async function AlertsPage(props: {
       title={t.alerts.title}
       description={t.alerts.description}
       actions={
-        availableDates.length > 0 ? (
-          <PeriodPicker
-            from={period.from}
-            to={period.to}
-            available={availableDates}
+        <span className="flex flex-wrap items-center gap-2">
+          <LiveFeedSwitch
+            initialEnabled={feedEnabled}
+            label={t.alerts.liveFeed}
           />
-        ) : null
+          {availableDates.length > 0 ? (
+            <PeriodPicker
+              from={period.from}
+              to={period.to}
+              available={availableDates}
+            />
+          ) : null}
+        </span>
       }
     >
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MiniStat
           icon={IconFlag}
           label={t.alerts.totalFlagged}
-          value={alerts.length}
+          value={rows.length}
         />
         <MiniStat
           icon={IconUsers}
-          label={t.alerts.operatorsAffected}
-          value={new Set(alerts.map((a) => a.operatorId)).size}
+          label={t.alerts.workersAffected}
+          value={workersAffected}
+        />
+        <MiniStat
+          icon={IconGasStation}
+          label={t.alerts.amountInvolved}
+          value={money(amountInvolved)}
+          unit="₼"
         />
         <MiniStat
           icon={IconCalendarEvent}
           label={t.alerts.worstDay}
-          value={worst ? `${worst[0]} · ${worst[1]}` : "—"}
+          value={worst ? `${worst[0].slice(5)} · ${worst[1]}` : "—"}
         />
       </div>
 
-      {/* The review queue lives on the Cases page. Repeating it here meant
-          two places to check and two places to keep in step. */}
       <Card>
         <CardHeader>
           <CardTitle>{t.alerts.incidentLog}</CardTitle>
+          <CardDescription>{t.alerts.incidentLogDesc}</CardDescription>
         </CardHeader>
         <CardContent>
-          {alerts.length === 0 ? (
+          {rows.length === 0 ? (
             <Empty className="py-10">
               <EmptyMedia variant="icon">
                 <IconCircleCheck className="text-emerald-600 dark:text-emerald-400" />
@@ -118,7 +142,7 @@ export default async function AlertsPage(props: {
           ) : (
             <AlertsTable
               rows={rows}
-              weekdays={t.staffing.weekdays}
+              weekdays={t.common.weekdays}
               showStation={multiStation}
             />
           )}
