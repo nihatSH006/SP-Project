@@ -89,7 +89,15 @@ export default async function AlertsPage(props: {
         <span className="flex flex-wrap items-center gap-2">
           <LiveFeedSwitch
             initialEnabled={feedEnabled}
-            label={t.alerts.liveFeed}
+            labels={{
+              label: t.alerts.liveFeed,
+              log: t.alerts.liveFeedLog,
+              empty: t.alerts.liveFeedEmpty,
+              quiet: t.alerts.liveFeedQuiet,
+              sales: t.alerts.liveFeedSales,
+              taps: t.alerts.liveFeedTaps,
+              error: t.alerts.liveFeedError,
+            }}
           />
           {availableDates.length > 0 ? (
             <PeriodPicker

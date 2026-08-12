@@ -105,6 +105,12 @@ export const en = {
     noneDetectedDesc:
       "Every tap is paired and every sale sits inside its worker's tapped window.",
     liveFeed: "Live feed",
+    liveFeedLog: "Live feed log",
+    liveFeedEmpty: "Nothing yet — turn the feed on.",
+    liveFeedQuiet: "no new rows",
+    liveFeedSales: "sales",
+    liveFeedTaps: "taps",
+    liveFeedError: "tick failed",
     types: {
       missingOut: "Tapped in, never tapped out",
       missingIn: "Tapped out, never tapped in",

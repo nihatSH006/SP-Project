@@ -103,6 +103,12 @@ export const az: Dictionary = {
     noneDetectedDesc:
       "Hər toxunuş cütlənib və hər satış işçinin toxunuş pəncərəsi daxilindədir.",
     liveFeed: "Canlı axın",
+    liveFeedLog: "Canlı axın jurnalı",
+    liveFeedEmpty: "Hələ heç nə yoxdur — axını yandırın.",
+    liveFeedQuiet: "yeni sətir yoxdur",
+    liveFeedSales: "satış",
+    liveFeedTaps: "toxunuş",
+    liveFeedError: "sorğu alınmadı",
     types: {
       missingOut: "Giriş var, çıxış yoxdur",
       missingIn: "Çıxış var, giriş yoxdur",
