@@ -47,6 +47,14 @@ const HOUR_SHAPE = {
 const PROFILE_VOLUME = { city: 1.1, highway: 1.25, regional: 0.8 }
 
 /**
+ * Demo liveliness knob. 1 = the seeded dataset's realistic pace (a sale
+ * network-wide every minute or so — honest, but sleepy to watch). 15 ≈ a
+ * sale every 4-5 seconds across the network, so the live log visibly moves.
+ * Applies to LIVE days only; the seeded history keeps its own pace.
+ */
+const LIVE_PACE = 15
+
+/**
  * The alert knobs — per-worker-day probability of each planted anomaly.
  * Every one maps 1:1 to an alert id the engine proves from the two tables.
  */
@@ -289,7 +297,7 @@ function planWorkerDay(worker, date) {
   const shape = HOUR_SHAPE[worker.profile] ?? HOUR_SHAPE.city
   const volume = PROFILE_VOLUME[worker.profile] ?? 1
   for (let h = hours.start; h < hours.end; h++) {
-    const expected = 3.2 * shape[h % 24] * volume * perf
+    const expected = 3.2 * LIVE_PACE * shape[h % 24] * volume * perf
     const count = Math.max(0, Math.round(expected + (r() - 0.5) * 2.4))
     for (let k = 0; k < count; k++) {
       const at = start + h * 3_600_000 + Math.floor(r() * 3_600_000)
