@@ -104,11 +104,9 @@ export const ru: Dictionary = {
       "Каждая отметка парная, и каждая продажа лежит внутри окна присутствия сотрудника.",
     liveFeed: "Живая лента",
     liveFeedLog: "Журнал живой ленты",
-    liveFeedEmpty: "Пока пусто — включите ленту.",
-    liveFeedQuiet: "нет новых строк",
-    liveFeedSales: "продажи",
-    liveFeedTaps: "отметки",
+    liveFeedEmpty: "Пока пусто — включите ленту, события появятся здесь.",
     liveFeedError: "сбой запроса",
+    liveFeedLastCheck: "проверено",
     types: {
       missingOut: "Вошёл, но не отметил выход",
       missingIn: "Вышел, но не отмечал вход",

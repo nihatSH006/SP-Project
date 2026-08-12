@@ -3,36 +3,43 @@
 import { getSessionUser } from "@/lib/auth"
 import { invalidateDataCache } from "@/lib/data"
 import {
-  getFeedEnabled,
+  getFeedLog,
   setFeedEnabled,
   triggerFeedTick,
-  type FeedTickSummary,
+  type FeedLog,
 } from "@/lib/live-feed"
 
-/** Flip the live-feed master switch. Signed-in users only. */
+/**
+ * Flip the live-feed master switch. Signed-in users only.
+ *
+ * The feed itself runs IN THE CLOUD (a scheduled function ticking every
+ * second while the flag is on) — flipping ON here also fires one immediate
+ * kick so the feed starts now instead of at the next scheduled minute.
+ */
 export async function toggleLiveFeed(enabled: boolean): Promise<boolean> {
   const user = await getSessionUser()
   if (!user) return false
   await setFeedEnabled(enabled)
+  if (enabled) {
+    try {
+      await triggerFeedTick()
+      invalidateDataCache()
+    } catch {
+      // The scheduler picks it up within a minute regardless.
+    }
+  }
   return enabled
 }
 
 /**
- * One manual tick — what the dashboard's tick loop calls while the switch
- * is ON. Runs the exact same deployed function as the scheduler; when the
- * switch is off the function refuses, so this cannot resurrect a disabled
- * feed.
+ * The dashboard's poll: the switch state + the event journal the cloud loop
+ * writes. Pass the newest seq already shown; when the journal has moved past
+ * it the server caches are dropped, so the caller's refresh sees fresh data.
  */
-export async function tickLiveFeed(): Promise<FeedTickSummary | null> {
+export async function pollLiveFeed(lastSeq: number): Promise<FeedLog | null> {
   const user = await getSessionUser()
   if (!user) return null
-  if (!(await getFeedEnabled())) return { disabled: true }
-
-  const summary = await triggerFeedTick()
-  const wrote =
-    (summary.salesWritten ?? 0) +
-    (summary.tapsWritten ?? 0) +
-    (summary.reportsWritten ?? 0)
-  if (wrote > 0) invalidateDataCache()
-  return summary
+  const log = await getFeedLog()
+  if ((log.events[0]?.seq ?? 0) > lastSeq) invalidateDataCache()
+  return log
 }

@@ -29,7 +29,7 @@ import { getSessionUser, stationScopeFor } from "@/lib/auth"
 import { stationId } from "@/lib/firebase/schema"
 import { money } from "@/lib/format"
 import { getT } from "@/lib/i18n/server"
-import { getFeedEnabled } from "@/lib/live-feed"
+import { getFeedLog } from "@/lib/live-feed"
 
 export const metadata = { title: "Alerts" }
 
@@ -51,7 +51,7 @@ export default async function AlertsPage(props: {
     await getPeriodSlice(params)
   const user = await getSessionUser()
   const multiStation = user ? stationScopeFor(user) === null : false
-  const feedEnabled = await getFeedEnabled()
+  const feedLog = await getFeedLog()
 
   const rows: AlertRow[] = [
     ...reports.flatMap((r) =>
@@ -88,15 +88,15 @@ export default async function AlertsPage(props: {
       actions={
         <span className="flex flex-wrap items-center gap-2">
           <LiveFeedSwitch
-            initialEnabled={feedEnabled}
+            initialLog={feedLog}
             labels={{
               label: t.alerts.liveFeed,
               log: t.alerts.liveFeedLog,
               empty: t.alerts.liveFeedEmpty,
-              quiet: t.alerts.liveFeedQuiet,
-              sales: t.alerts.liveFeedSales,
-              taps: t.alerts.liveFeedTaps,
               error: t.alerts.liveFeedError,
+              lastCheck: t.alerts.liveFeedLastCheck,
+              tapIn: t.workers.tapIn,
+              tapOut: t.workers.tapOut,
             }}
           />
           {availableDates.length > 0 ? (
