@@ -31,6 +31,9 @@ export function LiveFeedSwitch({
   const router = useRouter()
   const [enabled, setEnabled] = useState(initialEnabled)
   const [ticking, setTicking] = useState(false)
+  // Sales delivered since the switch went on — proof of life even between
+  // page-visible changes (most 10s ticks legitimately write nothing).
+  const [sessionSales, setSessionSales] = useState(0)
   const busy = useRef(false)
 
   useEffect(() => {
@@ -52,6 +55,9 @@ export function LiveFeedSwitch({
           (summary.salesWritten ?? 0) +
           (summary.tapsWritten ?? 0) +
           (summary.reportsWritten ?? 0)
+        if (summary.salesWritten) {
+          setSessionSales((n) => n + (summary.salesWritten ?? 0))
+        }
         if (wrote > 0) router.refresh()
       } catch {
         // A missed tick is not an event; the next one retries.
@@ -81,7 +87,11 @@ export function LiveFeedSwitch({
       />
       <span className="whitespace-nowrap">
         {label}
-        <span className="ml-1 text-xs text-muted-foreground">· 10s</span>
+        <span className="ml-1 text-xs text-muted-foreground">
+          {enabled && sessionSales > 0
+            ? `· +${sessionSales}`
+            : "· 10s"}
+        </span>
       </span>
       <Switch
         size="sm"
