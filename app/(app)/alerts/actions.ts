@@ -18,10 +18,10 @@ export async function toggleLiveFeed(enabled: boolean): Promise<boolean> {
 }
 
 /**
- * One manual tick — what the dashboard's 10-second loop calls while the
- * switch is ON. Runs the exact same deployed function as the scheduler; when
- * the switch is off the function refuses, so this cannot resurrect a
- * disabled feed.
+ * One manual tick — what the dashboard's tick loop calls while the switch
+ * is ON. Runs the exact same deployed function as the scheduler; when the
+ * switch is off the function refuses, so this cannot resurrect a disabled
+ * feed.
  */
 export async function tickLiveFeed(): Promise<FeedTickSummary | null> {
   const user = await getSessionUser()

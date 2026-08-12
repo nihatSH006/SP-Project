@@ -9,7 +9,7 @@ import { COLLECTIONS } from "@/lib/firebase/schema"
  * State is one document — /meta/feed { enabled } — read by BOTH function
  * entry points (the 5-minute schedule and the feedNow HTTP kick) before they
  * do anything. OFF therefore stops the feed everywhere, not just the
- * dashboard's 10-second loop; missing document counts as OFF.
+ * dashboard's tick loop; missing document counts as OFF.
  */
 
 const FEED_URL =

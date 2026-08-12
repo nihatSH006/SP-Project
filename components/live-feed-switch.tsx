@@ -17,20 +17,23 @@ import { cn } from "@/lib/utils"
  * The live-feed master switch, with its own tick log.
  *
  * ON: the deployed feed function is allowed to run, and while this page is
- * open it is kicked every 10 seconds; whenever a kick reports new rows the
- * page data refreshes, so alerts and totals move in front of you.
+ * open it is kicked every second; whenever a kick reports new rows the
+ * page data refreshes, so alerts and totals move in front of you. A tick's
+ * round trip takes longer than a second, and the in-flight guard skips
+ * overlapping fires — so the real cadence is "as fast as the function
+ * answers", back to back.
  *
  * OFF: the /meta/feed flag is cleared and the function refuses to run AT ALL
- * — the 10-second loop stops and the 5-minute Cloud Scheduler runs are
- * skipped too.
+ * — the tick loop stops and the 5-minute Cloud Scheduler runs are skipped
+ * too.
  *
  * Every tick is journaled into the log popover (the clock icon): what time
  * it ran and what it wrote. Quiet ticks are normal — the simulated network
- * sells at a realistic pace, so many 10-second windows are empty.
+ * sells at a realistic pace, so many one-second windows are empty.
  */
 
-const TICK_MS = 10_000
-const LOG_LIMIT = 60
+const TICK_MS = 1_000
+const LOG_LIMIT = 300
 
 type TickEntry = {
   at: number
@@ -109,7 +112,7 @@ export function LiveFeedSwitch({
       }
     }
 
-    void tick() // fire immediately on switch-on, then every 10s
+    void tick() // fire immediately on switch-on, then keep firing
     const id = setInterval(() => void tick(), TICK_MS)
     return () => {
       cancelled = true
@@ -139,7 +142,7 @@ export function LiveFeedSwitch({
         <span className="whitespace-nowrap">
           {labels.label}
           <span className="ml-1 text-xs text-muted-foreground">
-            {enabled && sessionSales > 0 ? `· +${sessionSales}` : "· 10s"}
+            {enabled && sessionSales > 0 ? `· +${sessionSales}` : "· 1s"}
           </span>
         </span>
         <Switch
