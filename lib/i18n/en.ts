@@ -143,7 +143,7 @@ export const en = {
     backToWorkers: "All workers",
     timeline: "The day, on one axis",
     timelineDesc:
-      "Top: presence exactly as the taps state it. Below: every sale, on the same axis — a sale outside the band needs no explanation.",
+      "Top: presence exactly as the taps state it. Below: sales bundled into 15-minute bars, coloured by the leading fuel (hover for numbers) — red markers are sales outside the presence band.",
     presence: "Presence",
     offClock: "Off the clock",
     salesTitle: "Sales",

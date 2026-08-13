@@ -142,7 +142,7 @@ export const az: Dictionary = {
     backToWorkers: "Bütün işçilər",
     timeline: "Gün, bir ox üzərində",
     timelineDesc:
-      "Yuxarıda: iştirak, toxunuşların dediyi kimi. Aşağıda: hər satış, eyni ox üzərində — zolaqdan kənar satış izahat tələb etmir.",
+      "Yuxarıda: iştirak, toxunuşların dediyi kimi. Aşağıda: satışlar 15 dəqiqəlik zolaqlara yığılıb, aparıcı yanacağa görə rənglənib (rəqəmlər üçün üzərinə gəlin) — qırmızı işarələr iştirak zolağından kənar satışlardır.",
     presence: "İştirak",
     offClock: "Növbədən kənar",
     salesTitle: "Satışlar",

@@ -6,11 +6,14 @@ import type { SaleRow, WorkerDay } from "@/lib/data"
  *
  * Top band: PRESENCE, exactly as the taps state it — a bar from the first
  * IN to the last OUT, tap ticks on top, and a dashed red edge where a tap
- * is missing. Bottom: every SALE as a lollipop on the same axis, height by
- * litres, coloured by grade — red when it falls outside the presence band.
+ * is missing. Bottom: SALES bundled into 15-minute bars (height by litres,
+ * colour by the bucket's leading grade, hover for the exact numbers) — a
+ * live day carries hundreds of rows, and per-sale marks at that volume read
+ * as noise. The exception: sales OUTSIDE the presence band stay individual
+ * red markers, because each one IS the alert.
  *
- * Because both share the axis, the eye does the join: a lollipop past the
- * bar's right edge IS the alert, no explanation needed.
+ * Because both share the axis, the eye does the join: a red marker past the
+ * band's right edge needs no explanation.
  */
 
 const W = 960
@@ -20,6 +23,7 @@ const BAND_Y = 34
 const BAND_H = 22
 const LOLLI_BASE = 150
 const LOLLI_MAX = 74
+const BIN_MS = 15 * 60_000
 
 const GRADE_COLOR: Record<string, string> = {
   "AI-92": "var(--chart-2)",
@@ -49,12 +53,43 @@ export function WorkerTimeline({
   const outs = day.taps.filter((t) => t.type === CHECK_TYPE_OUT)
   const bandFrom = day.checkIn
   const bandTo = day.checkOut
-  const maxLitres = Math.max(1, ...sales.map((s) => s.litres))
 
   const offClock = (at: number) =>
     (bandFrom !== null && at < bandFrom) ||
     (bandTo !== null && at > bandTo) ||
     (bandFrom === null && bandTo === null)
+
+  // In-window sales collapse into 15-minute buckets — constant visual weight
+  // however many rows the live feed delivers. Off-clock sales stay single.
+  type Bin = {
+    start: number
+    count: number
+    litres: number
+    amount: number
+    byGrade: Record<string, number>
+  }
+  const bins = new Map<number, Bin>()
+  const offSales = []
+  for (const sale of sales) {
+    if (offClock(sale.at)) {
+      offSales.push(sale)
+      continue
+    }
+    const key = Math.floor(sale.at / BIN_MS)
+    const bin =
+      bins.get(key) ??
+      ({ start: key * BIN_MS, count: 0, litres: 0, amount: 0, byGrade: {} } as Bin)
+    bin.count += 1
+    bin.litres += sale.litres
+    bin.amount += sale.amount
+    bin.byGrade[sale.grade] = (bin.byGrade[sale.grade] ?? 0) + sale.litres
+    bins.set(key, bin)
+  }
+  const binList = [...bins.values()].sort((a, b) => a.start - b.start)
+  const maxBinLitres = Math.max(1, ...binList.map((b) => b.litres))
+
+  const leadGrade = (bin: Bin) =>
+    Object.entries(bin.byGrade).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "AI-92"
 
   // Hour ticks across the visible span, at most every hour, thinned to ~12.
   const hourMs = 3_600_000
@@ -205,12 +240,35 @@ export function WorkerTimeline({
             stroke="currentColor"
             strokeOpacity={0.2}
           />
-          {sales.map((sale) => {
-            const h = 8 + (sale.litres / maxLitres) * (LOLLI_MAX - 8)
-            const bad = offClock(sale.at)
-            const color = bad
-              ? "var(--destructive)"
-              : (GRADE_COLOR[sale.grade] ?? "var(--chart-2)")
+          {binList.map((bin) => {
+            const h = 6 + (bin.litres / maxBinLitres) * (LOLLI_MAX - 6)
+            const left = x(bin.start)
+            const width = Math.max(2, x(bin.start + BIN_MS) - left - 1.5)
+            return (
+              <rect
+                key={bin.start}
+                x={left}
+                y={LOLLI_BASE - h}
+                width={width}
+                height={h}
+                rx={2}
+                fill={GRADE_COLOR[leadGrade(bin)] ?? "var(--chart-2)"}
+                opacity={0.7}
+              >
+                <title>
+                  {`${hm(bin.start)}–${hm(bin.start + BIN_MS)} · ${bin.count}× · ${bin.litres.toFixed(0)} L · ${bin.amount.toFixed(0)} ₼`}
+                </title>
+              </rect>
+            )
+          })}
+
+          {/* Sales outside the presence band: each one IS the alert, so
+              each one keeps its own red marker. */}
+          {offSales.map((sale) => {
+            const h = Math.max(
+              24,
+              8 + (sale.litres / maxBinLitres) * (LOLLI_MAX - 8)
+            )
             return (
               <g key={sale.db1Id}>
                 <line
@@ -218,16 +276,20 @@ export function WorkerTimeline({
                   x2={x(sale.at)}
                   y1={LOLLI_BASE}
                   y2={LOLLI_BASE - h}
-                  stroke={color}
+                  stroke="var(--destructive)"
                   strokeWidth={2}
-                  opacity={bad ? 0.9 : 0.65}
+                  opacity={0.9}
                 />
                 <circle
                   cx={x(sale.at)}
                   cy={LOLLI_BASE - h}
                   r={3.5}
-                  fill={color}
-                />
+                  fill="var(--destructive)"
+                >
+                  <title>
+                    {`${hm(sale.at)} · ${sale.litres.toFixed(2)} L · ${sale.amount.toFixed(2)} ₼`}
+                  </title>
+                </circle>
               </g>
             )
           })}

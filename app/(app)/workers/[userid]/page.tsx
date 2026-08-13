@@ -12,6 +12,7 @@ import {
 import { DayPickerNav } from "@/components/day-picker-nav"
 import { MiniStat } from "@/components/mini-stat"
 import { PageShell } from "@/components/page-shell"
+import { WorkerSalesTable } from "@/components/worker-sales-table"
 import { WorkerTimeline } from "@/components/worker-timeline"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -22,14 +23,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import {
   getAvailableDates,
   getRosterWorker,
@@ -247,53 +240,7 @@ export default async function WorkerDayPage(props: {
             <CardTitle>{t.workers.salesTitle}</CardTitle>
           </CardHeader>
           <CardContent className="px-0">
-            {sales.length === 0 ? (
-              <p className="px-5 text-sm text-muted-foreground">
-                {t.workers.noSales}
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="pl-5">
-                        {t.workers.colTime}
-                      </TableHead>
-                      <TableHead>{t.workers.colGrade}</TableHead>
-                      <TableHead className="text-right">
-                        {t.workers.colLitres}
-                      </TableHead>
-                      <TableHead className="text-right">
-                        {t.workers.colAmount}
-                      </TableHead>
-                      {/* v_no exists in the data but not on screen: its
-                          meaning is unconfirmed, and an unexplained column
-                          invites wrong guesses in front of officials. */}
-                      <TableHead className="pr-5">db1_id</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sales.map((sale) => (
-                      <TableRow key={sale.db1Id}>
-                        <TableCell className="pl-5 font-mono tabular-nums">
-                          {hm(sale.at)}
-                        </TableCell>
-                        <TableCell>{sale.grade}</TableCell>
-                        <TableCell className="text-right font-mono tabular-nums">
-                          {sale.litres.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono tabular-nums">
-                          {money2(sale.amount)} ₼
-                        </TableCell>
-                        <TableCell className="pr-5 font-mono text-xs text-muted-foreground">
-                          {sale.db1Id}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+            <WorkerSalesTable sales={sales} />
           </CardContent>
         </Card>
 
