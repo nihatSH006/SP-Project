@@ -4,12 +4,9 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import {
   IconAlertTriangle,
-  IconBuildingStore,
   IconCommand,
-  IconLayoutDashboard,
   IconLogout,
   IconSearch,
-  IconTrophy,
   IconUserCircle,
   IconUsers,
 } from "@tabler/icons-react"
@@ -50,14 +47,17 @@ import { Spinner } from "@/components/ui/spinner"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
 const PAGES = [
-  { key: "dashboard", href: "/", icon: IconLayoutDashboard },
-  { key: "operators", href: "/operators", icon: IconUsers },
-  { key: "leaderboard", href: "/leaderboard", icon: IconTrophy },
-  { key: "stations", href: "/stations", icon: IconBuildingStore },
   { key: "alerts", href: "/alerts", icon: IconAlertTriangle },
+  { key: "workers", href: "/workers", icon: IconUsers },
 ] as const
 
-export type PaletteOperator = { id: number; name: string; station: string }
+/** A worker on the latest day — the palette's people entries. */
+export type PaletteWorker = {
+  userid: string
+  name: string
+  station: string
+  href: string
+}
 
 export type HeaderUser = {
   name: string
@@ -67,10 +67,10 @@ export type HeaderUser = {
 }
 
 export function SiteHeader({
-  operators,
+  workers,
   user,
 }: {
-  operators: PaletteOperator[]
+  workers: PaletteWorker[]
   user: HeaderUser | null
 }) {
   const router = useRouter()
@@ -219,22 +219,26 @@ export function SiteHeader({
                 </CommandItem>
               ))}
             </CommandGroup>
-            <CommandSeparator />
-            <CommandGroup heading={t.search.operators}>
-              {operators.map((operator) => (
-                <CommandItem
-                  key={operator.id}
-                  value={`${operator.name} ${operator.station}`}
-                  onSelect={() => go(`/operators/${operator.id}`)}
-                >
-                  <IconUsers />
-                  {operator.name}
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {operator.station}
-                  </span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {workers.length > 0 ? (
+              <>
+                <CommandSeparator />
+                <CommandGroup heading={t.search.workers}>
+                  {workers.map((worker) => (
+                    <CommandItem
+                      key={worker.userid}
+                      value={`${worker.name} ${worker.station}`}
+                      onSelect={() => go(worker.href)}
+                    >
+                      <IconUsers />
+                      {worker.name}
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {worker.station}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </>
+            ) : null}
           </CommandList>
         </Command>
       </CommandDialog>

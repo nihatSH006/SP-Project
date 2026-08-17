@@ -2,111 +2,136 @@ import "server-only"
 
 import { cache } from "react"
 
-import { collectAlerts, mergeHourly } from "@/lib/analytics"
 import { adminDb } from "@/lib/firebase/admin"
 import { COLLECTIONS } from "@/lib/firebase/schema"
 import {
-  getLatestDate,
-  getOperatorReports,
-  stationTargetMap,
+  getAvailableDates,
+  getWorkerDays,
+  type WorkerDay,
 } from "@/lib/data"
-import { getSettings } from "@/lib/settings-server"
 
 /**
- * The office wall screen (idea #5).
+ * The security-office wall: every station's alert standing at a glance,
+ * worst first, plus the latest detections as an event feed.
  *
- * One honesty problem sits at the centre of this feature. A board on a wall
- * reads as LIVE — that is what a wall screen means to everyone who walks past
- * it. SASIS is fed by one import per operational day, so the figures can be
- * many hours old. A screen that implies "right now" while showing yesterday's
- * takings is worse than no screen: people would make decisions on it, and they
- * would be wrong without knowing they were wrong.
- *
- * So `asOf` is carried through and shown prominently, and the UI says how old
- * the data is rather than pretending to be a feed. Real-time numbers need a
- * data source we do not have yet — an intraday import or a push from the tills.
+ * A board on a wall reads as LIVE. This one is fed by one import per
+ * operational day, so `asOf` is carried through and the UI says how old the
+ * figures are rather than pretending to be a feed.
  */
+
+export type WallStatus = "clear" | "attention" | "critical"
 
 export type WallStation = {
   station: string
-  revenue: number
-  target: number | null
-  /** Null rather than 0 when no target exists — an unknown is not a failure. */
-  pct: number | null
-  operators: number
-  alerts: number
-  /**
-   * Revenue per hour through the day, for the row's trend line. Already
-   * aggregated on the report documents, so this costs no extra reads.
-   */
+  /** Database-provable alerts on the latest operational day. */
+  alertsToday: number
+  highToday: number
+  /** Workers whose IN or OUT tap is missing today. */
+  missingTaps: number
+  /** Alerts per day, oldest → newest — the trend line. */
   spark: number[]
+  status: WallStatus
+}
+
+export type WallEvent = {
+  at: number
+  station: string
+  type: string
+  severity: "low" | "medium" | "high"
 }
 
 export type Wallboard = {
-  /** Operational day the figures belong to. */
   date: string | null
-  /** When the data was imported, epoch ms. Null if never recorded. */
   asOf: number | null
-  revenue: number
-  target: number | null
-  pct: number | null
-  operators: number
-  alerts: number
+  alertsToday: number
+  missingTaps: number
+  clearStations: number
   stations: WallStation[]
+  events: WallEvent[]
 }
 
+const SPARK_DAYS = 14
+
+const dayAlerts = (report: WorkerDay) => report.alerts.length
+const dayHigh = (report: WorkerDay) =>
+  report.alerts.filter((a) => a.severity === "high").length
+
 export const getWallboard = cache(async (): Promise<Wallboard> => {
-  const [date, reports, settings] = await Promise.all([
-    getLatestDate(),
-    getOperatorReports(),
-    getSettings(),
-  ])
+  const dates = await getAvailableDates()
+  const date = dates.at(-1) ?? null
 
   let asOf: number | null = null
   try {
     const meta = await adminDb().collection(COLLECTIONS.meta).doc("import").get()
-    const at = meta.data()?.at
+    const at = meta.data()?.importedAt
     asOf = typeof at?.toMillis === "function" ? at.toMillis() : null
   } catch {
-    // A wall screen must not go blank because one bookkeeping read failed.
     asOf = null
   }
 
-  const names = [...new Set(reports.map((r) => r.station))].sort()
-  const targets = await stationTargetMap(names, settings, date)
+  const sparkDates = dates.slice(-SPARK_DAYS)
+  const perDay = await Promise.all(
+    sparkDates.map((day) => getWorkerDays(day))
+  )
+  const latest = perDay.at(-1) ?? []
+
+  const names = [
+    ...new Set(perDay.flat().map((report) => report.station)),
+  ].sort()
 
   const stations: WallStation[] = names.map((name) => {
-    const rows = reports.filter((r) => r.station === name)
-    const revenue = Math.round(rows.reduce((sum, r) => sum + r.revenue, 0))
-    const target = targets.get(name) ?? null
-    return {
-      station: name,
-      revenue,
-      target: target === null ? null : Math.round(target),
-      pct: target && target > 0 ? Math.round((revenue / target) * 100) : null,
-      operators: rows.length,
-      alerts: collectAlerts(rows).length,
-      spark: mergeHourly(rows.map((r) => r.hourly)).map((p) => p.revenue),
-    }
+    const todays = latest.filter((r) => r.station === name)
+    const alertsToday = todays.reduce((sum, r) => sum + dayAlerts(r), 0)
+    const highToday = todays.reduce((sum, r) => sum + dayHigh(r), 0)
+    const missingTaps = todays.filter(
+      (r) => r.checkIn === null || r.checkOut === null
+    ).length
+
+    const spark = perDay.map((reports) =>
+      reports
+        .filter((r) => r.station === name)
+        .reduce((sum, r) => sum + dayAlerts(r), 0)
+    )
+
+    const status: WallStatus =
+      highToday > 0
+        ? "critical"
+        : alertsToday > 0
+          ? "attention"
+          : "clear"
+
+    return { station: name, alertsToday, highToday, missingTaps, spark, status }
   })
 
-  const revenue = Math.round(reports.reduce((sum, r) => sum + r.revenue, 0))
-  // Summed from the same per-station map the dashboard uses, so the wall and
-  // the report agree by construction rather than by coincidence.
-  let total = 0
-  for (const value of targets.values()) total += value
-  const target = total > 0 ? Math.round(total) : null
+  const rank: Record<WallStatus, number> = {
+    critical: 0,
+    attention: 1,
+    clear: 2,
+  }
+  stations.sort(
+    (a, b) => rank[a.status] - rank[b.status] || b.alertsToday - a.alertsToday
+  )
+
+  // The feed: a counter says how much, the feed says WHAT.
+  const events: WallEvent[] = latest
+    .flatMap((r) =>
+      r.alerts.map((a) => ({
+        at: a.at,
+        station: r.station,
+        type: a.type,
+        severity: a.severity,
+      }))
+    )
+    .sort((a, b) => b.at - a.at)
+    .slice(0, 7)
 
   return {
     date,
     asOf,
-    revenue,
-    target,
-    pct: target ? Math.round((revenue / target) * 100) : null,
-    operators: reports.length,
-    alerts: collectAlerts(reports).length,
-    // Worst first: the point of a wall screen is that the room notices the
-    // station that is behind, not that it admires the one in front.
-    stations: stations.sort((a, b) => (a.pct ?? 999) - (b.pct ?? 999)),
+    alertsToday: stations.reduce((sum, s) => sum + s.alertsToday, 0),
+    missingTaps: stations.reduce((sum, s) => sum + s.missingTaps, 0),
+    clearStations: stations.filter((s) => s.status === "clear").length,
+    stations,
+    events,
   }
 })

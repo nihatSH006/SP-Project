@@ -17,6 +17,10 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group"
 import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select"
+import {
   Table,
   TableBody,
   TableCell,
@@ -24,28 +28,33 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { ALERT_LABEL_KEY, type ObviousAlertId } from "@/lib/pos"
 import { money2 } from "@/lib/format"
+import { cn } from "@/lib/utils"
 
 const PAGE_SIZES = [25, 50, 100] as const
 
 export type AlertRow = {
-  operatorId: number
-  operator: string
-  station: string
-  /** Epoch ms — a Date cannot cross the server/client boundary. */
+  /** Epoch ms the alert anchors to. */
   at: number
-  amount: number
-  reason: string
+  date: string
+  type: string
+  severity: "low" | "medium" | "high"
+  /** Null for orphan sales — nobody owns the row. */
+  worker: string | null
+  kartNo: string | null
+  station: string
+  amount: number | null
+  /** Link to the worker's day, when a worker owns the alert. */
+  href: string | null
 }
 
+const SEVERITIES = ["high", "medium", "low"] as const
+
 /**
- * Every flagged sale, as one searchable table.
- *
- * The page used to split these across four stat tiles, an incident log and
- * three priority tabs, which meant the same alerts appeared in three places
- * and none of them answered "what happened, and when". A table does: one row
- * per incident, newest first, with the time and the reason on the row rather
- * than implied by which tab you were looking at.
+ * The incident log: one row per database-provable alert, newest first.
+ * Every row names the person (or states that nobody owns it — which is
+ * itself the alert), the fact that fired, and the minute to check.
  */
 export function AlertsTable({
   rows,
@@ -55,21 +64,22 @@ export function AlertsTable({
   rows: AlertRow[]
   /** Passed in because date formatting must not vary between server and browser. */
   weekdays: string[]
-  /** False for station-pinned accounts: every row would name the same site. */
   showStation?: boolean
 }) {
   const t = useT()
   const [query, setQuery] = React.useState("")
+  const [severity, setSeverity] = React.useState<"all" | (typeof SEVERITIES)[number]>("all")
 
   const matches = React.useMemo(() => {
     const needle = query.trim().toLowerCase()
-    if (!needle) return rows
-    return rows.filter((r) =>
-      (showStation ? `${r.operator} ${r.station}` : r.operator)
+    return rows.filter((row) => {
+      if (severity !== "all" && row.severity !== severity) return false
+      if (!needle) return true
+      return `${row.worker ?? ""} ${row.kartNo ?? ""} ${showStation ? row.station : ""}`
         .toLowerCase()
         .includes(needle)
-    )
-  }, [rows, query, showStation])
+    })
+  }, [rows, query, severity, showStation])
 
   const paging = usePaging(matches.length, PAGE_SIZES)
   const page = matches.slice(paging.start, paging.start + paging.pageSize)
@@ -81,6 +91,11 @@ export function AlertsTable({
     const mm = String(d.getMinutes()).padStart(2, "0")
     return `${day} ${String(d.getDate()).padStart(2, "0")} · ${hh}:${mm}`
   }
+
+  const typeName = (type: string) =>
+    t.alerts.types[
+      ALERT_LABEL_KEY[type as ObviousAlertId] as keyof typeof t.alerts.types
+    ] ?? type
 
   return (
     <div className="flex flex-col gap-4">
@@ -103,7 +118,7 @@ export function AlertsTable({
               <InputGroupButton
                 size="icon-xs"
                 variant="ghost"
-                aria-label={t.operators.clearSearch}
+                aria-label={t.alerts.clearSearch}
                 onClick={() => {
                   setQuery("")
                   paging.reset()
@@ -114,6 +129,25 @@ export function AlertsTable({
             </InputGroupAddon>
           ) : null}
         </InputGroup>
+
+        <NativeSelect
+          size="sm"
+          aria-label={t.alerts.severityFilter}
+          value={severity}
+          onChange={(event) => {
+            setSeverity(event.target.value as typeof severity)
+            paging.reset()
+          }}
+        >
+          <NativeSelectOption value="all">
+            {t.alerts.severityAll}
+          </NativeSelectOption>
+          {SEVERITIES.map((value) => (
+            <NativeSelectOption key={value} value={value}>
+              {t.alerts.severity[value]}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
 
         <PageSizeSelect
           id="alerts-per-page"
@@ -128,38 +162,61 @@ export function AlertsTable({
           <TableHeader>
             <TableRow>
               <TableHead>{t.alerts.colWhen}</TableHead>
-              <TableHead>{t.common.operator}</TableHead>
+              <TableHead>{t.workers.colWorker}</TableHead>
               {showStation ? (
                 <TableHead>{t.common.station}</TableHead>
               ) : null}
+              <TableHead>{t.alerts.colWhat}</TableHead>
               <TableHead className="text-right">{t.alerts.colAmount}</TableHead>
-              <TableHead>{t.alerts.colWhy}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {page.map((row, index) => (
-              <TableRow key={`${row.operatorId}-${row.at}-${index}`}>
+              <TableRow key={`${row.at}-${row.type}-${index}`}>
                 <TableCell className="font-mono whitespace-nowrap tabular-nums">
                   {when(row.at)}
                 </TableCell>
                 <TableCell>
-                  <Link
-                    href={`/operators/${row.operatorId}`}
-                    className="font-medium underline-offset-4 hover:underline"
-                  >
-                    {row.operator}
-                  </Link>
+                  {row.worker ? (
+                    row.href ? (
+                      <Link
+                        href={row.href}
+                        className="font-medium underline-offset-4 hover:underline"
+                      >
+                        {row.worker}
+                      </Link>
+                    ) : (
+                      <span className="font-medium">{row.worker}</span>
+                    )
+                  ) : (
+                    // Nobody owns this row — that IS the alert.
+                    <span className="font-mono text-sm text-muted-foreground">
+                      {row.kartNo ?? "—"}
+                    </span>
+                  )}
                 </TableCell>
                 {showStation ? (
                   <TableCell className="text-muted-foreground">
                     {row.station}
                   </TableCell>
                 ) : null}
-                <TableCell className="text-right font-mono tabular-nums">
-                  {money2(row.amount)} ₼
+                <TableCell>
+                  <span
+                    className={cn(
+                      "rounded-lg px-2 py-0.5 text-xs font-medium whitespace-nowrap",
+                      row.severity === "high" &&
+                        "bg-red-500/15 text-red-700 dark:text-red-300",
+                      row.severity === "medium" &&
+                        "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+                      row.severity === "low" &&
+                        "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {typeName(row.type)}
+                  </span>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {row.reason}
+                <TableCell className="text-right font-mono tabular-nums">
+                  {row.amount !== null ? `${money2(row.amount)} ₼` : "—"}
                 </TableCell>
               </TableRow>
             ))}

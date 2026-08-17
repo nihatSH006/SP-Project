@@ -5,15 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   IconAlertTriangle,
-  IconCalendarStats,
-  IconChartHistogram,
   IconDeviceTv,
-  IconFileText,
-  IconFolders,
-  IconBuildingStore,
-  IconLayoutDashboard,
-  IconSettings,
-  IconTrophy,
   IconUsers,
 } from "@tabler/icons-react"
 
@@ -35,56 +27,25 @@ import {
 } from "@/components/ui/sidebar"
 
 /**
- * Navigation grouped by the question each page answers, rather than one flat
- * list of nine links. A chief executive should be able to find "is anything
- * wrong" without reading every label to work out which page holds it.
+ * One section, three pages — the whole core: the alert log, the workers
+ * (presence + sales), and the wall board for a security-office screen.
  */
 const SECTIONS = [
-  {
-    label: "sectionOverview",
-    items: [
-      { key: "dashboard", href: "/", icon: IconLayoutDashboard },
-      { key: "breakdown", href: "/breakdown", icon: IconChartHistogram },
-      { key: "boardPack", href: "/board-pack", icon: IconFileText },
-      { key: "wall", href: "/wall", icon: IconDeviceTv },
-    ],
-  },
-  {
-    label: "sectionPeople",
-    items: [
-      { key: "operators", href: "/operators", icon: IconUsers },
-      { key: "leaderboard", href: "/leaderboard", icon: IconTrophy },
-    ],
-  },
-  {
-    label: "sectionSites",
-    items: [
-      { key: "stations", href: "/stations", icon: IconBuildingStore },
-      { key: "staffing", href: "/staffing", icon: IconCalendarStats },
-    ],
-  },
   {
     label: "sectionIntegrity",
     items: [
       { key: "alerts", href: "/alerts", icon: IconAlertTriangle },
-      { key: "cases", href: "/cases", icon: IconFolders },
+      { key: "workers", href: "/workers", icon: IconUsers },
+      { key: "wall", href: "/wall", icon: IconDeviceTv },
     ],
   },
 ] as const
 
 export function AppSidebar({
   alertCount,
-  isAdmin = false,
-  canSeeCases = false,
-  canCompareStations = false,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   alertCount: number
-  isAdmin?: boolean
-  /** Operators never see the case queue — it names their colleagues. */
-  canSeeCases?: boolean
-  /** Station-pinned accounts have one site; there is nothing to compare. */
-  canCompareStations?: boolean
 }) {
   const pathname = usePathname()
   const t = useT()
@@ -105,7 +66,7 @@ export function AppSidebar({
             <SidebarMenuButton
               size="lg"
               tooltip={t.brand.name}
-              render={<Link href="/" />}
+              render={<Link href="/alerts" />}
               className="h-auto! gap-2.5 py-2.5 hover:bg-transparent active:bg-transparent group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center"
             >
               {/* Collapsed rail: the flame alone, all that fits. */}
@@ -130,22 +91,7 @@ export function AppSidebar({
 
       <SidebarContent>
         {SECTIONS.map((section) => {
-          // Hidden rather than merely disabled: an operator has no business
-          // knowing a case queue exists, let alone that it is one click away.
-          // Both are gated on the same predicate: an operator has no business
-          // knowing a case queue exists, and no reason to put a network board
-          // on a wall.
-          const items = section.items.filter((item) => {
-            if (item.href === "/cases" || item.href === "/wall") {
-              return canSeeCases
-            }
-            // The Stations page exists to rank sites against each other. For
-            // a station manager it is a league table of one, so it is not
-            // offered at all rather than shown empty.
-            if (item.href === "/stations") return canCompareStations
-            return true
-          })
-          if (items.length === 0) return null
+          const items = section.items
 
           return (
             <SidebarGroup key={section.label}>
@@ -153,10 +99,7 @@ export function AppSidebar({
               <SidebarGroupContent>
                 <SidebarMenu>
                   {items.map((item) => {
-                    const isActive =
-                      item.href === "/"
-                        ? pathname === "/"
-                        : pathname.startsWith(item.href)
+                    const isActive = pathname.startsWith(item.href)
 
                     return (
                       <SidebarMenuItem key={item.href}>
@@ -196,26 +139,6 @@ export function AppSidebar({
             </SidebarGroup>
           )
         })}
-
-        {isAdmin ? (
-          <SidebarGroup>
-            <SidebarGroupLabel>{t.nav.sectionAdmin}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    tooltip={t.nav.settings}
-                    isActive={pathname.startsWith("/settings")}
-                    render={<Link href="/settings" />}
-                  >
-                    <IconSettings />
-                    <span>{t.nav.settings}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ) : null}
 
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent className="group-data-[collapsible=icon]:hidden">

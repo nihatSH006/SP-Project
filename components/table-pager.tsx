@@ -72,7 +72,7 @@ export function PageSizeSelect({
       onValueChange={(next) => onChange(Number(next))}
       items={sizes.map((size) => ({
         value: String(size),
-        label: t.operators.perPage(size),
+        label: t.common.perPage(size),
       }))}
     >
       <SelectTrigger id={id} size="sm" className="w-36">
@@ -81,7 +81,7 @@ export function PageSizeSelect({
       <SelectContent>
         {sizes.map((size) => (
           <SelectItem key={size} value={String(size)}>
-            {t.operators.perPage(size)}
+            {t.common.perPage(size)}
           </SelectItem>
         ))}
       </SelectContent>
@@ -116,7 +116,7 @@ export function TablePagination({
         data-row-total={total}
         className="text-sm text-muted-foreground tabular-nums"
       >
-        {t.operators.showingRange(
+        {t.common.showingRange(
           start + 1,
           Math.min(start + pageSize, total),
           total

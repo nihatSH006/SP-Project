@@ -2,7 +2,18 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* Dark styling exists ON SCREEN ONLY. Every `dark:` utility in the app runs
+   through this variant, so scoping it to screen media guarantees a printed
+   page (and its PDF) never carries a single dark-mode declaration — while
+   the screen keeps whatever theme the reader chose, even mid-print. The
+   token side of the same guarantee lives in the @media print block below. */
+@custom-variant dark {
+  @media screen {
+    &:is(.dark *) {
+      @slot;
+    }
+  }
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -251,14 +262,59 @@
     color: #000 !important;
   }
 
+  /* Colour is information here — severity chips, status badges, the red of
+     an overdue deadline. Without this, browsers strip backgrounds to save
+     toner and the printed pack loses its severity coding. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Paper is always light — as CSS, not as a runtime theme flip. This block
+     only exists inside @media print, so the SCREEN keeps whatever theme the
+     reader chose while the print rendering resolves every token to its light
+     value. `.dark` is repeated so it wins against the dark block whatever
+     the cascade order. */
+  :root,
+  .dark {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.488 0.243 264.376);
+    --primary-foreground: oklch(0.97 0.014 254.604);
+    --secondary: oklch(0.967 0.001 286.375);
+    --secondary-foreground: oklch(0.21 0.006 285.885);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    /* !important: next-themes writes `color-scheme: dark` as an inline style,
+       which would otherwise beat any stylesheet rule. */
+    color-scheme: light !important;
+  }
+
   /* Cards become plain ruled blocks; shadows and translucent fills print as
-     grey mush. */
+     grey mush. Small cards stay on one sheet; a card carrying `.print-flow`
+     (a month of evidence, a long timeline) is TALLER than a sheet, and
+     forbidding it from breaking clips it at the page edge — it flows, and
+     its rows carry their own break-inside: avoid. */
   [data-slot="card"] {
     background: #fff !important;
     color: #000 !important;
     border: 1px solid #d4d4d8 !important;
     box-shadow: none !important;
     break-inside: avoid;
+  }
+
+  [data-slot="card"].print-flow {
+    break-inside: auto;
   }
 
   [data-slot="card-description"],
@@ -286,10 +342,19 @@
     max-height: none !important;
   }
 
-  /* The page heading duplicates the letterhead, which is already at the top of
-     the printed sheet. */
-  [data-page-heading] {
+  /* The page heading IS the printed document's title — the person's name on
+     an evidence pack, "Fraud cases" on the queue. (It used to be hidden for
+     the board pack, which carried its own letterhead; that page is gone, and
+     hiding it here left every printed PDF titleless.) Only the action
+     buttons inside it are chrome. */
+  [data-page-heading] [data-slot="button"],
+  [data-page-heading] a,
+  [data-page-heading] button {
     display: none !important;
+  }
+
+  [data-page-heading] h1 {
+    font-size: 20pt;
   }
 
   /* Tables are the whole document, so they get the print treatment properly:
